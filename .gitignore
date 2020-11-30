@@ -1,0 +1,21 @@
+venv/
+
+*.pyc
+__pycache__/
+
+instance/
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+dist/
+build/
+*.egg-info/
+
+**/*.swp
+.lintcache
+
+# translation output
+app/translations/*/LC_MESSAGES/messages.mo
+i18n/messages.pot

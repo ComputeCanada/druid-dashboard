@@ -1,0 +1,198 @@
+{# --------------------------------------------------------------------------
+                                                                      html
+-------------------------------------------------------------------------- #}
+
+<h3>API keys</h3>
+<table id='api_keys' class='admin'>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id='api_keys_tbody'>
+    <tr>
+      <td>Loading (probably)...</td>
+      <td></td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th><a href='' class='add_api_key'>Create new API key</a></th>
+      <td><a href=''><img class='add_api_key' src='{{ url_for('static', filename='icons/add.svg') }}' height=24 width=24/></a></td>
+    </tr>
+  </tfoot>
+</table>
+
+{# ---------------------------------------------------------------------------
+                                                                  scriptage
+--------------------------------------------------------------------------- #}
+
+<script>
+
+  function add_api_key() {
+    // clear fields as necessary
+    $("#apikey_name").val('');
+
+    // create new API key
+    let newkey = generate_api_key();
+    $("#apikey").val(newkey);
+  }
+
+  function copy_to_clipboard(el) {
+    el.focus();
+    el.select();
+    try {
+      let successful = document.execCommand('copy');
+      let msg = successful ? 'successful' : 'unsuccessful';
+      console.log('Copying text command was ' + msg);
+    } catch (err) {
+      console.log('Ooops, unable to copy');
+    }
+  }
+
+  function submit_api_key(form) {
+    let formdata = get_form_values(form);
+
+    url = '/xhr/apikeys/';
+    $.ajax({
+      url: url,
+      method: 'POST',
+      data: formdata,
+      success: function() {
+        load_api_keys();
+        return(true);
+      },
+      error: function() { 
+        // TODO: flash error
+        console.error("Failure on submit");
+        return(false);
+      }
+    });
+  }
+
+  function delete_api_key(id) {
+    $.ajax({
+      url: '/xhr/apikeys/' + id,
+      method: 'DELETE',
+      success: function() {
+      },
+      error: function() {
+        // TODO: flash error
+        console.error("Failure on delete");
+      }
+    });
+    $("#confirm_delete_api_key").dialog('close');
+  }
+
+  function load_api_keys(event, ui) {
+    $.ajax({
+      url: '/xhr/apikeys/',
+      method: 'GET',
+      success: display_api_keys,
+      error: function() { console.error("load_api_keys() AJAX error"); }
+    });
+  }
+
+  function display_api_keys(apikeys, status, jqXHR) {
+
+    // clear out body of table, leaving header and footer intact
+    var tbody = document.getElementById("api_keys_tbody");
+    tbody.innerHTML = "";
+
+    // create row for each API key
+    if (apikeys) {
+      for (apikey of apikeys) {
+        r = document.createElement("tr");
+        r.innerHTML = "<td>" + apikey + "</td>" +
+                      "<td><img class='delete_api_key' id='delete:" + apikey + "' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></td>";
+        tbody.appendChild(r);
+      }
+    } else {
+      r = document.createElement("tr");
+      r.innerHTML = "<td colspan=2>There are currently no API keys defined.</td>";
+      tbody.appendChild(r);
+    }
+
+    // set up confirmation dialog box
+    $("#confirm_delete_api_key").dialog({ autoOpen: false, modal: true });
+    $(".delete_api_key").click(function(e) {
+      $id = e.delegateTarget.id.split(':')[1];
+      $("#delete_api_key").click(function() {
+        delete_api_key($id);
+        load_api_keys();
+      });
+      $("#confirm_delete_api_key").dialog('open');
+      return(false);
+    });
+  }
+
+  window.addEventListener("load", function() {
+
+    // set up auction submission/update dialog box
+    $("#create_api_key").dialog({
+      autoOpen: false,
+      modal: true,
+      width: 'auto',
+      buttons: {
+        "{{ _('Cancel') }}": function() {
+          $(this).dialog('close');
+        },
+        "{{ _('Submit') }}": function() {
+          // check validity
+          if (!$("#create_api_key_form")[0].reportValidity()) {
+            return false;
+          }
+          submit_api_key($("#create_api_key_form")[0]);
+          $(this).dialog('close');
+        }
+      },
+      open: function(event, ui) {
+      }
+    });
+
+    $(".add_api_key").click(function(e) {
+      console.log("Here in add_api_key");
+      add_api_key();
+      $("#create_api_key").dialog('open');
+      return(false);
+    });
+
+    // now load those keys
+    load_api_keys();
+  });
+</script>
+
+{# ---------------------------------------------------------------------------
+                                                     dialog: create API key
+--------------------------------------------------------------------------- #}
+
+<div id='create_api_key' title='{{ _('Create API key') }}' class='ondemand'>
+  <form id='create_api_key_form'>
+  <table>
+  <thead>
+  <p>{{ _('Here is a newly generated API key.  Please give it a name and copy it down as it cannot be retrieved later.') }}</p>
+  </thead>
+  <tr>
+    <th>Name</th>
+    <td><input id='apikey_name' type='text' maxlength=16 name='apikey_name' required pattern='^[a-zA-Z0-9_]+$'/> (Must match '^[a-zA-Z0-9_]+$'.)</td>
+  </tr>
+  <tr>
+    <th>Key</th>
+    <td><input id='apikey' type='text' size='64' readonly name='apikey'/>
+        <img src='{{ url_for('static', filename='icons/clipboard.svg') }}' height=24 width=24 onclick='copy_to_clipboard($("#apikey")[0])'/>
+    </td>
+  </tr>
+  </table>
+  </form>
+</div>
+
+{# ---------------------------------------------------------------------------
+                                             dialog: confirm delete API key
+--------------------------------------------------------------------------- #}
+
+<div id='confirm_delete_api_key' title='{{ _('Confirm delete API key') }}' class='ondemand'>
+  <p>{{ _('Are you sure you want to delete this API key?') }}</p>
+  <input type='button' onclick='$("#confirm_delete_api_key").dialog("close")' value='{{ _('No, leave it') }}'/>
+  <input type='button' id='delete_api_key' onclick='' name='action' value='{{ _('Yes, delete key') }}'/>
+</div>

@@ -1,0 +1,6 @@
+[submodule "ccldap"]
+	path = ccldap
+	url = ../../dleske/python-ccldap
+[submodule "tests/linting"]
+	path = tests/linting
+	url = ../../dleske/tests

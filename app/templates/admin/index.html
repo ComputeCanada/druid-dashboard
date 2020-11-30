@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block extra %}
+  <script src="{{ url_for('static', filename='misc.js') }}"></script>
+
+{% endblock %}
+
+{% block scriptage %}
+  <script>
+    var active_tab = Cookies.get("active-tab");
+    if (!active_tab) {
+      active_tab = 0;
+    }
+
+    function refresh_authz() {
+      // TODO: implement refresh_authz()
+      console.log("Unimplemented function: refresh_authz()");
+    }
+
+    function refresh_api_keys() {
+      // TODO: implement refresh_api_keys()
+      console.log("Unimplemented function: refresh_api_keys()");
+    }
+
+    function refresh_configuriation() {
+      // TODO: implement refresh_configuriation()
+      console.log("Unimplemented function: refresh_configuration()");
+    }
+
+    // functions to execute when activating tabs
+    // TODO: create actual functions
+    var tab_activation_fns = [
+      refresh_authz,
+      refresh_api_keys,
+      refresh_configuriation
+    ];
+
+    // initialize tabs
+    $("#tabs").tabs({
+      active: active_tab,
+      activate: function (event, ui) {
+        active_tab = ui.newTab.index();
+        Cookies.set("active-tab", active_tab);
+        if (tab_activation_fns[active_tab]) {
+          tab_activation_fns[active_tab]();
+        }
+      }
+    });
+
+    // for when document is ready
+    window.addEventListener("load", function() {
+
+      // tabs only "activate" when clicked on: the first loaded tab does not
+      // fire this event, so fire any tab activation function for default tab
+      // on load
+      if (tab_activation_fns[active_tab]) {
+        tab_activation_fns[active_tab]();
+      }
+    });
+
+  </script>
+
+{% endblock %}
+
+{% block header %}
+  <h2>{% block title %}Admin{% endblock %}</h2>
+{% endblock %}
+
+{% block content %}
+
+  <div id="tabs">
+
+    <!-- tab bar -->
+    <ul>
+      <li><a href="#tab-authz"><span>Users and access</span></a></li>
+      <li><a href="#tab-api-keys"><span>API keys</a></li>
+      <li><a href="#tab-configuration"><span>Configuration</a></li>
+    </ul>
+
+    <!-- tabs -->
+    <div id="tab-authz">
+      {% include 'admin/authz.html' %}
+    </div>
+    <div id="tab-api-keys">
+      {% include 'admin/api-keys.html' %}
+    </div>
+    <div id="tab-configuration">
+      {% include 'admin/configuration.html' %}
+    </div>
+  </div>
+
+{% endblock %}
