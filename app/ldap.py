@@ -35,7 +35,8 @@ def _translate_options(config):
 
   f = lambda x: (
     x.startswith('LDAP_')
-    and x not in ('LDAP_BINDDN', 'LDAP_PASSWORD', 'LDAP_URI', 'LDAP_SKIP_TLS')
+    and x not in ('LDAP_BINDDN', 'LDAP_PASSWORD', 'LDAP_URI', 'LDAP_SKIP_TLS',
+                  'LDAP_STUB')
   )
 
   options = {}
@@ -55,23 +56,26 @@ def get_ldap():
 
     options = _translate_options(current_app.config)
 
-    try:
-      ldapconn = ccldap.CCLdap(
-        current_app.config['LDAP_BINDDN'],
-        current_app.config['LDAP_PASSWORD'],
-        current_app.config['LDAP_URI'],
-        insecure_skip_tls=current_app.config['LDAP_SKIP_TLS'],
-        options=options
-      )
-    except ldap.INVALID_CREDENTIALS as e:
-      get_log().critical('Could not connect to LDAP: invalid credentials')
-      get_log().debug(e)
-      abort(500)
-    except Exception as e:
-      get_log().critical('Could not connect to LDAP')
-      get_log().debug(e)
-      raise e
-    g.ldap = ldapconn
+    if current_app.config.get('LDAP_STUB'):
+      g.ldap = current_app.config['LDAP_STUB']
+    else:
+      try:
+        ldapconn = ccldap.CCLdap(
+          current_app.config['LDAP_BINDDN'],
+          current_app.config['LDAP_PASSWORD'],
+          current_app.config['LDAP_URI'],
+          insecure_skip_tls=current_app.config['LDAP_SKIP_TLS'],
+          options=options
+        )
+      except ldap.INVALID_CREDENTIALS as e:
+        get_log().critical('Could not connect to LDAP: invalid credentials')
+        get_log().debug(e)
+        abort(500)
+      except Exception as e:
+        get_log().critical('Could not connect to LDAP')
+        get_log().debug(e)
+        raise e
+      g.ldap = ldapconn
   return g.ldap
 
 def close_ldap(e=None):
