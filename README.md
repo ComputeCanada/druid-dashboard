@@ -165,7 +165,7 @@ steps (only needs to be done when adding new user-facing messages):
     ```
 2. Update the messages translation file with empty translations:
     ```
-    pybabel update -i i18n/messages.pot -d app/translations
+    $ pybabel update -i i18n/messages.pot -d app/translations
     ```
 3. Fill in the missing translations with your favourite editor.
 4. Compile the messages:
