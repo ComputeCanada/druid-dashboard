@@ -78,12 +78,6 @@ def login_required(view):
           # set this after the rest as this establishes a valid authentication
           session['uid'] = authenticated_user
 
-          # get list of projects for which user is member
-          session['projects'] = {
-            proj['ccRapi']: proj
-            for proj in get_ldap().get_projects(details['cci'])
-          }
-
           # check if user has rights to this service
           if 'eduPersonEntitlement' in details:
 
@@ -95,6 +89,11 @@ def login_required(view):
 
             # has analyst rights?
             session['analyst'] = 'frak.computecanada.ca/burst/analyst' in details['eduPersonEntitlement']
+
+          else:
+            session['admin'] = False
+            session['admin_view'] = False
+            session['analyst'] = False
 
           load_logged_in_user()
           authenticated_externally = True

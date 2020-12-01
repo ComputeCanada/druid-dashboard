@@ -75,13 +75,8 @@ def init_db():
     db.executescript(f.read().decode('utf8'))
 
 
-def seed_db():
+def seed_db(seedfile):
   db = get_db()
-
-  if db.type == 'sqlite':
-    seedfile = 'seed.sql'
-  elif db.type == 'postgres':
-    seedfile = 'seed.psql'
 
   with current_app.open_resource(seedfile) as f:
     db.executescript(f.read().decode('utf8'))
@@ -95,14 +90,20 @@ def init_db_command():
   click.echo('Initialized the database.')
 
 
-@click.command('seed-db')
-@with_appcontext
-def seed_db_command():
-  """Clear existing data, create new tables, seed with test data."""
-
-  init_db()
-  seed_db()
-  click.echo('Initialized and seeded the database.')
+#@click.command('seed-db')
+#@with_appcontext
+#def seed_db_command():
+#  """Clear existing data, create new tables, seed with test data."""
+#
+#  db = get_db()
+#  if db.type == 'sqlite':
+#    seedfile = 'seed.sql'
+#  elif db.type == 'postgres':
+#    seedfile = 'seed.psql'
+#
+#  init_db()
+#  seed_db(seedfile)
+#  click.echo('Initialized and seeded the database.')
 
 
 class DbEnum(Enum):
