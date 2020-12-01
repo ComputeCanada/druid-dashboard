@@ -1,0 +1,142 @@
+# yamllint
+image: dleskecc/tester.py
+
+variables:
+  PYLINTRC: tests/linting/extras/pylintrc
+  # use the following for DinD runners
+  #DOCKER_HOST: tcp://docker:2375/
+  # use the following for Kubernetes runners
+  DOCKER_HOST: tcp://localhost:2375/
+  DOCKER_DRIVER: overlay2
+  PYTHONPATH: ${PYTHONPATH}:.
+  #
+  # variables for testing against LDAP container
+  BEAM_LDAP_URI: ldap://localhost:3389
+  BEAM_LDAP_SKIP_TLS: "yes"
+  #
+  # image names
+  TEST_IMAGE: "${CI_REGISTRY_IMAGE}:test"
+  DEV_IMAGE: "${CI_REGISTRY_IMAGE}:dev"
+  PROD_IMAGE: "${CI_REGISTRY_IMAGE}:prod"
+
+services:
+  - name: docker:18.06.3-dind
+    command: ["--mtu=1450"]
+
+before_script:
+  - git submodule sync
+  - git submodule update --init
+
+stages:
+  - pre-test
+  - build
+  - test
+  - pre-deploy
+  - deploy
+
+.code:
+  only:
+    changes:
+      - .gitlab-ci.yml
+      - ccldap
+      - "i18n/*"
+      - "app/**/*"
+      - requirements.txt
+      - "tests/**/*"
+      - deployment/Dockerfile
+
+todos:
+  except:
+    - main
+  allow_failure: true
+  tags:
+    - k8s
+  stage: pre-test
+  script:
+    - tests/linting/todos
+
+todos_main:
+  only:
+    - main
+  allow_failure: true
+  tags:
+    - k8s
+  stage: pre-test
+  script:
+    - tests/linting/todos && true; todos=$?
+    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
+    - test $todos -eq 0
+  artifacts:
+    # create artifact even when the job fails, which it should if todos > 0
+    when: always
+    paths: ['todos.svg']
+
+syntax:
+  extends: .code
+  tags:
+    - k8s
+  stage: pre-test
+  script:
+    - tests/linting/test-all
+
+unittest:
+  extends: .code
+  tags:
+    - k8s
+  stage: pre-test
+  script:
+    - docker run --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=supersecretpassword -d postgres
+    - docker login -u "$LDAP_CTNR_DT_USER" -p "$LDAP_CTNR_DT_PASS" $CI_REGISTRY
+    - docker pull git.computecanada.ca:4567/dleske/ldap-ctnr
+    - docker run -d -p 3389:389 --name ldap git.computecanada.ca:4567/dleske/ldap-ctnr
+    - echo "Waiting for LDAP container to become ready..."
+    - while ! ( docker logs ldap --tail 50 2>&1 | grep 'slapd starting' ); do sleep 1; done
+    - apt install -y libldap2-dev libsasl2-dev
+    - pip3 install -r requirements.txt
+    - pybabel compile -d app/translations
+    - pytest -v --cov=app tests/test_unit.py tests/test_unseeded.py
+
+build_test:
+  extends: .code
+  tags:
+    - k8s
+  stage: build
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker pull $TEST_IMAGE || true    # it's okay if this fails
+    - buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
+    - sed -i 's/Built with Flask/'$buildinfo'/' app/templates/base.html
+    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $TEST_IMAGE .
+    - docker push $TEST_IMAGE
+
+build_docker_development:
+  extends: .code
+  only:
+    - main
+  except:
+    - tags
+  tags:
+    - k8s
+  stage: pre-deploy
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker pull $TEST_IMAGE || true    # it's okay if this fails
+    - imagetag="${CI_REGISTRY_IMAGE}:dev"
+    - buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
+    - sed -i 's/Built with Flask/'$buildinfo'/' app/templates/base.html
+    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $DEV_IMAGE .
+    - docker push $DEV_IMAGE
+
+build_docker_release:
+  extends: .code
+  only:
+    - tags
+  tags:
+    - k8s
+  stage: pre-deploy
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker pull $TEST_IMAGE || true    # it's okay if this fails
+    - sed -i 's/Built with Flask/'$CI_COMMIT_TAG'/' app/templates/base.html
+    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t "$CI_REGISTRY_IMAGE" -t $PROD_IMAGE .
+    - docker push $PROD_IMAGE
