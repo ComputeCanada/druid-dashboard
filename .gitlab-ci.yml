@@ -77,6 +77,7 @@ syntax:
     - k8s
   stage: pre-test
   script:
+    - pylint --version 2>&1
     - tests/linting/test-all
 
 unittest:
@@ -85,6 +86,7 @@ unittest:
     - k8s
   stage: pre-test
   script:
+    - apt install -y libldap2-dev libsasl2-dev
     - pip3 install -r requirements.txt
     - pybabel compile -d app/translations
     - pytest -v --cov=app tests/test_cli.py tests/test_unit.py tests/test_unseeded.py
