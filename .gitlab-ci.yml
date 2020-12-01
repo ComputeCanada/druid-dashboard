@@ -85,16 +85,9 @@ unittest:
     - k8s
   stage: pre-test
   script:
-    - docker run --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=supersecretpassword -d postgres
-    - docker login -u "$LDAP_CTNR_DT_USER" -p "$LDAP_CTNR_DT_PASS" $CI_REGISTRY
-    - docker pull git.computecanada.ca:4567/dleske/ldap-ctnr
-    - docker run -d -p 3389:389 --name ldap git.computecanada.ca:4567/dleske/ldap-ctnr
-    - echo "Waiting for LDAP container to become ready..."
-    - while ! ( docker logs ldap --tail 50 2>&1 | grep 'slapd starting' ); do sleep 1; done
-    - apt install -y libldap2-dev libsasl2-dev
     - pip3 install -r requirements.txt
     - pybabel compile -d app/translations
-    - pytest -v --cov=app tests/test_unit.py tests/test_unseeded.py
+    - pytest -v --cov=app tests/test_cli.py tests/test_unit.py tests/test_unseeded.py
 
 build_test:
   extends: .code
