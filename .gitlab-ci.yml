@@ -83,7 +83,7 @@ unittest:
   extends: .code
   tags:
     - k8s
-  stage: pre-test
+  stage: test
   script:
     - docker run --name postgres -p 5432:5432 -e POSTGRES_PASSWORD=supersecretpassword -d postgres
     - docker login -u "$LDAP_CTNR_DT_USER" -p "$LDAP_CTNR_DT_PASS" $CI_REGISTRY
