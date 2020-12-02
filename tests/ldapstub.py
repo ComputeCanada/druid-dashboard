@@ -25,5 +25,6 @@ class LdapStub():
   def __init__(self):
     pass
 
+  #pylint: disable=unused-argument,no-self-use
   def get_person(self, uid, additional=None):
     return _fake_tree.get(uid, None)

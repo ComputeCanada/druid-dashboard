@@ -2,8 +2,6 @@
 # pylint:
 #
 #import logging
-import threading
-import queue
 import hmac
 import base64
 from email.utils import formatdate

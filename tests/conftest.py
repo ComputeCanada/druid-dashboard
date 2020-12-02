@@ -4,9 +4,9 @@
 import os
 import tempfile
 import pytest
+from ldapstub import LdapStub
 from app import create_app
 from app.db import get_db, init_db, seed_db
-from ldapstub import LdapStub
 
 
 (sqlite_fh, sqlite_fn) = tempfile.mkstemp()

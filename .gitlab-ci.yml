@@ -77,7 +77,6 @@ syntax:
     - k8s
   stage: pre-test
   script:
-    - pylint --version 2>&1
     - tests/linting/test-all
 
 unittest:
