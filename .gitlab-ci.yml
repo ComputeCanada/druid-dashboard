@@ -116,6 +116,7 @@ build_docker_development:
     - buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
     - sed -i 's/Built with Flask/'$buildinfo'/' app/templates/base.html
     - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $SHA_IMAGE -t $DEV_IMAGE .
+    - docker push $SHA_IMAGE
     - docker push $DEV_IMAGE
 
 build_docker_release:
@@ -129,7 +130,8 @@ build_docker_release:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - docker pull $TEST_IMAGE || true    # it's okay if this fails
     - sed -i 's/Built with Flask/'$CI_COMMIT_TAG'/' app/templates/base.html
-    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $SHA_IMAGE -t $PROD_IMAGE .
+    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $SHA_IMAGE -t PROD_IMAGE .
+    - docker push $SHA_IMAGE
     - docker push $PROD_IMAGE
 
 deploy_development:
