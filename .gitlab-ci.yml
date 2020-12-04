@@ -10,14 +10,11 @@ variables:
   DOCKER_DRIVER: overlay2
   PYTHONPATH: ${PYTHONPATH}:.
   #
-  # variables for testing against LDAP container
-  BEAM_LDAP_URI: ldap://localhost:3389
-  BEAM_LDAP_SKIP_TLS: "yes"
-  #
   # image names
   TEST_IMAGE: "${CI_REGISTRY_IMAGE}:test"
   DEV_IMAGE: "${CI_REGISTRY_IMAGE}:dev"
   PROD_IMAGE: "${CI_REGISTRY_IMAGE}:prod"
+  SHA_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
 
 services:
   - name: docker:18.06.3-dind
@@ -118,7 +115,7 @@ build_docker_development:
     - imagetag="${CI_REGISTRY_IMAGE}:dev"
     - buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
     - sed -i 's/Built with Flask/'$buildinfo'/' app/templates/base.html
-    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $DEV_IMAGE .
+    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $SHA_IMAGE -t $DEV_IMAGE .
     - docker push $DEV_IMAGE
 
 build_docker_release:
@@ -132,5 +129,38 @@ build_docker_release:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - docker pull $TEST_IMAGE || true    # it's okay if this fails
     - sed -i 's/Built with Flask/'$CI_COMMIT_TAG'/' app/templates/base.html
-    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t "$CI_REGISTRY_IMAGE" -t $PROD_IMAGE .
+    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $SHA_IMAGE -t $PROD_IMAGE .
     - docker push $PROD_IMAGE
+
+deploy_development:
+  extends: .code
+  # failure allowed while Kubernetes down
+  allow_failure: true
+  only:
+    - main
+  except:
+    - tags
+  tags:
+    - k8s
+  stage: deploy
+  script:
+    - release="$CI_COMMIT_SHORT_SHA"
+    - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"${SHA_IMAGE}"}]}}}}'
+
+deploy_release:
+  extends: .code
+  # failure allowed while Kubernetes down
+  allow_failure: true
+  only:
+    - tags
+  tags:
+    - k8s
+  stage: deploy
+  script:
+    - release="$CI_COMMIT_TAG"
+    - kubectl config set-credentials deploy --token="$K8S_DEPLOY_TOKEN"
+    - kubectl config set-cluster $K8S_CLUSTER --server=$K8S_API_SERVER --certificate-authority=$K8S_CA_CRT --embed-certs=true
+    - kubectl config set-context dontcare --cluster=$K8S_CLUSTER --user=deploy --namespace=$K8S_NAMESPACE
+    - kubectl config use-context dontcare
+    - kubectl version
+    - kubectl patch deployment beam -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"${SHA_IMAGE}"}]}}}}'
