@@ -145,7 +145,7 @@ deploy_development:
   stage: deploy
   script:
     - release="$CI_COMMIT_SHORT_SHA"
-    - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"${SHA_IMAGE}"}]}}}}'
+    - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"'${SHA_IMAGE}'"}]}}}}'
 
 deploy_release:
   extends: .code
@@ -163,4 +163,4 @@ deploy_release:
     - kubectl config set-context dontcare --cluster=$K8S_CLUSTER --user=deploy --namespace=$K8S_NAMESPACE
     - kubectl config use-context dontcare
     - kubectl version
-    - kubectl patch deployment beam -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"${SHA_IMAGE}"}]}}}}'
+    - kubectl patch deployment beam -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"'${SHA_IMAGE}'"}]}}}}'
