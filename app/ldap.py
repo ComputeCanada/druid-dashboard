@@ -2,7 +2,7 @@
 # pylint:
 #
 import ldap
-from flask import current_app, g, abort
+from flask import current_app, g
 from ccldap import ccldap
 from app.log import get_log
 from app.exceptions import LdapException
@@ -70,11 +70,11 @@ def get_ldap():
       except ldap.INVALID_CREDENTIALS as e:
         get_log().critical('Could not connect to LDAP: invalid credentials')
         get_log().debug(e)
-        abort(500)
+        raise LdapException("Invalid credentials") from e
       except Exception as e:
         get_log().critical('Could not connect to LDAP')
         get_log().debug(e)
-        raise e
+        raise LdapException("Could not connect to LDAP server") from e
       g.ldap = ldapconn
   return g.ldap
 
