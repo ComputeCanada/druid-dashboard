@@ -19,6 +19,7 @@ from . import auth
 from . import dashboard
 from . import api
 from . import ajax
+from . import status
 
 # misc
 from . import errors
@@ -169,6 +170,7 @@ def create_app(test_config=None):
   app.register_blueprint(admin.bp)
   app.register_blueprint(api.bp)
   app.register_blueprint(ajax.bp)
+  app.register_blueprint(status.bp)
 
   # this is to make get_locale() available to templates
   app.jinja_env.globals.update(get_locale=get_locale)

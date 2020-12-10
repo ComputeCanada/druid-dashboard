@@ -18,6 +18,9 @@ _fake_tree = {
   'user2': {
     'cn': 'Test User 2',
     'givenName': 'User 2'
+  },
+  'ldapcanary': {
+    'cn': 'Fake Canary'
   }
 }
 

@@ -8,7 +8,7 @@ from email.utils import formatdate
 import json
 import pytest
 from app import create_app
-from app.db import init_db
+from app.db import init_db, SCHEMA_VERSION
 import app.exceptions
 
 # ---------------------------------------------------------------------------
@@ -118,6 +118,19 @@ def test_failed_login_bad_user(client):
   response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'DonaldJTrump'})
   assert response.status_code == 403
 
+
+# ---------------------------------------------------------------------------
+#                                                                STATUS
+# ---------------------------------------------------------------------------
+
+def test_status(client):
+  """
+  Test that /status returns a 200 in the case of things working, which they
+  should be here because it's stubbed out.
+  """
+  response = client.get('/status/')
+  assert response.status_code == 200
+  assert response.data == 'LDAP: Okay\nDB: Okay (schema version {})'.format(SCHEMA_VERSION).encode('utf-8')
 
 # ---------------------------------------------------------------------------
 #                                                                DASHBOARD
