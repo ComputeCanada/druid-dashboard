@@ -1,5 +1,12 @@
+DROP TABLE IF EXISTS schemalog;
 DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
+
+CREATE TABLE schemalog (
+  version INTEGER PRIMARY KEY,
+  applied TIMESTAMP
+);
+INSERT INTO schemalog (version, applied) VALUES ('20201209', CURRENT_TIMESTAMP);
 
 CREATE TABLE apikeys (
   access VARCHAR(16) UNIQUE NOT NULL,

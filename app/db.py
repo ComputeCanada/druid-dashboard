@@ -9,6 +9,22 @@ from app.log import get_log
 from app import exceptions
 
 
+# Current database schema version
+# format is integer, YYYYMMDD[.R] where R is an arbitrary digit in the case of
+# multiple releases in day.
+#
+# This number must match the latest entry in the database's schemalog table,
+# or an upgrade should be performed.
+SCHEMA_VERSION = 20201209
+
+# query to fetch latest schema version
+SQL_GET_SCHEMA_VERSION = """
+  SELECT    version
+  FROM      schemalog
+  ORDER BY  applied DESC
+  LIMIT     1
+"""
+
 # This is used to queue custom DB-ready classes for to be registered for use
 # with specific databases, once the appropriate database is identified and
 # initialized.
@@ -80,6 +96,19 @@ def seed_db(seedfile):
 
   with current_app.open_resource(seedfile) as f:
     db.executescript(f.read().decode('utf8'))
+
+
+def get_schema_version():
+  db = get_db()
+  try:
+    vers = db.execute(SQL_GET_SCHEMA_VERSION).fetchone()[0]
+  except Exception as e:
+    get_log().error("Error in retrieving schema version: {}".format(e))
+    raise exceptions.DatabaseException("Could not retrieve schema version") from e
+  if not vers:
+    get_log().error("Could not find latest schema version")
+    raise exceptions.DatabaseException("Could not determine schema version")
+  return (vers, SCHEMA_VERSION)
 
 
 @click.command('init-db')
