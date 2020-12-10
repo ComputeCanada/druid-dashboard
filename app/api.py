@@ -38,7 +38,7 @@ def api_key_required(view):
         raise RuntimeError()
     except (RuntimeError, ValueError):
       # catches raised exception and also <3 strings to split above
-      get_log().info("Invalid authorization header")
+      get_log().error("Invalid authorization header")
       abort(403)
 
     # request.date NOT used because it reinterprets date according to locale
@@ -56,10 +56,10 @@ def api_key_required(view):
     # verify digest given against our own calculated from request
     try:
       if not verify_message(accesskey, digestible, digest):
-        get_log().info("Digests do not match")
+        get_log().error("Digests do not match")
         abort(403)
     except ValueError as e:
-      get_log().info("Message authorization digest failure: '%s'", e)
+      get_log().error("Message authorization digest failure: '%s'", e)
       abort(403)
 
     # Check date is relatively recent.  Do this AFTER message digest
