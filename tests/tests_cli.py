@@ -8,8 +8,8 @@ from app.db import init_db_command
 #                                                              CLI commands
 # ---------------------------------------------------------------------------
 
-def test_init_db(app):
-  runner = app.test_cli_runner()
+def test_init_db(empty_app):
+  runner = empty_app.test_cli_runner()
   result = runner.invoke(init_db_command)
   assert "Initialized the database." in result.output
 

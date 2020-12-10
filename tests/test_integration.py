@@ -2,7 +2,6 @@
 # pylint: disable=W0621,wildcard-import,unused-wildcard-import
 #
 import os
-import tempfile
 import pytest
 from tests_cli import *
 from tests_status import *
@@ -11,20 +10,16 @@ from tests_apikeys import *
 from tests_api import *
 from tests_authentication import *
 from tests_dashboard import *
-from tests.ldapstub import LdapStub
+from ldapstub import LdapStub
 from app import create_app
 from app.db import get_db, init_db, seed_db
 
-(sqlite_fh, sqlite_fn) = tempfile.mkstemp()
 test_params = [{
-  'schema': 'schema.sql',
+  'schema': 'schema.psql',
   'seed': '../tests/data.sql',
-  'uri': 'file://' + sqlite_fn,
-  'delete_afterwards': True,
-  'filehandle': sqlite_fh,
-  'filename': sqlite_fn
+  'uri': os.environ.get('BEAM_PGSQL_URI', 'postgresql://postgres:supersecretpassword@localhost:5432/postgres')
 }]
-test_ids = ['sqlite']
+test_ids = ['pgsql']
 
 
 @pytest.fixture(scope='module', params=test_params, ids=test_ids)
@@ -43,14 +38,6 @@ def seeded_app(request):
     get_db().commit()
 
   yield app
-
-  if request.param.get('delete_afterwards', False):
-    try:
-      os.close(request.param['filehandle'])
-      os.unlink(request.param['filename'])
-    except OSError:
-      # TODO: figure out why this was already closed/unlinked
-      pass
 
 
 @pytest.fixture(scope='module', params=test_params, ids=test_ids)
