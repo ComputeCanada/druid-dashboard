@@ -101,7 +101,7 @@ def seed_db(seedfile):
 def get_schema_version():
   db = get_db()
   try:
-    vers = db.execute(SQL_GET_SCHEMA_VERSION).fetchone()[0]
+    vers = db.execute(SQL_GET_SCHEMA_VERSION).fetchone()['version']
   except Exception as e:
     get_log().error("Error in retrieving schema version: {}".format(e))
     raise exceptions.DatabaseException("Could not retrieve schema version") from e
