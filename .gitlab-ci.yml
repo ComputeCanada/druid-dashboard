@@ -85,7 +85,7 @@ unittest:
     - apt install -y libldap2-dev libsasl2-dev
     - pip3 install -r requirements.txt
     - pybabel compile -d app/translations
-    - pytest -v --cov=app tests/test_unit.py
+    - pytest -v --cov=app tests/test_sqlite.py
 
 integration:
   extends: .code
