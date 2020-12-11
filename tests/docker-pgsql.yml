@@ -1,0 +1,18 @@
+# yamllint
+#
+# TAG should be defined by caller.  Used to ensure testing containers have
+# unique but known names.
+version: '3'
+
+volumes:
+  pip:
+    driver: local
+
+services:
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: supersecretpassword
+    ports:
+      - "5432:5432"
+    container_name: postgres-$TAG

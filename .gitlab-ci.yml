@@ -26,8 +26,8 @@ before_script:
 
 stages:
   - pre-test
-  - build
   - test
+  - build
   - pre-deploy
   - deploy
 
@@ -85,7 +85,19 @@ unittest:
     - apt install -y libldap2-dev libsasl2-dev
     - pip3 install -r requirements.txt
     - pybabel compile -d app/translations
-    - pytest -v --cov=app tests/test_cli.py tests/test_unit.py tests/test_unseeded.py
+    - pytest -v --cov=app tests/test_unit.py
+
+integration:
+  extends: .code
+  tags:
+    - k8s
+  stage: test
+  script:
+    - apt install -y libldap2-dev libsasl2-dev
+    - pip3 install -r requirements.txt
+    - pybabel compile -d app/translations
+    - TAG=BEAM docker-compose -f tests/docker-pgsql.yml up
+    - pytest -v --cov=app tests/test_sqlite.py tests/test_pgsql.py
 
 build_test:
   extends: .code

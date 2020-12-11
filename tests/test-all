@@ -7,5 +7,12 @@ export PYTHONPATH=.:$PYTHONPATH
 # linting
 tests/linting/test-all || exit 1
 
+# test pgsql if container is running
+pgsql_testing=""
+if docker ps | grep -q postgres-beam
+then
+  pgsql_testing="tests/test_pgsql.py"
+fi
+
 # functional testing
-pytest -v --cov=app --cov-report=term --cov-report=html  tests/test_unit.py tests/test_integration.py || exit 1
+pytest -v --cov=app --cov-report=term --cov-report=html  tests/test_sqlite.py $pgsql_testing || exit 1
