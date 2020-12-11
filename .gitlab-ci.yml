@@ -97,6 +97,7 @@ integration:
     - pip3 install -r requirements.txt
     - pybabel compile -d app/translations
     - TAG=BEAM docker-compose -f tests/docker-pgsql.yml up -d
+    - while ! ( docker ps | grep 'healthy.*postgres-beam'); do sleep 1; done
     - pytest -v --cov=app tests/test_sqlite.py tests/test_pgsql.py
 
 build_test:
