@@ -47,7 +47,7 @@ todos:
     - main
   allow_failure: true
   tags:
-    - testing
+    - k8s
   stage: pre-test
   script:
     - tests/linting/todos
@@ -57,7 +57,7 @@ todos_main:
     - main
   allow_failure: true
   tags:
-    - testing
+    - k8s
   stage: pre-test
   script:
     - tests/linting/todos && true; todos=$?
@@ -71,7 +71,7 @@ todos_main:
 syntax:
   extends: .code
   tags:
-    - testing
+    - k8s
   stage: pre-test
   script:
     - tests/linting/test-all
@@ -79,7 +79,7 @@ syntax:
 unittest:
   extends: .code
   tags:
-    - testing
+    - k8s
   stage: pre-test
   script:
     - apt install -y libldap2-dev libsasl2-dev
@@ -90,7 +90,7 @@ unittest:
 integration:
   extends: .code
   tags:
-    - testing
+    - k8s
   stage: test
   script:
     - docker login -u burst-ci -p "$ldapctnr_pull_token" $CI_REGISTRY
@@ -99,13 +99,13 @@ integration:
     - pybabel compile -d app/translations
     - TAG=beam docker-compose -f tests/docker-ldap.yml up -d
     - while ! ( docker ps | grep -w 'healthy.*postgres-beam' ); do sleep 1; done
-    - while ! ( docker ps | grep -w 'healthy.*ldap-beam' ); do sleep 1; done
+    - while ! ( docker ps | grep -w 'healthy.*ldap-beam' ); do docker ps; sleep 1; done
     - pytest -v --cov=app tests/test_sqlite.py tests/test_pgsql.py tests/test_integration.py
 
 build_test:
   extends: .code
   tags:
-    - testing
+    - k8s
   stage: build
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
@@ -122,7 +122,7 @@ build_docker_development:
   except:
     - tags
   tags:
-    - testing
+    - k8s
   stage: pre-deploy
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
@@ -139,7 +139,7 @@ build_docker_release:
   only:
     - tags
   tags:
-    - testing
+    - k8s
   stage: pre-deploy
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
@@ -158,7 +158,7 @@ deploy_development:
   except:
     - tags
   tags:
-    - testing
+    - k8s
   stage: deploy
   script:
     - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"'${SHA_IMAGE}'"}]}}}}'
@@ -170,7 +170,7 @@ deploy_release:
   only:
     - tags
   tags:
-    - testing
+    - k8s
   stage: deploy
   script:
     - kubectl version
