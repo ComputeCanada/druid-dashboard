@@ -3,12 +3,9 @@ image: dleskecc/tester.py
 
 variables:
   PYLINTRC: tests/linting/extras/pylintrc
-  # use the following for DinD runners
-  #DOCKER_HOST: tcp://docker:2375/
-  # use the following for Kubernetes runners
+  PYTHONPATH: ${PYTHONPATH}:.
   DOCKER_HOST: tcp://localhost:2375/
   DOCKER_DRIVER: overlay2
-  PYTHONPATH: ${PYTHONPATH}:.
   #
   # image names
   TEST_IMAGE: "${CI_REGISTRY_IMAGE}:test"
@@ -16,13 +13,10 @@ variables:
   PROD_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
   SHA_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
 
-services:
-  - name: docker:18.06.3-dind
-    command: ["--mtu=1450"]
-
 before_script:
   - git submodule sync
   - git submodule update --init
+  - docker login -u burst-ci -p "$ldapctnr_pull_token" $CI_REGISTRY
 
 stages:
   - pre-test
@@ -42,64 +36,75 @@ stages:
       - "tests/**/*"
       - deployment/Dockerfile
 
-todos:
-  except:
-    - main
-  allow_failure: true
-  tags:
-    - k8s
-  stage: pre-test
-  script:
-    - tests/linting/todos
+.integration:
+  variables:
+    POSTGRES_PASSWORD: supersecretpassword
+    BEAM_PGSQL_URI: postgresql://postgres:supersecretpassword@postgres/postgres
+    BEAM_LDAP_URI: ldap://ldap
+    BEAM_LDAP_SKIP_TLS: 'yes'
+  services:
+    - name: git.computecanada.ca:4567/dleske/ldap-ctnr
+      alias: ldap
+    - name: postgres
 
-todos_main:
-  only:
-    - main
-  allow_failure: true
-  tags:
-    - k8s
-  stage: pre-test
-  script:
-    - tests/linting/todos && true; todos=$?
-    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
-    - test $todos -eq 0
-  artifacts:
-    # create artifact even when the job fails, which it should if todos > 0
-    when: always
-    paths: ['todos.svg']
-
-syntax:
-  extends: .code
-  tags:
-    - k8s
-  stage: pre-test
-  script:
-    - tests/linting/test-all
-
-unittest:
-  extends: .code
-  tags:
-    - k8s
-  stage: pre-test
-  script:
-    - apt install -y libldap2-dev libsasl2-dev
-    - pip3 install -r requirements.txt
-    - pybabel compile -d app/translations
-    - pytest -v --cov=app tests/test_sqlite.py
+#todos:
+#  except:
+#    - main
+#  allow_failure: true
+#  tags:
+#    - k8s
+#  stage: pre-test
+#  script:
+#    - tests/linting/todos
+#
+#todos_main:
+#  only:
+#    - main
+#  allow_failure: true
+#  tags:
+#    - k8s
+#  stage: pre-test
+#  script:
+#    - tests/linting/todos && true; todos=$?
+#    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
+#    - test $todos -eq 0
+#  artifacts:
+#    # create artifact even when the job fails, which it should if todos > 0
+#    when: always
+#    paths: ['todos.svg']
+#
+#syntax:
+#  extends: .code
+#  tags:
+#    - k8s
+#  stage: pre-test
+#  script:
+#    - tests/linting/test-all
+#
+#unittest:
+#  extends: .code
+#  tags:
+#    - k8s
+#  stage: pre-test
+#  script:
+#    - apt-get install -y libldap2-dev libsasl2-dev
+#    - pip3 install -r requirements.txt
+#    - pybabel compile -d app/translations
+#    - pytest -v --cov=app tests/test_sqlite.py
 
 integration:
-  extends: .code
+  extends:
+    - .code
+    - .integration
   tags:
-    - k8s
+    - unprivileged
   stage: test
   script:
-    - docker login -u burst-ci -p "$ldapctnr_pull_token" $CI_REGISTRY
-    - apt install -y libldap2-dev libsasl2-dev
+    - 'echo hi > /dev/tcp/postgres/5432 || echo "Could not contact Postgres container"'
+    - 'echo hi > /dev/tcp/ldap/389 || echo "Could not contact LDAP container"'
+    - apt-get install -y libldap2-dev libsasl2-dev
     - pip3 install -r requirements.txt
     - pybabel compile -d app/translations
-    - TAG=beam docker-compose -f tests/docker-ldap.yml up -d
-    - while ! ( docker ps | grep -w 'healthy.*postgres-beam' ); do sleep 1; done
-    - while ! ( docker ps | grep -w 'healthy.*ldap-beam' ); do docker ps; sleep 1; done
     - pytest -v --cov=app tests/test_sqlite.py tests/test_pgsql.py tests/test_integration.py
 
 build_test:
