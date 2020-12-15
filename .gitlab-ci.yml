@@ -45,50 +45,50 @@ stages:
       alias: ldap
     - name: postgres
 
-todos:
-  except:
-    - main
-  allow_failure: true
-  tags:
-    - unprivileged
-  stage: pre-test
-  script:
-    - tests/linting/todos
+# todos:
+#   except:
+#     - main
+#   allow_failure: true
+#   tags:
+#     - unprivileged
+#   stage: pre-test
+#   script:
+#     - tests/linting/todos
 
-todos_main:
-  only:
-    - main
-  allow_failure: true
-  tags:
-    - unprivileged
-  stage: pre-test
-  script:
-    - tests/linting/todos && true; todos=$?
-    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
-    - test $todos -eq 0
-  artifacts:
-    # create artifact even when the job fails, which it should if todos > 0
-    when: always
-    paths: ['todos.svg']
+# todos_main:
+#   only:
+#     - main
+#   allow_failure: true
+#   tags:
+#     - unprivileged
+#   stage: pre-test
+#   script:
+#     - tests/linting/todos && true; todos=$?
+#     - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
+#     - test $todos -eq 0
+#   artifacts:
+#     # create artifact even when the job fails, which it should if todos > 0
+#     when: always
+#     paths: ['todos.svg']
 
-syntax:
-  extends: .code
-  tags:
-    - unprivileged
-  stage: pre-test
-  script:
-    - tests/linting/test-all
+# syntax:
+#   extends: .code
+#   tags:
+#     - unprivileged
+#   stage: pre-test
+#   script:
+#     - tests/linting/test-all
 
-unittest:
-  extends: .code
-  tags:
-    - unprivileged
-  stage: pre-test
-  script:
-    - apt-get install -y libldap2-dev libsasl2-dev
-    - pip3 install -r requirements.txt
-    - pybabel compile -d app/translations
-    - pytest -v --cov=app tests/test_sqlite.py
+# unittest:
+#   extends: .code
+#   tags:
+#     - unprivileged
+#   stage: pre-test
+#   script:
+#     - apt-get install -y libldap2-dev libsasl2-dev
+#     - pip3 install -r requirements.txt
+#     - pybabel compile -d app/translations
+#     - pytest -v --cov=app tests/test_sqlite.py
 
 integration:
   extends:
@@ -110,13 +110,16 @@ build_test:
   tags:
     - unprivileged
   stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker pull $TEST_IMAGE || true    # it's okay if this fails
-    - buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
+    #- buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
+    - buildinfo=$CI_COMMIT_SHORT_SHA
     - sed -i 's/Built with Flask/'$buildinfo'/' app/templates/base.html
-    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $TEST_IMAGE .
-    - docker push $TEST_IMAGE
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/deployment/Dockerfile --destination $TEST_IMAGE
 
 build_docker_development:
   extends: .code
