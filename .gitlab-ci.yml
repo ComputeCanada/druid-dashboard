@@ -43,6 +43,21 @@ stages:
       alias: ldap
     - name: postgres
 
+.build:
+  tags:
+    - unprivileged
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - echo "Building image to tag '$IMAGENAME' with build info '$BUILDINFO'"
+    - sed -i 's/Built with Flask/'$BUILDINFO'/' app/templates/base.html
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/deployment/Dockerfile --destination $SHA_IMAGE --destination $IMAGENAME
+  dependencies:
+    - syntax
+
 # todos:
 #   except:
 #     - main
@@ -69,13 +84,19 @@ stages:
 #     when: always
 #     paths: ['todos.svg']
 
-# syntax:
-#   extends: .code
-#   tags:
-#     - unprivileged
-#   stage: pre-test
-#   script:
-#     - tests/linting/test-all
+syntax:
+  extends: .code
+  tags:
+    - unprivileged
+  stage: pre-test
+  script:
+    - tests/linting/test-all
+    - if test -n "$CI_COMMIT_TAG"; then BUILDINFO=$CI_COMMIT_TAG; else BUILDINFO=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd"); fi
+    - 'echo "Buildinfo: $BUILDINFO"'
+    - echo "BUILDINFO=$BUILDINFO" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
 
 # unittest:
 #   extends: .code
@@ -104,54 +125,34 @@ integration:
     - pytest -v --cov=app tests/test_sqlite.py tests/test_pgsql.py tests/test_integration.py
 
 build_test:
-  extends: .code
-  tags:
-    - unprivileged
+  extends:
+    - .code
+    - .build
   stage: build
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  script:
-    #- buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
-    - buildinfo=$CI_COMMIT_SHORT_SHA
-    - sed -i 's/Built with Flask/'$buildinfo'/' app/templates/base.html
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/deployment/Dockerfile --destination $TEST_IMAGE
+  before_script:
+    - IMAGENAME=$TEST_IMAGE
 
-build_docker_development:
-  extends: .code
+build_dev:
+  extends:
+    - .code
+    - .build
   only:
     - main
   except:
     - tags
-  tags:
-    - unprivileged
   stage: pre-deploy
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker pull $TEST_IMAGE || true    # it's okay if this fails
-    - imagetag="${CI_REGISTRY_IMAGE}:dev"
-    - buildinfo=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd")
-    - sed -i 's/Built with Flask/'$buildinfo'/' app/templates/base.html
-    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $SHA_IMAGE -t $DEV_IMAGE .
-    - docker push $SHA_IMAGE
-    - docker push $DEV_IMAGE
+  before_script:
+    - IMAGENAME=$DEV_IMAGE
 
-build_docker_release:
-  extends: .code
+build_release:
+  extends:
+    - .code
+    - .build
   only:
     - tags
-  tags:
-    - unprivileged
   stage: pre-deploy
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker pull $TEST_IMAGE || true    # it's okay if this fails
-    - sed -i 's/Built with Flask/'$CI_COMMIT_TAG'/' app/templates/base.html
-    - docker build -f deployment/Dockerfile --cache-from $TEST_IMAGE -t $SHA_IMAGE -t $PROD_IMAGE .
-    - docker push $SHA_IMAGE
-    - docker push $PROD_IMAGE
+  before_script:
+    - IMAGENAME=$PROD_IMAGE
 
 deploy_development:
   extends: .code
