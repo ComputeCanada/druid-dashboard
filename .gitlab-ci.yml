@@ -2,6 +2,7 @@
 image: dleskecc/tester.py
 
 variables:
+  GIT_SUBMODULE_STRATEGY: normal
   PYLINTRC: tests/linting/extras/pylintrc
   PYTHONPATH: ${PYTHONPATH}:.
   #
@@ -10,11 +11,6 @@ variables:
   DEV_IMAGE: "${CI_REGISTRY_IMAGE}:dev"
   PROD_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
   SHA_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
-
-before_script:
-  - git submodule sync
-  - git submodule update --init
-  - docker login -u burst-ci -p "$ldapctnr_pull_token" $CI_REGISTRY
 
 stages:
   - pre-test
@@ -35,6 +31,8 @@ stages:
       - deployment/Dockerfile
 
 .integration:
+  before_script:
+    - docker login -u burst-ci -p "$ldapctnr_pull_token" $CI_REGISTRY
   variables:
     POSTGRES_PASSWORD: supersecretpassword
     BEAM_PGSQL_URI: postgresql://postgres:supersecretpassword@postgres/postgres
