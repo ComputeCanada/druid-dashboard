@@ -19,6 +19,10 @@ stages:
   - pre-deploy
   - deploy
 
+.base:
+  tags:
+    - unprivileged
+
 .code:
   only:
     changes:
@@ -44,8 +48,6 @@ stages:
     - name: postgres
 
 .build:
-  tags:
-    - unprivileged
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -58,36 +60,34 @@ stages:
   dependencies:
     - syntax
 
-# todos:
-#   except:
-#     - main
-#   allow_failure: true
-#   tags:
-#     - unprivileged
-#   stage: pre-test
-#   script:
-#     - tests/linting/todos
+todos:
+  extends: .base
+  except:
+    - main
+  allow_failure: true
+  stage: pre-test
+  script:
+    - tests/linting/todos
 
-# todos_main:
-#   only:
-#     - main
-#   allow_failure: true
-#   tags:
-#     - unprivileged
-#   stage: pre-test
-#   script:
-#     - tests/linting/todos && true; todos=$?
-#     - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
-#     - test $todos -eq 0
-#   artifacts:
-#     # create artifact even when the job fails, which it should if todos > 0
-#     when: always
-#     paths: ['todos.svg']
+todos_main:
+  extends: .base
+  only:
+    - main
+  allow_failure: true
+  stage: pre-test
+  script:
+    - tests/linting/todos && true; todos=$?
+    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
+    - test $todos -eq 0
+  artifacts:
+    # create artifact even when the job fails, which it should if todos > 0
+    when: always
+    paths: ['todos.svg']
 
 syntax:
-  extends: .code
-  tags:
-    - unprivileged
+  extends:
+    - .base
+    - .code
   stage: pre-test
   script:
     - tests/linting/test-all
@@ -98,23 +98,22 @@ syntax:
     reports:
       dotenv: build.env
 
-# unittest:
-#   extends: .code
-#   tags:
-#     - unprivileged
-#   stage: pre-test
-#   script:
-#     - apt-get install -y libldap2-dev libsasl2-dev
-#     - pip3 install -r requirements.txt
-#     - pybabel compile -d app/translations
-#     - pytest -v --cov=app tests/test_sqlite.py
+unittest:
+  extends:
+    - .base
+    - .code
+  stage: pre-test
+  script:
+    - apt-get install -y libldap2-dev libsasl2-dev
+    - pip3 install -r requirements.txt
+    - pybabel compile -d app/translations
+    - pytest -v --cov=app tests/test_sqlite.py
 
 integration:
   extends:
+    - .base
     - .code
     - .integration
-  tags:
-    - unprivileged
   stage: test
   script:
     - 'echo hi > /dev/tcp/postgres/5432 || echo "Could not contact Postgres container"'
@@ -126,6 +125,7 @@ integration:
 
 build_test:
   extends:
+    - .base
     - .code
     - .build
   stage: build
@@ -134,6 +134,7 @@ build_test:
 
 build_dev:
   extends:
+    - .base
     - .code
     - .build
   only:
@@ -146,6 +147,7 @@ build_dev:
 
 build_release:
   extends:
+    - .base
     - .code
     - .build
   only:
@@ -155,27 +157,27 @@ build_release:
     - IMAGENAME=$PROD_IMAGE
 
 deploy_development:
-  extends: .code
+  extends:
+    - .base
+    - .code
   # failure allowed while Kubernetes down
   allow_failure: true
   only:
     - main
   except:
     - tags
-  tags:
-    - unprivileged
   stage: deploy
   script:
     - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"'${SHA_IMAGE}'"}]}}}}'
 
 deploy_release:
-  extends: .code
+  extends:
+    - .base
+    - .code
   # failure allowed while Kubernetes down
   allow_failure: true
   only:
     - tags
-  tags:
-    - unprivileged
   stage: deploy
   script:
     - kubectl version
