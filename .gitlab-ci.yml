@@ -4,8 +4,6 @@ image: dleskecc/tester.py
 variables:
   PYLINTRC: tests/linting/extras/pylintrc
   PYTHONPATH: ${PYTHONPATH}:.
-  DOCKER_HOST: tcp://localhost:2375/
-  DOCKER_DRIVER: overlay2
   #
   # image names
   TEST_IMAGE: "${CI_REGISTRY_IMAGE}:test"
@@ -47,50 +45,50 @@ stages:
       alias: ldap
     - name: postgres
 
-#todos:
-#  except:
-#    - main
-#  allow_failure: true
-#  tags:
-#    - k8s
-#  stage: pre-test
-#  script:
-#    - tests/linting/todos
-#
-#todos_main:
-#  only:
-#    - main
-#  allow_failure: true
-#  tags:
-#    - k8s
-#  stage: pre-test
-#  script:
-#    - tests/linting/todos && true; todos=$?
-#    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
-#    - test $todos -eq 0
-#  artifacts:
-#    # create artifact even when the job fails, which it should if todos > 0
-#    when: always
-#    paths: ['todos.svg']
-#
-#syntax:
-#  extends: .code
-#  tags:
-#    - k8s
-#  stage: pre-test
-#  script:
-#    - tests/linting/test-all
-#
-#unittest:
-#  extends: .code
-#  tags:
-#    - k8s
-#  stage: pre-test
-#  script:
-#    - apt-get install -y libldap2-dev libsasl2-dev
-#    - pip3 install -r requirements.txt
-#    - pybabel compile -d app/translations
-#    - pytest -v --cov=app tests/test_sqlite.py
+todos:
+  except:
+    - main
+  allow_failure: true
+  tags:
+    - unprivileged
+  stage: pre-test
+  script:
+    - tests/linting/todos
+
+todos_main:
+  only:
+    - main
+  allow_failure: true
+  tags:
+    - unprivileged
+  stage: pre-test
+  script:
+    - tests/linting/todos && true; todos=$?
+    - anybadge --label=todos --value=$todos --value-format=" %d " --file=todos.svg --use-max 1=green 5=yellow 10=orange 20=red
+    - test $todos -eq 0
+  artifacts:
+    # create artifact even when the job fails, which it should if todos > 0
+    when: always
+    paths: ['todos.svg']
+
+syntax:
+  extends: .code
+  tags:
+    - unprivileged
+  stage: pre-test
+  script:
+    - tests/linting/test-all
+
+unittest:
+  extends: .code
+  tags:
+    - unprivileged
+  stage: pre-test
+  script:
+    - apt-get install -y libldap2-dev libsasl2-dev
+    - pip3 install -r requirements.txt
+    - pybabel compile -d app/translations
+    - pytest -v --cov=app tests/test_sqlite.py
 
 integration:
   extends:
@@ -110,7 +108,7 @@ integration:
 build_test:
   extends: .code
   tags:
-    - k8s
+    - unprivileged
   stage: build
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
@@ -127,7 +125,7 @@ build_docker_development:
   except:
     - tags
   tags:
-    - k8s
+    - unprivileged
   stage: pre-deploy
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
@@ -144,7 +142,7 @@ build_docker_release:
   only:
     - tags
   tags:
-    - k8s
+    - unprivileged
   stage: pre-deploy
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
@@ -163,7 +161,7 @@ deploy_development:
   except:
     - tags
   tags:
-    - k8s
+    - unprivileged
   stage: deploy
   script:
     - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"'${SHA_IMAGE}'"}]}}}}'
@@ -175,7 +173,7 @@ deploy_release:
   only:
     - tags
   tags:
-    - k8s
+    - unprivileged
   stage: deploy
   script:
     - kubectl version
