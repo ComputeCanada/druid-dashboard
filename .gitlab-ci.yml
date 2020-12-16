@@ -19,7 +19,7 @@ stages:
   - pre-deploy
   - deploy
 
-.base:
+default:
   tags:
     - unprivileged
 
@@ -61,7 +61,6 @@ stages:
     - syntax
 
 todos:
-  extends: .base
   except:
     - main
   allow_failure: true
@@ -70,7 +69,6 @@ todos:
     - tests/linting/todos
 
 todos_main:
-  extends: .base
   only:
     - main
   allow_failure: true
@@ -85,9 +83,7 @@ todos_main:
     paths: ['todos.svg']
 
 syntax:
-  extends:
-    - .base
-    - .code
+  extends: .code
   stage: pre-test
   script:
     - tests/linting/test-all
@@ -99,9 +95,7 @@ syntax:
       dotenv: build.env
 
 unittest:
-  extends:
-    - .base
-    - .code
+  extends: .code
   stage: pre-test
   script:
     - apt-get install -y libldap2-dev libsasl2-dev
@@ -111,7 +105,6 @@ unittest:
 
 integration:
   extends:
-    - .base
     - .code
     - .integration
   stage: test
@@ -125,7 +118,6 @@ integration:
 
 build_test:
   extends:
-    - .base
     - .code
     - .build
   stage: build
@@ -134,7 +126,6 @@ build_test:
 
 build_dev:
   extends:
-    - .base
     - .code
     - .build
   only:
@@ -147,7 +138,6 @@ build_dev:
 
 build_release:
   extends:
-    - .base
     - .code
     - .build
   only:
@@ -157,9 +147,7 @@ build_release:
     - IMAGENAME=$PROD_IMAGE
 
 deploy_development:
-  extends:
-    - .base
-    - .code
+  extends: .code
   # failure allowed while Kubernetes down
   allow_failure: true
   only:
@@ -171,9 +159,7 @@ deploy_development:
     - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"'${SHA_IMAGE}'"}]}}}}'
 
 deploy_release:
-  extends:
-    - .base
-    - .code
+  extends: .code
   # failure allowed while Kubernetes down
   allow_failure: true
   only:
