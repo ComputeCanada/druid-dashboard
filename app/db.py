@@ -119,20 +119,15 @@ def init_db_command():
   click.echo('Initialized the database.')
 
 
-#@click.command('seed-db')
-#@with_appcontext
-#def seed_db_command():
-#  """Clear existing data, create new tables, seed with test data."""
-#
-#  db = get_db()
-#  if db.type == 'sqlite':
-#    seedfile = 'seed.sql'
-#  elif db.type == 'postgres':
-#    seedfile = 'seed.psql'
-#
-#  init_db()
-#  seed_db(seedfile)
-#  click.echo('Initialized and seeded the database.')
+@click.command('seed-db')
+@click.argument('seedfile')
+@with_appcontext
+def seed_db_command(seedfile):
+  """Clear existing data, create new tables, seed with test data."""
+
+  init_db()
+  seed_db(seedfile)
+  click.echo('Initialized and seeded the database.')
 
 
 class DbEnum(Enum):
