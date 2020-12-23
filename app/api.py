@@ -5,7 +5,7 @@ import functools
 from datetime import datetime, timezone
 import email.utils
 from flask import (
-    Blueprint, jsonify, request, abort, session
+    Blueprint, request, abort, session
 )
 from app.log import get_log
 from app.apikey import verify_message
@@ -43,6 +43,7 @@ def api_key_required(view):
 
     # request.date NOT used because it reinterprets date according to locale
     datestamp = request.headers['date']
+
     # build resource string
     resource = request.path
     if request.args:
@@ -88,8 +89,8 @@ def get_burst(id):
   get_log().debug("In api.get_burst(%d)", id)
 
   # TODO: burst = Burst(id)
-  burst = None
-  return jsonify(burst)
+  burst = {}
+  return burst
 
 @bp.route('/bursts', methods=['GET'])
 @api_key_required
@@ -101,5 +102,19 @@ def api_get_bursts():
   #cluster = request.args.get('cluster', None)
 
   # TODO: bursts = get_bursts(cluster=cluster)
-  bursts = None
-  return jsonify(bursts)
+  bursts = ({})
+  return bursts
+
+@bp.route('/bursts', methods=['POST'])
+@api_key_required
+def api_post_bursts():
+
+  get_log().debug("In api.post_bursts()")
+
+  data = request.form
+  # TODO: remove--this is only to avoid lint warnings
+  print(data)
+
+  # TODO: burst = Burst(data)
+  # if burst:
+  return ('OK', 201)
