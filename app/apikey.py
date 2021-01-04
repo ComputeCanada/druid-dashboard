@@ -24,13 +24,19 @@ APIKEY_GET_ALL = '''
 
 APIKEY_CREATE_NEW = '''
   INSERT INTO apikeys
-              (access, secret)
-  VALUES      (?, ?)
+              (access, secret, component)
+  VALUES      (?, ?, ?)
 '''
 
 APIKEY_DELETE = '''
   DELETE FROM apikeys
   WHERE       access = ?
+'''
+
+APIKEY_GET_COMPONENT = '''
+  SELECT  component
+  FROM    apikeys
+  WHERE   access = ?
 '''
 
 # ---------------------------------------------------------------------------
@@ -69,15 +75,23 @@ def get_apikeys():
   return [row['access'] for row in res]
 
 
-def add_apikey(access, secret):
-  get_log().debug("In add_apikey() with: %s=%s", access, secret)
-  return ApiKey(access, secret)
+def add_apikey(access, secret, component):
+  get_log().debug("In add_apikey() with: %s=%s for %s", access, secret, component)
+  return ApiKey(access, secret, component)
+
 
 def delete_apikey(access):
   get_log().debug("In delete_apikey() with %s", access)
   db = get_db()
   db.execute(APIKEY_DELETE, (access,))
   db.commit()
+
+
+def lookup_component(access):
+  get_log().debug("In lookup_component with access=%s", access)
+  db = get_db()
+  row = db.execute(APIKEY_GET_COMPONENT, (access,)).fetchone()
+  return row['component']
 
 # ---------------------------------------------------------------------------
 #                                                              apikey class
@@ -92,7 +106,7 @@ class ApiKey():
     _secret: the secret key used to sign requests
   """
 
-  def __init__(self, access, secret=None):
+  def __init__(self, access, secret=None, component=None):
 
     get_log().debug(
       "In ApiKey.__init__() with access=%s, secret=%s", access, secret
@@ -112,12 +126,18 @@ class ApiKey():
           "Could not load API key with access key '{}'".format(access)
         )
     else:
+      if not component:
+        # TODO: this exception is a pile of worms in a police uniform
+        raise Exception("You need to specify the component!")
       try:
-        db.execute(APIKEY_CREATE_NEW, (access, secret))
+        db.execute(APIKEY_CREATE_NEW, (access, secret, component))
         db.commit()
       except Exception as e:
         raise DatabaseException(
-          "Could not execute APIKEY_CREATE_NEW with access='{}', secret='{}'".format(access, secret)
+          "Could not execute APIKEY_CREATE_NEW with "
+          "access='{}', secret='{}', component='{}'".format(
+            access, secret, component
+          )
         ) from e
 
   @property

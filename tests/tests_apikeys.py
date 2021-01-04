@@ -27,7 +27,8 @@ def test_add_apikey_xhr(client):
 
   response = client.post('/xhr/apikeys/', data=dict(
     apikey='gibberishdickensjustsuchweirdlycrap',
-    apikey_name='different_key'
+    apikey_name='different_key',
+    component='testcluster_detector'
   ))
   assert response.status_code == 200
 

@@ -41,11 +41,14 @@ def xhr_add_apikey():
 
   access = request.form['apikey_name']
   secret = request.form['apikey']
+  component = request.form['component']
   get_log().debug("Adding API key (%s)", access)
   try:
-    add_apikey(access, secret)
+    add_apikey(access, secret, component)
   except Exception as e:
-    get_log().error("Exception in adding API key (%s=%s): %s", access, secret, e)
+    get_log().error(
+      "Exception in adding API key (%s=%s for component %s): %s",
+      access, secret, component, e)
     return None
   return jsonify({'status': 'OK'}), 200
 

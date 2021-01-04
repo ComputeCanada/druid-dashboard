@@ -73,6 +73,7 @@ def api_key_required(view):
       abort(400)
 
     session['api'] = True
+    session['api_keyname'] = accesskey
 
     return view(**kwargs)
 
@@ -88,6 +89,10 @@ def get_burst(id):
 
   get_log().debug("In api.get_burst(%d)", id)
 
+  # TODO: update lastheard for component (determine from apikey)
+  # use session['api_keyname']
+  # apikey.lookup_component(apikey=session['api_keyname']).lastheard = now()
+
   # TODO: burst = Burst(id)
   burst = {}
   return burst
@@ -97,6 +102,9 @@ def get_burst(id):
 def api_get_bursts():
 
   get_log().debug("In api.api_get_bursts")
+
+  # TODO: update lastheard for component (determine from apikey)
+  # use session['api_keyname']
 
   # get query parameters
   #cluster = request.args.get('cluster', None)
@@ -111,10 +119,14 @@ def api_post_bursts():
 
   get_log().debug("In api.post_bursts()")
 
+  # TODO: update lastheard for component (determine from apikey)
+  # use session['api_keyname']
+
   data = request.form
   # TODO: remove--this is only to avoid lint warnings
   print(data)
 
   # TODO: burst = Burst(data)
+
   # if burst:
   return ('OK', 201)

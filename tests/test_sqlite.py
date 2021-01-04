@@ -69,8 +69,8 @@ def empty_app(request):
     # current activity, but minimal seeding is still required, such as for
     # testing API keys
     get_db().execute("""
-      INSERT INTO apikeys (access, secret)
-      VALUES ('testapikey', 'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ==')
+      INSERT INTO apikeys (access, secret, component)
+      VALUES ('testapikey', 'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ==', 'testcluster_detector')
     """)
     get_db().commit()
 

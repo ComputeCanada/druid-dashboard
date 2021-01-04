@@ -1,6 +1,8 @@
 DROP TABLE IF EXISTS schemalog;
 DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS components;
+DROP TABLE IF EXISTS clusters;
 
 CREATE TABLE schemalog (
   version INTEGER PRIMARY KEY,
@@ -8,9 +10,26 @@ CREATE TABLE schemalog (
 );
 INSERT INTO schemalog (version, applied) VALUES ('20201209', CURRENT_TIMESTAMP);
 
+CREATE TABLE clusters (
+  id VARCHAR(16) UNIQUE NOT NULL,
+  name VARCHAR(32) UNIQUE NOT NULL
+);
+
+CREATE TABLE components (
+  id VARCHAR(32) UNIQUE NOT NULL,
+  name VARCHAR(64) UNIQUE NOT NULL,
+  cluster VARCHAR(16) UNIQUE NOT NULL,
+  service VARCHAR(12) UNIQUE NOT NULL,
+  lastheard TIMESTAMP,
+  FOREIGN KEY (cluster) REFERENCES clusters(id),
+  CHECK (service IN ('detector', 'scheduler'))
+);
+
 CREATE TABLE apikeys (
   access VARCHAR(16) UNIQUE NOT NULL,
-  secret CHAR(64) NOT NULL
+  secret CHAR(64) NOT NULL,
+  component VARCHAR(32) NOT NULL,
+  FOREIGN KEY (component) REFERENCES components(id)
 );
 
 CREATE TABLE notifications (
