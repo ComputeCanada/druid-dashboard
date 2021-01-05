@@ -45,7 +45,7 @@ APIKEY_GET_COMPONENT = '''
 APIKEY_MOST_RECENT_USE = '''
   SELECT    lastused
   FROM      apikeys
-  WHERE     component = ?
+  WHERE     component = ? AND lastused IS NOT NULL
   ORDER BY  lastused DESC
   LIMIT     1
 '''
@@ -124,6 +124,7 @@ def most_recent_use(component):
   db = get_db()
   row = db.execute(APIKEY_MOST_RECENT_USE, (component,)).fetchone()
   if row:
+    get_log().debug("Last used: %s", row['lastused'])
     return row['lastused']
   return None
 
