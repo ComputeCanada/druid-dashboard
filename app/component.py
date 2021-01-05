@@ -3,6 +3,7 @@
 #
 from app.db import get_db
 from app.exceptions import DatabaseException
+from app.apikey import most_recent_use
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -12,6 +13,11 @@ SQL_GET = '''
   SELECT    name, cluster, service
   FROM      components
   WHERE     id = ?
+'''
+
+SQL_GET_ALL = '''
+  SELECT  id, name, cluster, service
+  FROM    components
 '''
 
 SQL_CREATE_NEW = '''
@@ -25,12 +31,6 @@ SQL_DELETE = '''
   WHERE       id = ?
 '''
 
-SQL_UPDATE_LASTHEARD = '''
-  UPDATE components
-  SET     lastheard = ?
-  WHERE   id = ?
-'''
-
 SQL_UPDATE_NAME = '''
   UPDATE  components
   SET     name = ?
@@ -40,6 +40,34 @@ SQL_UPDATE_NAME = '''
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
+
+
+def get_components(get_last_heard=False):
+  db = get_db()
+  res = db.execute(SQL_GET_ALL).fetchall()
+  if not res:
+    return None
+  components = []
+  for row in res:
+    components.append(Component(
+      id=row['id'],
+      name=row['name'],
+      cluster=row['cluster'],
+      service=row['service'],
+      factory_load=True,
+      get_last_heard=get_last_heard
+    ))
+  return components
+
+
+def add_component(id, name, cluster, service):
+  return Component(id, name, cluster, service)
+
+
+def delete_component(id):
+  db = get_db()
+  db.execute(SQL_DELETE, (id,))
+  db.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -58,13 +86,19 @@ class Component():
     _lastheard: lastheard
   """
 
-  def __init__(self, id, name=None, cluster=None, service=None):
+  def __init__(self, id, name=None, cluster=None, service=None, get_last_heard=False, factory_load=False):
 
     self._id = id
     self._name = name
     self._cluster = cluster
     self._service = service
     self._lastheard = None
+
+    # handle instantiation by factory
+    if factory_load:
+      if get_last_heard:
+        self.load_lastheard()
+      return
 
     # creating or retrieving?
     db = get_db()
@@ -74,7 +108,8 @@ class Component():
         self._name = res['name']
         self._cluster = res['cluster']
         self._service = res['service']
-        self._lastheard = res['lastheard']
+        if get_last_heard:
+          self.load_lastheard()
       else:
         raise ValueError(
           "Could not load component with id '{}'".format(id)
@@ -100,28 +135,23 @@ class Component():
       except Exception as e:
         raise DatabaseException(
           "Could not execute SQL_CREATE_NEW with "
-          "id='{}', name='{}', cluster='{}', service='{}'".format(
-            id, name, cluster, service
+          "id='{}', name='{}', cluster='{}', service='{}' ('{}')".format(
+            id, name, cluster, service, e
           )
         ) from e
 
-  def commit(self):
-    # for now only used for updating lastheard field
-    if self._lastheard:
-      db = get_db()
-      try:
-        db.execute(SQL_UPDATE_LASTHEARD, (self._lastheard, self._id))
-        db.commit()
-      except Exception as e:
-        raise DatabaseException(
-          "Could not execute SQL_UPDATE_LASTHEARD for component {}".format(id)
-        ) from e
+  def load_lastheard(self):
+    # query related API keys for most recently used
+    self._lastheard = most_recent_use(self._id)
 
   @property
   def lastheard(self):
+    if not self._lastheard:
+      self.load_lastheard()
     return self._lastheard
 
-  @lastheard.setter
-  def lastheard(self, value):
-    self._lastheard = value
-    self.commit()
+  def serializable(self):
+    return {
+      key.lstrip('_'): val
+      for (key, val) in self.__dict__.items()
+    }
