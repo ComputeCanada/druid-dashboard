@@ -41,15 +41,18 @@ def login_required(view):
   @functools.wraps(view)
   def wrapped_view(**kwargs):
 
-    authenticated_user = None
-
-    # use mapping in reverse proxy configuration to map REMOTE_USER from
-    # authentication module to X_AUTHENTICATED_USER
-    if 'X_AUTHENTICATED_USER' in request.headers:
-      authenticated_user = request.headers['X_AUTHENTICATED_USER']
-      get_log().debug("X_AUTHENTICATED_USER = %s", authenticated_user)
-
     if g.user is None:
+
+      # clear any existing login cruft
+      session.clear()
+
+      authenticated_user = None
+
+      # use mapping in reverse proxy configuration to map REMOTE_USER from
+      # authentication module to X_AUTHENTICATED_USER
+      if 'X_AUTHENTICATED_USER' in request.headers:
+        authenticated_user = request.headers['X_AUTHENTICATED_USER']
+      get_log().debug("X_AUTHENTICATED_USER = %s", authenticated_user)
 
       # this flags whether user is fully authenticated (i.e. user information
       # is loaded from LDAP)
@@ -57,9 +60,6 @@ def login_required(view):
 
       # check if externally authenticated
       if authenticated_user:
-
-        # clear any existing login cruft
-        session.clear()
 
         # get user information into session
         details = get_ldap().get_person(
