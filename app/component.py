@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621
 #
+from datetime import date
 from app.db import get_db
 from app.exceptions import DatabaseException
 from app.apikey import most_recent_use
@@ -151,7 +152,17 @@ class Component():
     return self._lastheard
 
   def serializable(self):
-    return {
+    tmp = {
       key.lstrip('_'): val
       for (key, val) in self.__dict__.items()
     }
+
+    # Postgres/Psycopg use date object for timestamps, whereas SQLite uses
+    # strings.  The string SQLite returns includes microseconds; the default
+    # string representation of the date object does not.  Which would generally
+    # be okay except it causes tests verifying lastheard was updated to fail
+    # unless a one-second sleep is introduced.
+    if self._lastheard and isinstance(self._lastheard, date):
+      tmp['lastheard'] = self._lastheard.isoformat()
+
+    return tmp
