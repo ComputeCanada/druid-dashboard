@@ -3,6 +3,7 @@
 #
 import hmac
 import base64
+from datetime import datetime, timezone
 from app.db import get_db
 from app.log import get_log
 from app.exceptions import DatabaseException
@@ -14,12 +15,13 @@ from app.exceptions import DatabaseException
 APIKEY_GET = '''
   SELECT    secret
   FROM      apikeys
-  WHERE     access = ?
+  WHERE     access = ? AND state = 'a'
 '''
 
 APIKEY_GET_ALL = '''
   SELECT    access
   FROM      apikeys
+  WHERE     state = 'a'
 '''
 
 APIKEY_CREATE_NEW = '''
@@ -29,15 +31,31 @@ APIKEY_CREATE_NEW = '''
 '''
 
 APIKEY_DELETE = '''
-  DELETE FROM apikeys
-  WHERE       access = ?
+  UPDATE apikeys
+  SET    state = 'd'
+  WHERE  access = ?
 '''
 
 APIKEY_GET_COMPONENT = '''
   SELECT  component
   FROM    apikeys
-  WHERE   access = ?
+  WHERE   access = ? AND state = 'a'
 '''
+
+APIKEY_MOST_RECENT_USE = '''
+  SELECT    lastused
+  FROM      apikeys
+  WHERE     component = ?
+  ORDER BY  lastused DESC
+  LIMIT     1
+'''
+
+APIKEY_UPDATE_LAST_USED = '''
+  UPDATE    apikeys
+  SET       lastused = ?
+  WHERE     access = ?
+'''
+
 
 # ---------------------------------------------------------------------------
 #                                                                   helpers
@@ -48,7 +66,7 @@ APIKEY_GET_COMPONENT = '''
 # py: h = hmac.new(b'secret', digestmod='sha256')
 #     h.update(b'So this is how the world ends')
 #     base64.b64encode(h.digest())
-def verify_message(access_key, message, digest):
+def verify_message(access_key, message, digest, update_used=False):
 
   # get API key
   apikey = ApiKey(access_key)
@@ -57,7 +75,14 @@ def verify_message(access_key, message, digest):
   h = hmac.new(apikey.secret.encode(), digestmod='sha256')
   h.update(message.encode())
 
-  return base64.b64encode(h.digest()).decode('utf-8') == digest
+  # do they match?
+  verified = base64.b64encode(h.digest()).decode('utf-8') == digest
+
+  # update last-use if requested (and verified)
+  if verified and update_used:
+    apikey.update_use()
+
+  return verified
 
 def get_apikeys():
   """
@@ -92,6 +117,15 @@ def lookup_component(access):
   db = get_db()
   row = db.execute(APIKEY_GET_COMPONENT, (access,)).fetchone()
   return row['component']
+
+
+def most_recent_use(component):
+  get_log().debug("In most_recent_use(%s)", component)
+  db = get_db()
+  row = db.execute(APIKEY_MOST_RECENT_USE, (component,)).fetchone()
+  if row:
+    return row['lastused']
+  return None
 
 # ---------------------------------------------------------------------------
 #                                                              apikey class
@@ -139,6 +173,13 @@ class ApiKey():
             access, secret, component
           )
         ) from e
+
+  def update_use(self):
+    lastused = datetime.now(timezone.utc)
+    db = get_db()
+    db.execute(APIKEY_UPDATE_LAST_USED, (lastused, self._access))
+    db.commit()
+    self._lastused = lastused
 
   @property
   def secret(self):

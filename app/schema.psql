@@ -18,17 +18,19 @@ CREATE TABLE clusters (
 CREATE TABLE components (
   id VARCHAR(32) UNIQUE NOT NULL,
   name VARCHAR(64) UNIQUE NOT NULL,
-  cluster VARCHAR(16) UNIQUE NOT NULL,
-  service VARCHAR(12) UNIQUE NOT NULL,
-  lastheard TIMESTAMP,
+  cluster VARCHAR(16) NOT NULL,
+  service VARCHAR(12) NOT NULL,
   FOREIGN KEY (cluster) REFERENCES clusters(id),
   CHECK (service IN ('detector', 'scheduler'))
 );
 
+-- state: 'a' = active, 'd' = deleted
 CREATE TABLE apikeys (
   access VARCHAR(16) UNIQUE NOT NULL,
   secret CHAR(64) NOT NULL,
   component VARCHAR(32) NOT NULL,
+  lastused TIMESTAMP,
+  state CHAR(1) DEFAULT 'a',
   FOREIGN KEY (component) REFERENCES components(id)
 );
 
