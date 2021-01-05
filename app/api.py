@@ -56,7 +56,7 @@ def api_key_required(view):
 
     # verify digest given against our own calculated from request
     try:
-      if not verify_message(accesskey, digestible, digest):
+      if not verify_message(accesskey, digestible, digest, update_used=True):
         get_log().error("Digests do not match")
         abort(403)
     except ValueError as e:
@@ -89,10 +89,6 @@ def get_burst(id):
 
   get_log().debug("In api.get_burst(%d)", id)
 
-  # TODO: update lastheard for component (determine from apikey)
-  # use session['api_keyname']
-  # apikey.lookup_component(apikey=session['api_keyname']).lastheard = now()
-
   # TODO: burst = Burst(id)
   burst = {}
   return burst
@@ -102,9 +98,6 @@ def get_burst(id):
 def api_get_bursts():
 
   get_log().debug("In api.api_get_bursts")
-
-  # TODO: update lastheard for component (determine from apikey)
-  # use session['api_keyname']
 
   # get query parameters
   #cluster = request.args.get('cluster', None)
@@ -118,9 +111,6 @@ def api_get_bursts():
 def api_post_bursts():
 
   get_log().debug("In api.post_bursts()")
-
-  # TODO: update lastheard for component (determine from apikey)
-  # use session['api_keyname']
 
   data = request.form
   # TODO: remove--this is only to avoid lint warnings
