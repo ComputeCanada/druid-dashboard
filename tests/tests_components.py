@@ -82,7 +82,6 @@ def test_add_component_xhr(client):
   components = json.loads(response.data)
 
   del components[0]['lastheard']
-  print(components)
   assert sorted(components, key=lambda x: x['id']) == sorted([
     {'id': 'testcluster_detector',
      'name': 'Detector',
