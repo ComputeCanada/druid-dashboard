@@ -32,7 +32,7 @@ bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 @admin_required
 def xhr_get_apikeys():
 
-  access_keys = get_apikeys()
+  access_keys = get_apikeys(pretty=True)
   return jsonify(access_keys)
 
 

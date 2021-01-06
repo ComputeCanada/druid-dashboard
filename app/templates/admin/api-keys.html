@@ -7,19 +7,20 @@
   <thead>
     <tr>
       <th>Name</th>
+      <th>Cluster</th>
       <th>Component</th>
       <th></th>
     </tr>
   </thead>
   <tbody id='api_keys_tbody'>
     <tr>
-      <td colspan=2>Loading (probably)...</td>
+      <td colspan=3>Loading (probably)...</td>
       <td></td>
     </tr>
   </tbody>
   <tfoot>
     <tr>
-      <th colspan=2><a href='' class='add_api_key'>Create new API key</a></th>
+      <th colspan=3><a href='' class='add_api_key'>Create new API key</a></th>
       <td><a href=''><img class='add_api_key' src='{{ url_for('static', filename='icons/add.svg') }}' height=24 width=24/></a></td>
     </tr>
   </tfoot>
@@ -107,13 +108,14 @@
         r = document.createElement("tr");
         r.innerHTML = `
           <td>${apikey['access']}</td>
+          <td>${apikey['cluster']}</td>
           <td>${apikey['component']}</td>
           <td><img class='delete_api_key' id='delete:${apikey["access"]}' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></td>`;
         tbody.appendChild(r);
       }
     } else {
       r = document.createElement("tr");
-      r.innerHTML = "<td colspan=3>There are currently no API keys defined.</td>";
+      r.innerHTML = "<td colspan=4>There are currently no API keys defined.</td>";
       tbody.appendChild(r);
     }
 

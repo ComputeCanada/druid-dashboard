@@ -17,10 +17,12 @@ def test_get_apikeys_xhr(client):
   apikeys = json.loads(response.data)
   assert sorted(apikeys, key=lambda x: x['access']) == sorted([
     {'access': 'fakeyfakefake',
-     'component': 'testcluster_detector'
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
     },
     {'access': 'testapikey',
-     'component': 'testcluster_detector'
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
     }
   ], key=lambda x: x['access'])
 
@@ -41,13 +43,16 @@ def test_add_apikey_xhr(client):
   apikeys = json.loads(response.data)
   assert sorted(apikeys, key=lambda x: x['access']) == sorted([
     {'access': 'different_key',
-     'component': 'testcluster_detector'
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
     },
     {'access': 'fakeyfakefake',
-     'component': 'testcluster_detector'
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
     },
     {'access': 'testapikey',
-     'component': 'testcluster_detector'
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
     }
   ], key=lambda x: x['access'])
 
@@ -62,11 +67,14 @@ def test_delete_apikey_xhr(client):
   response = client.get('/xhr/apikeys/')
   assert response.status_code == 200
   apikeys = json.loads(response.data)
+  print(apikeys)
   assert sorted(apikeys, key=lambda x: x['access']) == sorted([
     {'access': 'different_key',
-     'component': 'testcluster_detector'
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
     },
     {'access': 'testapikey',
-     'component': 'testcluster_detector'
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
     }
   ], key=lambda x: x['access'])

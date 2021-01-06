@@ -26,8 +26,10 @@ APIKEY_GET_ALL = '''
 
 # presentation version
 APIKEY_GET_ALL_PRETTY = '''
-  SELECT    access, cluster, component
-  FROM      apikeys, clusters, components
+  SELECT    access, clus.name AS cluster, comp.name AS component
+  FROM      apikeys
+  JOIN      components comp ON (component = comp.id)
+  JOIN      clusters clus on (comp.cluster = clus.id)
   WHERE     state = 'a'
 '''
 
@@ -91,7 +93,7 @@ def verify_message(access_key, message, digest, update_used=False):
 
   return verified
 
-def get_apikeys(shallow=True):
+def get_apikeys(pretty=False):
   """
   Retrieves API keys (access part only).
 
@@ -101,16 +103,22 @@ def get_apikeys(shallow=True):
     A list of API access keys.
   """
   db = get_db()
-  if shallow:
-    res = db.execute(APIKEY_GET_ALL).fetchall()
-  else:
+  sql = APIKEY_GET_ALL_PRETTY if pretty else APIKEY_GET_ALL
+  res = db.execute(sql).fetchall()
+  if not res:
+    return None
+  if pretty:
     # TODO: implement - needs the something generic like the following,
     # which doesn't work
     # return [ { k: v for (k, v) in rec.items() } for rec in res ]
-    get_log().fatal("Unimplemented!")
-    res = db.execute(APIKEY_GET_ALL_PRETTY).fetchall()
-  if not res:
-    return None
+    return [
+      {
+        'access': rec['access'],
+        'cluster': rec['cluster'],
+        'component': rec['component']
+      }
+      for rec in res
+    ]
   return [
     {
       'access': rec['access'],
