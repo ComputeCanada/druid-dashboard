@@ -287,14 +287,53 @@ or investigate problems.
 To set up the environment, issue the following from the root of the
 repository, in one window:
 
-```
-$ docker-compose -f tests/docker-compose.yml up
-```
+### Unit tests
 
-In a second window, run the tests:
+Uses SQLite and an LDAP stub.
 
 ```
-$ . venv/bin/activate
 $ tests/test-all
 ```
 
+### Postgres integration
+
+Tests Postgres as well, still using the LDAP stub.
+
+```
+$ docker-compose -f tests/docker-pgsql.yml up -d
+[...]
+$ tests/test-all
+[...]
+$ docker-compose -f tests/docker-pgsql.yml down
+```
+
+### LDAP integration
+
+Tests Postgres and LDAP.
+
+```
+$ docker-compose -f tests/docker-ldap.yml up -d
+[...]
+$ tests/test-all
+[...]
+$ docker-compose -f tests/docker-ldap.yml down
+```
+
+## Development environment
+
+### Authentication and application credentials
+
+Authentication in this app assumes it is running behind a reverse proxy which
+handles authentication and passes along the user in the HTTP request header
+`X_AUTHENTICATED_USER`.  Without this you will get a 403, regardless of
+which LDAP backend used (a real server, a local container, or a stub).  There
+are two ways around this I'm aware of with Firefox.
+
+1. Under Developer Tools, with the Network tab open, reload or visit the app.
+Right-click on the 403 request for `/` or whatever path you entered and
+selected *Edit and Resend*.  Add a header for `x-authenticated-user` set to
+whichever user you want to fake out and click _Send_.  Note that this will
+only work for one request.
+
+2. Install a Firefox plugin to mangle headers for you.  I'm using
+[SimpleModifyHeaders](https://github.com/didierfred/SimpleModifyHeaders/tree/v1.6.3).
