@@ -150,8 +150,8 @@ deploy_development:
   extends: .code
   # failure allowed while Kubernetes down
   allow_failure: true
-  only:
-    - main
+  #only:
+  #  - main
   except:
     - tags
   stage: deploy

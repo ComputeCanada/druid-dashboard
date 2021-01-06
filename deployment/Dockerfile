@@ -24,6 +24,8 @@ WORKDIR /home/beam
 RUN mkdir beam ccldap
 COPY ccldap/ ccldap/
 COPY app/ app/
+COPY deployment/development.sqlite development.sqlite
+ENV BEAM_DATABASE_URI=file:////home/beam/development.sqlite
 RUN pybabel compile -d app/translations
 ENV FLASK_APP=/home/beam/app
 
