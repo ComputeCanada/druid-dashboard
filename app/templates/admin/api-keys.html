@@ -7,18 +7,19 @@
   <thead>
     <tr>
       <th>Name</th>
+      <th>Component</th>
       <th></th>
     </tr>
   </thead>
   <tbody id='api_keys_tbody'>
     <tr>
-      <td>Loading (probably)...</td>
+      <td colspan=2>Loading (probably)...</td>
       <td></td>
     </tr>
   </tbody>
   <tfoot>
     <tr>
-      <th><a href='' class='add_api_key'>Create new API key</a></th>
+      <th colspan=2><a href='' class='add_api_key'>Create new API key</a></th>
       <td><a href=''><img class='add_api_key' src='{{ url_for('static', filename='icons/add.svg') }}' height=24 width=24/></a></td>
     </tr>
   </tfoot>
@@ -104,13 +105,15 @@
     if (apikeys) {
       for (apikey of apikeys) {
         r = document.createElement("tr");
-        r.innerHTML = "<td>" + apikey + "</td>" +
-                      "<td><img class='delete_api_key' id='delete:" + apikey + "' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></td>";
+        r.innerHTML = `
+          <td>${apikey['access']}</td>
+          <td>${apikey['component']}</td>
+          <td><img class='delete_api_key' id='delete:${apikey["access"]}' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></td>`;
         tbody.appendChild(r);
       }
     } else {
       r = document.createElement("tr");
-      r.innerHTML = "<td colspan=2>There are currently no API keys defined.</td>";
+      r.innerHTML = "<td colspan=3>There are currently no API keys defined.</td>";
       tbody.appendChild(r);
     }
 

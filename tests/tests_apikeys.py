@@ -15,10 +15,14 @@ def test_get_apikeys_xhr(client):
   response = client.get('/xhr/apikeys/')
   assert response.status_code == 200
   apikeys = json.loads(response.data)
-  assert sorted(apikeys) == [
-    'fakeyfakefake',
-    'testapikey'
-  ]
+  assert sorted(apikeys, key=lambda x: x['access']) == sorted([
+    {'access': 'fakeyfakefake',
+     'component': 'testcluster_detector'
+    },
+    {'access': 'testapikey',
+     'component': 'testcluster_detector'
+    }
+  ], key=lambda x: x['access'])
 
 def test_add_apikey_xhr(client):
 
@@ -35,11 +39,17 @@ def test_add_apikey_xhr(client):
   response = client.get('/xhr/apikeys/')
   assert response.status_code == 200
   apikeys = json.loads(response.data)
-  assert sorted(apikeys) == [
-    'different_key',
-    'fakeyfakefake',
-    'testapikey'
-  ]
+  assert sorted(apikeys, key=lambda x: x['access']) == sorted([
+    {'access': 'different_key',
+     'component': 'testcluster_detector'
+    },
+    {'access': 'fakeyfakefake',
+     'component': 'testcluster_detector'
+    },
+    {'access': 'testapikey',
+     'component': 'testcluster_detector'
+    }
+  ], key=lambda x: x['access'])
 
 def test_delete_apikey_xhr(client):
 
@@ -52,7 +62,11 @@ def test_delete_apikey_xhr(client):
   response = client.get('/xhr/apikeys/')
   assert response.status_code == 200
   apikeys = json.loads(response.data)
-  assert sorted(apikeys) == [
-    'different_key',
-    'testapikey'
-  ]
+  assert sorted(apikeys, key=lambda x: x['access']) == sorted([
+    {'access': 'different_key',
+     'component': 'testcluster_detector'
+    },
+    {'access': 'testapikey',
+     'component': 'testcluster_detector'
+    }
+  ], key=lambda x: x['access'])
