@@ -26,12 +26,18 @@
       console.log("Unimplemented function: refresh_configuration()");
     }
 
+    function refresh_status() {
+      // TODO: implement refresh_status()
+      console.log("Unimplemented function: refresh_status()");
+    }
+
     // functions to execute when activating tabs
     // TODO: create actual functions
     var tab_activation_fns = [
       refresh_authz,
       refresh_api_keys,
-      refresh_configuriation
+      refresh_configuriation,
+      refresh_status
     ];
 
     // initialize tabs
@@ -72,8 +78,9 @@
     <!-- tab bar -->
     <ul>
       <li><a href="#tab-authz"><span>Users and access</span></a></li>
-      <li><a href="#tab-api-keys"><span>API keys</a></li>
-      <li><a href="#tab-configuration"><span>Configuration</a></li>
+      <li><a href="#tab-api-keys"><span>API keys</span></a></li>
+      <li><a href="#tab-configuration"><span>Configuration</span></a></li>
+      <li><a href="#tab-status"><span>Status</span></a></li>
     </ul>
 
     <!-- tabs -->
@@ -85,6 +92,9 @@
     </div>
     <div id="tab-configuration">
       {% include 'admin/configuration.html' %}
+    </div>
+    <div id="tab-status">
+      {% include 'admin/status.html' %}
     </div>
   </div>
 

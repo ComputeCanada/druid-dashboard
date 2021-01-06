@@ -265,3 +265,10 @@ ul.auction {
 p#refresh_auction_link {
   display: none;
 }
+
+.status table,tbody,tr,th,td {
+  border-collapse: collapse;
+  border: 1px solid black;
+  padding: 1px 10px;
+  spacing: 0px;
+}
