@@ -12,6 +12,12 @@ class AppException(Exception):
     return self._description
 
 
+class BadCall(AppException):
+  """
+  Exception raised when method called in an unsuitable way, such as a
+  nonsensical combination of parameters.
+  """
+
 class ResourceNotFound(AppException):
   """
   Exception raised for when requested resources are not available.
