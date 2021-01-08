@@ -151,6 +151,10 @@ class Component():
       self.load_lastheard()
     return self._lastheard
 
+  @property
+  def cluster(self):
+    return self._cluster
+
   def serializable(self):
     tmp = {
       key.lstrip('_'): val
