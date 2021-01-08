@@ -5,7 +5,7 @@ import functools
 from datetime import datetime, timezone
 import email.utils
 from flask import (
-    Blueprint, request, abort, session, Response
+    Blueprint, request, abort, session, jsonify
 )
 from app.log import get_log
 from app.apikey import ApiKey
@@ -14,6 +14,30 @@ from app.component import Component
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
+
+# ---------------------------------------------------------------------------
+#                                                                    HELPERS
+# ---------------------------------------------------------------------------
+
+@bp.errorhandler(400)
+def badrequest(error):
+  get_log().error("Forbidden (error = %s)", error)
+  return jsonify({'error': str(error)}), 400
+
+@bp.errorhandler(401)
+def unauthorized(error):
+  get_log().error("Forbidden (error = %s)", error)
+  return jsonify({'error': str(error)}), 401
+
+@bp.errorhandler(403)
+def forbidden(error):
+  get_log().error("Forbidden (error = %s)", error)
+  return jsonify({'error': str(error)}), 403
+
+@bp.errorhandler(500)
+def servererror(error):
+  get_log().error("Forbidden (error = %s)", error)
+  return jsonify({'error': str(error)}), 500
 
 # ---------------------------------------------------------------------------
 #                                                                    HELPERS
@@ -28,7 +52,7 @@ def api_key_required(view):
     # check for authorization header
     if 'Authorization' not in request.headers:
       get_log().info("Missing authorization header")
-      abort(403)
+      abort(401)
     get_log().debug("Authorization = %s", request.headers['Authorization'])
 
     # parse authorization header
@@ -41,7 +65,7 @@ def api_key_required(view):
     except (RuntimeError, ValueError):
       # catches raised exception and also <3 strings to split above
       get_log().error("Invalid authorization header")
-      abort(403)
+      abort(401)
 
     # request.date NOT used because it reinterprets date according to locale
     datestamp = request.headers['date']
@@ -57,16 +81,20 @@ def api_key_required(view):
     digestible = "{} {}\n{}".format(request.method, resource, datestamp)
 
     # get API key object
-    apikey = ApiKey(accesskey)
+    try:
+      apikey = ApiKey(accesskey)
+    except ValueError as e:
+      get_log().error("Could not find API key %s", accesskey)
+      abort(401)
 
     # verify digest given against our own calculated from request
     try:
       if not apikey.verify(digestible, digest):
         get_log().error("Digests do not match")
-        abort(403)
+        abort(401)
     except ValueError as e:
       get_log().error("Message authorization digest failure: '%s'", e)
-      abort(403)
+      abort(401)
 
     # Check date is relatively recent.  Do this AFTER message digest
     # verification because it's to guard against replay attacks
@@ -148,7 +176,7 @@ def api_post_bursts():
   data = request.get_json()
   if not data or not data.get('report', None):
     get_log().error("API violation: must include 'report' definition")
-    return Response("API violation: must include 'report' definition", status=400, mimetype='application/json')
+    abort(400)
   try:
     for burst in data['report']:
       get_log().debug("Received burst information for account %s", burst['rapi'])
@@ -161,11 +189,10 @@ def api_post_bursts():
       ))
   except KeyError as e:
     # client not following API
-    # TODO: this doesn't include summary subfields, is that okay?
     get_log().error("Missing field required by API: %s", e)
-    return Response("Missing field required by API: {}".format(e), status=400, mimetype='application/json')
+    abort(400)
   except Exception as e:
     get_log().error("Could not register burst: '{}'".format(e))
     abort(500)
 
-  return Response('OK', status=201, mimetype='application/json')
+  return jsonify({'status': 'OK'}), 201

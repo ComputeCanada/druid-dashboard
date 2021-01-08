@@ -83,8 +83,6 @@ def test_post_incomplete_burst(client):
 
   response = api_post(client, '/api/bursts', {'account': 'def-dleske'})
   assert response.status_code == 400
-  print(response.data)
-  assert response.data == b"API violation: must include 'report' definition"
 
 def test_post_incomplete_burst_2(client):
 
@@ -98,7 +96,6 @@ def test_post_incomplete_burst_2(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b"Missing field required by API: 'summary'"
 
 def test_post_burst(client):
 
@@ -113,4 +110,3 @@ def test_post_burst(client):
       }
     ]})
   assert response.status_code == 201
-  assert response.data == b'OK'
