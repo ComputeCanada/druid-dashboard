@@ -30,9 +30,46 @@ $("#error").click(function(e) {
   $("#error").hide();
 });
 
+function refresh_bursts() {
+  console.log("In refresh_bursts()");
+  $.ajax({
+    url: '/xhr/bursts/',
+    method: 'GET',
+    success: display_bursts,
+    error: function() { console.error("refresh_bursts() AJAX error"); }
+  });
+}
+
+function display_bursts(bursts, status, jqXHR) {
+
+  // clear out body of table, leaving header and footer intact
+  var tbody = document.getElementById("bursts_body");
+  tbody.innerHTML = "";
+
+  // create row for each burst
+  if (bursts) {
+    for (burst of bursts) {
+      r = document.createElement("tr");
+      r.innerHTML = `
+        <td>${burst['id']}</td>
+        <td>${burst['cluster']}</td>
+        <td>${burst['account']}</td>
+        <td>${burst['pain']}</td>
+        <td>${burst['summary']}</td>
+        <td>(Actions)</td>`;
+      tbody.appendChild(r);
+    }
+  } else {
+    r = document.createElement("tr");
+    r.innerHTML = "<td colspan=6>There are currently no bursts defined.</td>";
+    tbody.appendChild(r);
+  }
+}
+
+
 // Populate this to refresh content areas.
 function refresh_content() {
-  // TODO: populate refresh_content()
+  refresh_bursts();
 }
 
 function flash_error(summary, message) {
@@ -146,6 +183,24 @@ $(function() {
 <div id='error'>
 </div>
 
+<div id='bursts'>
+<table>
+  <caption>Bursts</caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Cluster</th>
+      <th>Account</th>
+      <th>Pain</th>
+      <th>Summary</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id='bursts_body'>
+    <tr><td colspan=6><i>Loading burst information, probably...</i></td></tr>
+  </tbody>
+</table>
+</div>
 
 {% endblock %}
 

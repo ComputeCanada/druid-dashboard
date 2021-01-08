@@ -272,3 +272,7 @@ p#refresh_auction_link {
   padding: 1px 10px;
   spacing: 0px;
 }
+
+#bursts table {
+  width: 100%;
+}
