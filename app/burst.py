@@ -32,8 +32,9 @@ SQL_UPDATE_EXISTING = '''
   WHERE   id = ?
 '''
 
+# TODO: This does not return *current* bursts
 SQL_GET_ALL = '''
-  SELECT  id, name, cluster, service
+  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
   FROM    bursts
 '''
 
@@ -59,6 +60,22 @@ SQL_REJECT = '''
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
+def get_bursts():
+  db = get_db()
+  res = db.execute(SQL_GET_ALL).fetchall()
+  if not res:
+    return None
+  bursts = []
+  for row in res:
+    bursts.append(Burst(
+      id=row['id'],
+      cluster=row['cluster'],
+      account=row['account'],
+      pain=row['pain'],
+      jobrange=(row['firstjob'], row['lastjob']),
+      summary=row['summary']
+    ))
+  return bursts
 
 # ---------------------------------------------------------------------------
 #                                                           component class
@@ -70,25 +87,27 @@ class Burst():
 
   Attributes:
     _id: id
+    _cluster: cluster ID referencing entry in cluster table
     _account: account: accounting ID (i.e., RAPI)
     _pain: pain
     _jobrange: tuple of first and last job IDs in burst
-    _summary: summary information about burst and jobs (dict)
+    _summary: summary information about burst and jobs (JSON)
   """
 
   def __init__(self, id=None, cluster=None, account=None, pain=None, jobrange=None, summary=None):
 
     self._id = id
+    self._cluster = cluster
     self._account = account
     self._pain = pain
     self._jobrange = jobrange
     self._summary = summary
 
-    ## handle instantiation by factory
-    #if factory_load:
-    #  if get_last_heard:
-    #    self.load_lastheard()
-    #  return
+    # handle instantiation by factory
+    # pylint: disable=too-many-boolean-expressions
+    if id and cluster and account and jobrange and \
+        pain is not None and summary is not None:
+      return
 
     # verify initialized correctly
     if not (id or (cluster and account and pain is not None and jobrange)):
