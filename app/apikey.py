@@ -13,7 +13,7 @@ from app.exceptions import DatabaseException
 # ---------------------------------------------------------------------------
 
 APIKEY_GET = '''
-  SELECT    secret
+  SELECT    secret, component
   FROM      apikeys
   WHERE     access = ? AND state = 'a'
 '''
@@ -75,6 +75,7 @@ APIKEY_UPDATE_LAST_USED = '''
 # py: h = hmac.new(b'secret', digestmod='sha256')
 #     h.update(b'So this is how the world ends')
 #     base64.b64encode(h.digest())
+# TODO: superseded by ApiKey::verify() ?
 def verify_message(access_key, message, digest, update_used=False):
 
   # get API key
@@ -184,6 +185,7 @@ class ApiKey():
       res = db.execute(APIKEY_GET, (access,)).fetchone()
       if res:
         self._secret = res['secret']
+        self._component = res['component']
       else:
         raise ValueError(
           "Could not load API key with access key '{}'".format(access)
@@ -203,12 +205,31 @@ class ApiKey():
           )
         ) from e
 
+  def verify(self, message, digest, update_used=True):
+
+    # calculate digest
+    h = hmac.new(self.secret.encode(), digestmod='sha256')
+    h.update(message.encode())
+
+    # do they match?
+    verified = base64.b64encode(h.digest()).decode('utf-8') == digest
+
+    # update last-use if requested (and verified)
+    if verified and update_used:
+      self.update_use()
+
+    return verified
+
   def update_use(self):
     lastused = datetime.now(timezone.utc)
     db = get_db()
     db.execute(APIKEY_UPDATE_LAST_USED, (lastused, self._access))
     db.commit()
     self._lastused = lastused
+
+  @property
+  def component(self):
+    return self._component
 
   @property
   def secret(self):
