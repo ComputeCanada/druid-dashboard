@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS schemalog;
 DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
+DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 
 CREATE TABLE schemalog (
@@ -41,4 +42,17 @@ CREATE TABLE notifications (
   sender CHAR(7),
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   message TEXT NOT NULL
+);
+
+-- state: 'a' = accepted, 'p' = pending, 'r' = rejected
+CREATE TABLE bursts (
+  id SERIAL PRIMARY KEY,
+  state CHAR(1) NOT NULL DEFAULT 'p',
+  account VARCHAR(32) NOT NULL,
+  cluster VARCHAR(16) NOT NULL,
+  pain REAL NOT NULL,
+  firstjob INTEGER NOT NULL,
+  lastjob INTEGER NOT NULL,
+  summary TEXT,
+  FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
