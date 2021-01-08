@@ -1,12 +1,10 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621
 #
-from datetime import date
 import json
 from app.db import get_db
 from app.log import get_log
 from app.exceptions import DatabaseException, BadCall
-from app.apikey import most_recent_use
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -94,7 +92,11 @@ class Burst():
 
     # verify initialized correctly
     if not (id or (cluster and account and pain is not None and jobrange)):
-      get_log().error("Missing either id (%s) or one or more of cluster (%s), account (%s), pain (%s) or jobrange (%s)", id, cluster, account, pain, jobrange)
+      get_log().error(
+        "Missing either id (%s) or one or more of cluster (%s), account (%s),"
+        " pain (%s) or jobrange (%s)",
+        id, cluster, account, pain, jobrange
+      )
       raise BadCall("Must specify either ID or all burst parameters")
 
     # creating or retrieving?
@@ -132,7 +134,7 @@ class Burst():
         try:
           db.execute(SQL_UPDATE_EXISTING, (pain, jobrange[1], json.dumps(summary), self._id))
         except Exception as e:
-          raise DatabaseException("Could not {} ({})".format(trying_to, e))
+          raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
       else:
         # this is a new burst
         trying_to = "create burst for {}".format(account)
@@ -142,7 +144,7 @@ class Burst():
         try:
           db.execute(SQL_CREATE, (cluster, account, pain, jobrange[0], jobrange[1], json.dumps(summary)))
         except Exception as e:
-          raise DatabaseException("Could not {} ({})".format(trying_to, e))
+          raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
       try:
         db.commit()
       except Exception as e:
