@@ -21,7 +21,7 @@ SQL_FIND_EXISTING = '''
   FROM    bursts
   WHERE   cluster = ?
     AND   account = ?
-    AND   ? < lastjob
+    AND   ? <= lastjob
 '''
 
 SQL_UPDATE_EXISTING = '''
@@ -132,11 +132,12 @@ class Burst():
         )
     else:
       # see if there is already a suitable burst
+      get_log().debug("Looking for existing burst")
       res = db.execute(SQL_FIND_EXISTING, (cluster, account, jobrange[1])).fetchone()
       if res:
         # found existing burst
         self._id = res['id']
-        self._jobrange[0] = res['firstjob']
+        self._jobrange = [res['firstjob'], jobrange[1]]
 
         # update burst for shifting definition:
         # As time goes on, the first job reported in a burst may have
