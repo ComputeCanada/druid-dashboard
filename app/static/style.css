@@ -276,3 +276,7 @@ p#refresh_auction_link {
 #bursts table {
   width: 100%;
 }
+
+table.not-table th,table.not-table td {
+  border: none;
+}

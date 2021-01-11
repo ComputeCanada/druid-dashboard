@@ -49,13 +49,19 @@ function display_bursts(bursts, status, jqXHR) {
   // create row for each burst
   if (bursts) {
     for (burst of bursts) {
+      // summary information is JSON, make it... not that
+      var summary = JSON.parse(burst['summary']);
+      var summaryHTML = '';
+      for (key in summary) {
+        summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
+      }
       r = document.createElement("tr");
       r.innerHTML = `
         <td>${burst['id']}</td>
         <td>${burst['cluster']}</td>
         <td>${burst['account']}</td>
         <td>${burst['pain']}</td>
-        <td>${burst['summary']}</td>
+        <td><table class='not-table'>${summaryHTML}</table></td>
         <td>(Actions)</td>`;
       tbody.appendChild(r);
     }
