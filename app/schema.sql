@@ -18,11 +18,12 @@ CREATE TABLE clusters (
 
 CREATE TABLE components (
   id VARCHAR(32) UNIQUE NOT NULL,
-  name VARCHAR(64) UNIQUE NOT NULL,
+  name VARCHAR(64) NOT NULL,
   cluster VARCHAR(16) NOT NULL,
   service VARCHAR(12) NOT NULL,
   FOREIGN KEY (cluster) REFERENCES clusters(id),
-  CHECK (service IN ('detector', 'scheduler'))
+  CHECK (service IN ('detector', 'scheduler')),
+  CONSTRAINT name_cluster UNIQUE (name, cluster)
 );
 
 -- state: 'a' = active, 'd' = deleted
