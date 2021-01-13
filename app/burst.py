@@ -32,12 +32,6 @@ SQL_UPDATE_EXISTING = '''
   WHERE   id = ?
 '''
 
-# TODO: This does not return *current* bursts
-SQL_GET_ALL = '''
-  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
-  FROM    bursts
-'''
-
 SQL_CREATE = '''
   INSERT INTO bursts
               (cluster, account, pain, firstjob, lastjob, summary)
@@ -56,13 +50,35 @@ SQL_REJECT = '''
   WHERE   id = ?
 '''
 
+# TODO: These are not limited to "current" bursts
+SQL_GET_ALL = '''
+  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
+  FROM    bursts
+'''
+
+SQL_GET_FOR_CLUSTER = '''
+  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
+  FROM    bursts
+  WHERE   cluster = ?
+'''
+
+SQL_GET_ACCEPTED = '''
+  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
+  FROM    bursts
+  WHERE   cluster = ? and state='a'
+'''
+
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
-def get_bursts():
+def get_bursts(cluster=None, accepted_only=True):
   db = get_db()
-  res = db.execute(SQL_GET_ALL).fetchall()
+  if cluster:
+    query = SQL_GET_ACCEPTED if accepted_only else SQL_GET_FOR_CLUSTER
+    res = db.execute(query, (cluster,)).fetchall()
+  else:
+    res = db.execute(SQL_GET_ALL).fetchall()
   if not res:
     return None
   bursts = []

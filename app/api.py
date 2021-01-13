@@ -9,7 +9,7 @@ from flask import (
 )
 from app.log import get_log
 from app.apikey import ApiKey
-from app.burst import Burst
+from app.burst import Burst, get_bursts
 from app.component import Component
 
 # establish blueprint
@@ -157,12 +157,10 @@ def api_get_bursts():
 
   get_log().debug("In api.api_get_bursts")
 
-  # get query parameters
-  #cluster = request.args.get('cluster', None)
+  cluster = Component(session['api_component']).cluster
 
-  # TODO: bursts = get_bursts(cluster=cluster)
-  bursts = ({})
-  return bursts
+  bursts = get_bursts(cluster=cluster)
+  return jsonify(bursts), 200
 
 @bp.route('/bursts', methods=['POST'])
 @api_key_required
