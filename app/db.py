@@ -52,11 +52,11 @@ def open_db(uri):
   scheme = uri.split(':', 1)[0]
 
   if scheme == 'file':
-    from .db_sqlite import open_db_sqlite, register_adapter
+    from app.db_sqlite import open_db_sqlite, register_adapter
     db = open_db_sqlite(uri)
 
   elif scheme == 'postgresql':
-    from .db_postgres import open_db_postgres, register_adapter
+    from app.db_postgres import open_db_postgres, register_adapter
     db = open_db_postgres(uri)
 
   else:
