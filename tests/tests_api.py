@@ -70,7 +70,7 @@ def test_get_bursts(client):
   response = api_get(client, '/api/bursts')
   assert response.status_code == 200
   x = json.loads(response.data)
-  assert x == ({})
+  assert x is None
 
 def test_get_burst(client):
 
