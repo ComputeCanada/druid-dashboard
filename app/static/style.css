@@ -275,8 +275,18 @@ p#refresh_auction_link {
 
 #bursts table {
   width: 100%;
+  empty-cells: hide;
 }
 
 table.not-table th,table.not-table td {
   border: none;
 }
+
+select.burst_action {
+  border: none;
+  appearance: none;
+  font-size: 1em;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  text-decoration: underline;
+}
+

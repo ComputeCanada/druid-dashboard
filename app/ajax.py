@@ -8,7 +8,7 @@ from app.auth import login_required, admin_required
 from app.log import get_log
 from app.apikey import get_apikeys, add_apikey, delete_apikey
 from app.component import get_components, add_component, delete_component
-from app.burst import get_bursts
+from app.burst import get_bursts, update_burst_states
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
@@ -80,6 +80,13 @@ def xhr_delete_apikey(access):
 @bp.route('/bursts/', methods=['GET'])
 @login_required
 def xhr_get_bursts():
+  return jsonify(get_bursts())
+
+@bp.route('/bursts/', methods=['PATCH'])
+@login_required
+def xhr_update_bursts():
+  data = request.get_json()
+  update_burst_states(data)
   return jsonify(get_bursts())
 
 # ---------------------------------------------------------------------------

@@ -17,6 +17,9 @@
 
 {% block scriptage %}
   <script>
+// this is used for finding the burst actions on submit
+var burst_ids;
+
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
 var i18n_texts = {
@@ -46,9 +49,14 @@ function display_bursts(bursts, status, jqXHR) {
   var tbody = document.getElementById("bursts_body");
   tbody.innerHTML = "";
 
+  // reset burst IDs array
+  burst_ids = [];
+
   // create row for each burst
   if (bursts) {
     for (burst of bursts) {
+      burst_ids.push(burst['id']);
+
       // summary information is JSON, make it... not that
       var summary = JSON.parse(burst['summary']);
       var summaryHTML = '';
@@ -56,13 +64,37 @@ function display_bursts(bursts, status, jqXHR) {
         summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
       }
       r = document.createElement("tr");
+      state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
+      switch(burst['state']) {
+        case 'a':
+          options = `
+            <option value='p'>Defer</option>
+            <option value='' selected>Accept</option>
+            <option value='r'>Reject</option>`;
+          break;
+        case 'p':
+          options = `
+            <option value='' selected>Defer</option>
+            <option value='a'>Accept</option>
+            <option value='r'>Reject</option>`;
+          break;
+        case 'r':
+          options = `
+            <option value='p'>Defer</option>
+            <option value='a'>Accept</option>
+            <option value='' selected>Reject</option>`;
+          break;
+      }
+      
       r.innerHTML = `
         <td>${burst['id']}</td>
         <td>${burst['cluster']}</td>
         <td>${burst['account']}</td>
         <td>${burst['pain']}</td>
         <td><table class='not-table'>${summaryHTML}</table></td>
-        <td>(Actions)</td>`;
+        <td>${state_pretty}</td>
+        <td><select id='action_${burst["id"]}' class='burst_action'>${options}
+        </select></td>`;
       tbody.appendChild(r);
     }
   } else {
@@ -76,6 +108,61 @@ function display_bursts(bursts, status, jqXHR) {
 // Populate this to refresh content areas.
 function refresh_content() {
   refresh_bursts();
+}
+
+// find first row in a table
+function find_first_row(tbody_id) {
+  var el = document.getElementById(tbody_id);
+  if (el.nodeName == "TBODY") {
+    el = el.firstElementChild;
+    if (el.nodeName == "TR") {
+      return(el);
+    }
+  }
+  return null;
+}
+
+// iterate through burts
+function* burstActionIterator() {
+  var row = find_first_row("bursts_body");
+  if (!row) {
+    console.log("Could not find row.");
+    console.log("TODO: should probably flash something");
+  }
+  while (row) {
+    yield row;
+    row = row.nextElementSibling;
+  }
+}
+
+function numerical_part(id) {
+  var re = /^[a-zA-Z]*_([0-9]+)$/
+  return id.match(re)[1];
+}
+
+// Submit actions
+function submit_actions() {
+  var updates = [];
+
+  // iterate through bursts and compile updates to make
+  for (id of burst_ids) {
+    action = document.getElementById("action_" + id).value;
+    if (action) {
+      updates.push({"id": id, "state" : action});
+    }
+  }
+
+  // submit updates if there are any
+  if (updates.length > 0) {
+    $.ajax({
+      url: '/xhr/bursts/',
+      data: JSON.stringify(updates),
+      contentType: 'application/json',
+      method: 'PATCH',
+      success: display_bursts,
+      error: function() { console.error("submit_actions() AJAX error"); }
+    });
+  }
 }
 
 function flash_error(summary, message) {
@@ -199,12 +286,17 @@ $(function() {
       <th>Account</th>
       <th>Pain</th>
       <th>Summary</th>
+      <th>State</th>
       <th>Action</th>
     </tr>
   </thead>
   <tbody id='bursts_body'>
     <tr><td colspan=6><i>Loading burst information, probably...</i></td></tr>
   </tbody>
+  <tfooter>
+    <td colspan=6></td>
+    <td><button id='submit_actions' value='Submit' onclick='submit_actions()'>Submit</button></td>
+  </tfooter>
 </table>
 </div>
 

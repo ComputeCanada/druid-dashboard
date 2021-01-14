@@ -32,6 +32,12 @@ SQL_UPDATE_EXISTING = '''
   WHERE   id = ?
 '''
 
+SQL_UPDATE_STATE = '''
+  UPDATE  bursts
+  SET     state = ?
+  WHERE   id = ?
+'''
+
 SQL_CREATE = '''
   INSERT INTO bursts
               (cluster, account, pain, firstjob, lastjob, summary)
@@ -52,18 +58,18 @@ SQL_REJECT = '''
 
 # TODO: These are not limited to "current" bursts
 SQL_GET_ALL = '''
-  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
+  SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
   FROM    bursts
 '''
 
 SQL_GET_FOR_CLUSTER = '''
-  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
+  SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
   FROM    bursts
   WHERE   cluster = ?
 '''
 
 SQL_GET_ACCEPTED = '''
-  SELECT  id, cluster, account, pain, firstjob, lastjob, summary
+  SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
   FROM    bursts
   WHERE   cluster = ? and state='a'
 '''
@@ -89,9 +95,19 @@ def get_bursts(cluster=None, accepted_only=True):
       account=row['account'],
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
+      state=row['state'],
       summary=row['summary']
     ))
   return bursts
+
+def update_burst_states(updates):
+  db = get_db()
+  for update in updates:
+    res = db.execute(SQL_UPDATE_STATE, (update['state'], update['id']))
+    if not res:
+      raise DatabaseException("Could not update state for Burst ID {} to {}".format(update['id'], update['state']))
+  db.commit()
+
 
 # ---------------------------------------------------------------------------
 #                                                           component class
@@ -107,21 +123,23 @@ class Burst():
     _account: account: accounting ID (i.e., RAPI)
     _pain: pain
     _jobrange: tuple of first and last job IDs in burst
+    _state: state of burst
     _summary: summary information about burst and jobs (JSON)
   """
 
-  def __init__(self, id=None, cluster=None, account=None, pain=None, jobrange=None, summary=None):
+  def __init__(self, id=None, cluster=None, account=None, pain=None, jobrange=None, state=None, summary=None):
 
     self._id = id
     self._cluster = cluster
     self._account = account
     self._pain = pain
     self._jobrange = jobrange
+    self._state = state
     self._summary = summary
 
     # handle instantiation by factory
     # pylint: disable=too-many-boolean-expressions
-    if id and cluster and account and jobrange and \
+    if id and cluster and account and jobrange and state and \
         pain is not None and summary is not None:
       return
 
