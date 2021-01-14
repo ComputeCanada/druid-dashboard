@@ -120,25 +120,7 @@ def api_key_required(view):
   return wrapped_view
 
 # ---------------------------------------------------------------------------
-#                                                                     BURST
-#                                                                     API
-# Manager records burst report ID with each burst record.  Current bursts
-# are only what were reported in last report.
-#
-# v0:
-#   bursts:
-#     rapi: char(10)
-#     pain: float
-#     firstjob: integer
-#     lastjob: integer
-#     summary:
-#       jobs_total: integer (standby, queued, running)
-#       cpus_total: integer
-#       mem_total: integer
-#
-# Detector does not need to report the cluster where the burst occurs, since
-# this information is associated with the API key the Detector uses.  The
-# Manager still needs to save this with the record.
+#                                                                 BURST API
 # ---------------------------------------------------------------------------
 
 @bp.route('/bursts/<int:id>', methods=['GET'])
@@ -165,6 +147,60 @@ def api_get_bursts():
 @bp.route('/bursts', methods=['POST'])
 @api_key_required
 def api_post_bursts():
+  """
+  Post a Burst Report: a list of accounts and information about their current
+  job context which constitutes a potential burst candidate.
+
+  Format:
+    ```
+    report = {
+      [
+        {
+          'account':  10-character string representing CC RAPI,
+          'pain':     number indicating pain ratio as defined by Detector,
+          'jobrange': tuple of (firstjob, lastjob) owned by account and
+                      currently in the system
+          'summary':  JSON-encoded key-value information about burst context
+                      which may be of use to analyst in evaluation
+        },
+        ...
+      ]
+    }
+    ```
+
+  The `jobrange` is used by the Manager and Scheduler to provide a way by
+  which the Scheduler can decide to "unbless" an account--no longer promote it
+  or its jobs to the Burst Pool--without the Detector or the Scheduler needing
+  to maintain independent state.
+
+  When the Detector signals a potential burst, it reports the first and last
+  jobs (lowest- and highest-numbered) in every report.  The Manager compares
+  this to existing burst candidates.  If the new report overlaps with an
+  existing one, the Manager updates its current understanding with the new upper
+  range.  (The lower range is not updated as this probably only reflects that
+  earlier jobs have been completed, although in the case of mass job deletion
+  this would be misleading, but this range is not intended to be used for any
+  analyst decisions.)
+
+  The Detector may report several times a day and so will report the same
+  burst candidates multiple times.
+
+  The Scheduler retrieves affirmed Burst candidates from the Manager.  When
+  a new candidate is pulled, the Scheduler promotes the account to the burst
+  pool.  That account will be provided on every query by the Scheduler, with
+  the job range updated as necessary based on information received by the
+  Manager from the Detector.  Even once the Detector no longer reports this
+  account as a burst candidate, the Manager will maintain its record.
+
+  The Scheduler will compare the burst record against jobs currently in the
+  system.  If no jobs exist owned by the account that fall within the burst
+  range, then the burst must be complete.  The Scheduler must then report the
+  burst as such to the Manager.
+
+  The Detector does not need to report the cluster where the burst occurs,
+  since this information is associated with the API key the Detector uses.
+  The Manager still needs to save this with the record.
+  """
 
   get_log().debug("In api.post_bursts()")
 
