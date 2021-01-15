@@ -18,7 +18,8 @@
 {% block scriptage %}
   <script>
 // this is used for finding the burst actions on submit
-var burst_ids;
+var burst_states;
+var burst_updates;
 
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
@@ -34,7 +35,6 @@ $("#error").click(function(e) {
 });
 
 function refresh_bursts() {
-  console.log("In refresh_bursts()");
   $.ajax({
     url: '/xhr/bursts/',
     method: 'GET',
@@ -50,12 +50,13 @@ function display_bursts(bursts, status, jqXHR) {
   tbody.innerHTML = "";
 
   // reset burst IDs array
-  burst_ids = [];
+  burst_states = {};
+  burst_updates = {};
 
   // create row for each burst
   if (bursts) {
     for (burst of bursts) {
-      burst_ids.push(burst['id']);
+      burst_states[burst['id']] = burst['state'];
 
       // summary information is JSON, make it... not that
       var summary = JSON.parse(burst['summary']);
@@ -65,35 +66,20 @@ function display_bursts(bursts, status, jqXHR) {
       }
       r = document.createElement("tr");
       state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
-      switch(burst['state']) {
-        case 'a':
-          options = `
-            <option value='p'>Defer</option>
-            <option value='' selected>Accept</option>
-            <option value='r'>Reject</option>`;
-          break;
-        case 'p':
-          options = `
-            <option value='' selected>Defer</option>
-            <option value='a'>Accept</option>
-            <option value='r'>Reject</option>`;
-          break;
-        case 'r':
-          options = `
-            <option value='p'>Defer</option>
-            <option value='a'>Accept</option>
-            <option value='' selected>Reject</option>`;
-          break;
-      }
+      state_selected = {'a': '', 'p': '', 'r': ''};
+      state_selected[burst['state']] = 'selected';
       
       r.innerHTML = `
         <td>${burst['id']}</td>
         <td>${burst['cluster']}</td>
         <td>${burst['account']}</td>
-        <td>${burst['pain']}</td>
+        <td>${burst['pain'].toFixed(2)}</td>
         <td><table class='not-table'>${summaryHTML}</table></td>
         <td>${state_pretty}</td>
-        <td><select id='action_${burst["id"]}' class='burst_action'>${options}
+        <td><select id='action_${burst["id"]}' class='burst_action' onChange='updateSelection(${burst["id"]}, "${burst["state"]}")'>
+          <option value='p' ${state_selected['p']}>Defer</option>
+          <option value='a' ${state_selected['a']}>Accept</option>
+          <option value='r' ${state_selected['r']}>Reject</option>
         </select></td>`;
       tbody.appendChild(r);
     }
@@ -102,8 +88,37 @@ function display_bursts(bursts, status, jqXHR) {
     r.innerHTML = "<td colspan=6>There are currently no bursts defined.</td>";
     tbody.appendChild(r);
   }
+
+  var button = document.getElementById("submit_actions");
+  button.innerHTML = "Update";
+  button.disabled = true;
 }
 
+function updateSelection(id, original_state) {
+  var sel = document.getElementById(`action_${id}`);
+  var val = sel.value;
+  if (val == burst_states[id]) {
+    delete burst_updates[id];
+  }
+  else {
+    burst_updates[id] = val;
+  }
+
+  // determine update button label
+  var label;
+  var button = document.getElementById("submit_actions");
+  var burst_update_count = Object.keys(burst_updates).length;
+  if (burst_update_count == 0) {
+    label = 'Update';
+    button.disabled = true;
+    button.innerHTML = label;
+  }
+  else {
+    label = `Update (${burst_update_count})`;
+    button.disabled = false;
+    button.innerHTML = label;
+  }
+}
 
 // Populate this to refresh content areas.
 function refresh_content() {
@@ -142,21 +157,11 @@ function numerical_part(id) {
 
 // Submit actions
 function submit_actions() {
-  var updates = [];
-
-  // iterate through bursts and compile updates to make
-  for (id of burst_ids) {
-    action = document.getElementById("action_" + id).value;
-    if (action) {
-      updates.push({"id": id, "state" : action});
-    }
-  }
-
   // submit updates if there are any
-  if (updates.length > 0) {
+  if (Object.keys(burst_updates).length > 0) {
     $.ajax({
       url: '/xhr/bursts/',
-      data: JSON.stringify(updates),
+      data: JSON.stringify(burst_updates),
       contentType: 'application/json',
       method: 'PATCH',
       success: display_bursts,
@@ -254,6 +259,9 @@ if (!('Notification' in window)) {
 // readable or searchable)
 $(function() {
   refresh_content();
+
+  // disable submit-actions button
+  document.getElementById("submit_actions").disabled = true;
 });
   </script>
 {% endblock %}
@@ -295,7 +303,7 @@ $(function() {
   </tbody>
   <tfooter>
     <td colspan=6></td>
-    <td><button id='submit_actions' value='Submit' onclick='submit_actions()'>Submit</button></td>
+    <td id='button'><button id='submit_actions' value='Submit' onclick='submit_actions()'>Update</button></td>
   </tfooter>
 </table>
 </div>
