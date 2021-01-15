@@ -290,3 +290,21 @@ select.burst_action {
   text-decoration: underline;
 }
 
+td#button {
+  border: 0px;
+  text-align: center;
+}
+button#submit_actions {
+  font-size: 1em;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  background: #99CCFF;
+  border: 1px solid black;
+  border-radius: 2px;
+  padding: 0.5em 2em;
+}
+
+button#submit_actions:disabled {
+  color: #336699;
+  background: #e5eeff;
+  border: 1px solid grey;
+}
