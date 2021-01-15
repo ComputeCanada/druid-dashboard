@@ -102,10 +102,10 @@ def get_bursts(cluster=None, accepted_only=True):
 
 def update_burst_states(updates):
   db = get_db()
-  for update in updates:
-    res = db.execute(SQL_UPDATE_STATE, (update['state'], update['id']))
+  for (id, state) in updates.items():
+    res = db.execute(SQL_UPDATE_STATE, (state, id))
     if not res:
-      raise DatabaseException("Could not update state for Burst ID {} to {}".format(update['id'], update['state']))
+      raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
   db.commit()
 
 
