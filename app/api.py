@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621
 #
+import re
 import functools
 from datetime import datetime, timezone
 import email.utils
@@ -15,8 +16,11 @@ from app.component import Component
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
 
+# regular expression to match job array IDs and allow extraction of just ID
+job_id_re = re.compile(r'^(\d+)(_\[\d+\])?$')
+
 # ---------------------------------------------------------------------------
-#                                                                    HELPERS
+#                                                            ERROR HANDLERS
 # ---------------------------------------------------------------------------
 
 @bp.errorhandler(400)
@@ -42,6 +46,18 @@ def servererror(error):
 # ---------------------------------------------------------------------------
 #                                                                    HELPERS
 # ---------------------------------------------------------------------------
+
+def just_job_id(jobid):
+  """
+  Strip job ID to just the base ID, not including any array part.
+  """
+  if isinstance(jobid, int):
+    return jobid
+  match = job_id_re.match(jobid)
+  if not match:
+    raise Exception("TODO: DANGIT")
+  return match.groups()[0]
+
 
 def api_key_required(view):
   @functools.wraps(view)
@@ -214,11 +230,17 @@ def api_post_bursts():
   try:
     for burst in data['report']:
       get_log().debug("Received burst information for account %s", burst['rapi'])
+
+      # strip job array ID component, if present
+      firstjob = just_job_id(burst['firstjob'])
+      lastjob = just_job_id(burst['lastjob'])
+
+      # create burst and append to list
       bursts.append(Burst(
         cluster=cluster,
         account=burst['rapi'],
         pain=burst['pain'],
-        jobrange=(burst['firstjob'], burst['lastjob']),
+        jobrange=(firstjob, lastjob),
         summary=burst['summary']
       ))
   except KeyError as e:
