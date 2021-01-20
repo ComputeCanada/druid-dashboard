@@ -55,7 +55,7 @@ def just_job_id(jobid):
     return jobid
   match = job_id_re.match(jobid)
   if not match:
-    raise Exception("TODO: DANGIT")
+    raise Exception("Could not parse job ID ('{}') to extract base ID".format(jobid))
   return match.groups()[0]
 
 
