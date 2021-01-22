@@ -281,6 +281,18 @@ table.not-table th,table.not-table td {
   border: none;
 }
 
+table.not-table th {
+  text-align: left;
+}
+
+table.not-table td {
+  text-align: right;
+}
+
+td.number {
+  text-align: right;
+}
+
 td.action {
   text-align: center;
   white-space: nowrap;
@@ -298,6 +310,7 @@ td#button {
   border: 0px;
   text-align: center;
 }
+
 button#submit_actions {
   font-size: 1em;
   font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;

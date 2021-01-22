@@ -79,7 +79,7 @@ function display_bursts(bursts, status, jqXHR) {
         <td>${burst['cluster']}</td>
         <td>${burst['account']}</td>
         <td><a target="beamplot" href="${instantPlot}">Snapshot</a><br/><a target="beamplot" href="${cumulativePlot}">Cumulative</a></td>
-        <td>${burst['pain'].toFixed(2)}</td>
+        <td class='number'>${burst['pain'].toFixed(2)}</td>
         <td><table class='not-table'>${summaryHTML}</table></td>
         <td>${state_pretty}</td>
         <td class='action'>
