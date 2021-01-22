@@ -300,11 +300,55 @@ button#submit_actions {
   background: #99CCFF;
   border: 1px solid black;
   border-radius: 2px;
-  padding: 0.5em 2em;
+  padding: 0.5em;
+  width: 7em;
+  max-width: 7em;
 }
 
 button#submit_actions:disabled {
   color: #336699;
   background: #e5eeff;
   border: 1px solid grey;
+}
+
+/* --------------------------------------------------------------------------
+                                                            toggle buttons
+--------------------------------------------------------------------------- */
+
+.switch {
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.toggle {
+  border: 1px solid;
+  padding: 2px;
+  margin: 1px;
+  color: #666666;
+  font-size: x-large;
+}
+
+input + .toggle {
+  padding: 2px 4px;
+}
+
+input.green:checked + .toggle {
+  background-color: #00CC00;
+  color: #003300;
+  width: 200px;
+}
+
+input.red:checked + .toggle {
+  background-color: #CC0000;
+  color: #333300;
+}
+
+input.grey:checked + .toggle {
+  background-color: #CCCCFF;
+  color: #000033;
 }

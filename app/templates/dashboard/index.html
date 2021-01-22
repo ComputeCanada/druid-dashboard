@@ -66,13 +66,14 @@ function display_bursts(bursts, status, jqXHR) {
       }
       r = document.createElement("tr");
       state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
-      state_selected = {'a': '', 'p': '', 'r': ''};
-      state_selected[burst['state']] = 'selected';
+      state_checked = {'a': '', 'p': '', 'r': ''};
+      state_checked[burst['state']] = "checked='checked'";
 
       var plotBaseUrl = "https://static.frak.c3.ca/usage-graphs/" + burst['account'];
       var cumulativePlot = plotBaseUrl + "_cumu_plot.html";
       var instantPlot = plotBaseUrl + "_insta_plot.html";
-      
+
+      var id = burst['id']
       r.innerHTML = `
         <td>${burst['id']}</td>
         <td>${burst['cluster']}</td>
@@ -81,11 +82,19 @@ function display_bursts(bursts, status, jqXHR) {
         <td>${burst['pain'].toFixed(2)}</td>
         <td><table class='not-table'>${summaryHTML}</table></td>
         <td>${state_pretty}</td>
-        <td><select id='action_${burst["id"]}' class='burst_action' onChange='updateSelection(${burst["id"]}, "${burst["state"]}")'>
-          <option value='p' ${state_selected['p']}>Defer</option>
-          <option value='a' ${state_selected['a']}>Accept</option>
-          <option value='r' ${state_selected['r']}>Reject</option>
-        </select></td>`;
+        <td><label class='switch'>
+          <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
+            <span class='toggle'>👍</span>
+          </input>
+          </label><label class='switch'>
+          <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
+            <span class='toggle'>👎</span>
+          </input>
+          </label><label class='switch'>
+          <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
+            <span class='toggle'>🤷</span>
+          </input>
+          </label></td>`;
       tbody.appendChild(r);
     }
   } else {
@@ -99,14 +108,12 @@ function display_bursts(bursts, status, jqXHR) {
   button.disabled = true;
 }
 
-function updateSelection(id, original_state) {
-  var sel = document.getElementById(`action_${id}`);
-  var val = sel.value;
-  if (val == burst_states[id]) {
+function updateSelection(id, new_state) {
+  if (new_state == burst_states[id]) {
     delete burst_updates[id];
   }
   else {
-    burst_updates[id] = val;
+    burst_updates[id] = new_state;
   }
 
   // determine update button label
@@ -309,7 +316,7 @@ $(function() {
   </tbody>
   <tfooter>
     <td colspan=7></td>
-    <td id='button'><button id='submit_actions' value='Submit' onclick='submit_actions()'>Update</button></td>
+    <td id='button' colspan=3><button id='submit_actions' value='Submit' onclick='submit_actions()'>Update</button></td>
   </tfooter>
 </table>
 </div>
