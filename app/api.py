@@ -17,7 +17,7 @@ from app.component import Component
 bp = Blueprint('api', __name__, url_prefix='/api')
 
 # regular expression to match job array IDs and allow extraction of just ID
-job_id_re = re.compile(r'^(\d+)(_\d+)?$')
+job_id_re = re.compile(r'^(\d+)')
 
 # ---------------------------------------------------------------------------
 #                                                            ERROR HANDLERS
