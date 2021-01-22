@@ -82,19 +82,21 @@ function display_bursts(bursts, status, jqXHR) {
         <td>${burst['pain'].toFixed(2)}</td>
         <td><table class='not-table'>${summaryHTML}</table></td>
         <td>${state_pretty}</td>
-        <td><label class='switch'>
-          <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
-            <span class='toggle'>👍</span>
-          </input>
+        <td class='action'>
+          <label class='switch'>
+            <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
+              <span class='toggle'>👍</span>
+            </input>
           </label><label class='switch'>
-          <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
-            <span class='toggle'>👎</span>
-          </input>
+            <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
+              <span class='toggle'>👎</span>
+            </input>
           </label><label class='switch'>
-          <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
-            <span class='toggle'>🤷</span>
-          </input>
-          </label></td>`;
+            <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
+              <span class='toggle'>🤷</span>
+            </input>
+          </label>
+        </td>`;
       tbody.appendChild(r);
     }
   } else {

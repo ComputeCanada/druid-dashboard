@@ -5,7 +5,6 @@ html {
 }
 
 body {
-  max-width: 960px;
   margin: 0 auto;
   background: white;
 }
@@ -282,6 +281,11 @@ table.not-table th,table.not-table td {
   border: none;
 }
 
+td.action {
+  text-align: center;
+  white-space: nowrap;
+}
+
 select.burst_action {
   border: none;
   appearance: none;
@@ -335,6 +339,10 @@ button#submit_actions:disabled {
 
 input + .toggle {
   padding: 2px 4px;
+}
+
+input:checked + .toggle {
+  border: 2px solid;
 }
 
 input.green:checked + .toggle {
