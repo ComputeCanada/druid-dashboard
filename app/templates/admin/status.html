@@ -47,12 +47,24 @@
     // create row for each component
     if (components) {
       for (component of components) {
+
+        // figure out how to display date
+        var dstr;
+        if (component['lastheard'] === null) {
+          dstr = "Never checked in";
+        }
+        else {
+          var d = new Date(component['lastheard'] * 1000);
+          dstr = d.toLocaleString();
+        }
+
+        // build row
         r = document.createElement("tr");
         r.innerHTML = `
           <td>${component['name']}</td>
           <td>${component['cluster']}</td>
           <td>${component['service']}</td>
-          <td>${component['lastheard'] === null ? "Never checked in" : component['lastheard']}</td>`;
+          <td>${dstr}</td>`;
         tbody.appendChild(r);
       }
     } else {
