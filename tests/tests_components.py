@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
+import time
 import json
 from tests.tests_api import api_get
 
@@ -40,6 +41,10 @@ def test_get_components_lastheard(client):
 
   # for this test remember the lastheard value
   previous = components[0]['lastheard']
+
+  # lastheard field has second precision, so in testing can fall within the
+  # second.  Sleep for a second to avoid false negatives
+  time.sleep(1)
 
   # use API key to query API
   response = api_get(client, '/api/bursts')

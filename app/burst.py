@@ -5,6 +5,7 @@ import json
 from app.db import get_db
 from app.log import get_log
 from app.exceptions import DatabaseException, BadCall
+from app.component import Component
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -28,7 +29,8 @@ SQL_UPDATE_EXISTING = '''
   UPDATE  bursts
   SET     pain = ?,
           lastjob = ?,
-          summary = ?
+          summary = ?,
+          epoch = ?
   WHERE   id = ?
 '''
 
@@ -40,8 +42,8 @@ SQL_UPDATE_STATE = '''
 
 SQL_CREATE = '''
   INSERT INTO bursts
-              (cluster, account, pain, firstjob, lastjob, summary)
-  VALUES      (?, ?, ?, ?, ?, ?)
+              (cluster, account, pain, firstjob, lastjob, summary, epoch)
+  VALUES      (?, ?, ?, ?, ?, ?, ?)
 '''
 
 SQL_ACCEPT = '''
@@ -60,35 +62,33 @@ SQL_REJECT = '''
 SQL_GET_ALL = '''
   SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
   FROM    bursts
+  WHERE   epoch = ?
 '''
 
-SQL_GET_FOR_CLUSTER = '''
-  SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
-  FROM    bursts
-  WHERE   cluster = ?
+SQL_GET_CURRENT_BURSTS = '''
+  SELECT  B.*
+  FROM    bursts B
+  JOIN    (
+            SELECT    cluster, MAX(epoch) AS epoch
+            FROM      bursts
+            GROUP BY  cluster 
+          ) J
+  ON      B.cluster = J.cluster AND B.epoch = J.epoch
 '''
 
-SQL_GET_ACCEPTED = '''
+SQL_GET_CLUSTER_BURSTS = '''
   SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
   FROM    bursts
-  WHERE   cluster = ? and state='a'
+  WHERE   cluster = ? AND epoch = ? AND state='a'
 '''
 
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
-def get_bursts(cluster=None, accepted_only=True):
-  db = get_db()
-  if cluster:
-    query = SQL_GET_ACCEPTED if accepted_only else SQL_GET_FOR_CLUSTER
-    res = db.execute(query, (cluster,)).fetchall()
-  else:
-    res = db.execute(SQL_GET_ALL).fetchall()
-  if not res:
-    return None
+def _make_burst_array(db_results):
   bursts = []
-  for row in res:
+  for row in db_results:
     bursts.append(Burst(
       id=row['id'],
       cluster=row['cluster'],
@@ -96,9 +96,34 @@ def get_bursts(cluster=None, accepted_only=True):
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
       state=row['state'],
-      summary=row['summary']
+      summary=row['summary'],
+      epoch=row['epoch']
     ))
   return bursts
+
+def get_cluster_bursts(cluster):
+  db = get_db()
+
+  # get epoch from cluster's detector
+  detector = Component(cluster=cluster, service='detector')
+
+  # get current bursts
+  res = db.execute(SQL_GET_CLUSTER_BURSTS, (cluster, detector.lastheard)).fetchall()
+  if not res:
+    return None
+  return _make_burst_array(res)
+
+def get_current_bursts():
+  db = get_db()
+  res = db.execute(SQL_GET_CURRENT_BURSTS).fetchall()
+  if not res:
+    return None
+  return _make_burst_array(res)
+
+def get_bursts(cluster=None):
+  if cluster:
+    return get_cluster_bursts(cluster)
+  return get_current_bursts()
 
 def update_burst_states(updates):
   db = get_db()
@@ -107,7 +132,6 @@ def update_burst_states(updates):
     if not res:
       raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
   db.commit()
-
 
 # ---------------------------------------------------------------------------
 #                                                           component class
@@ -127,7 +151,8 @@ class Burst():
     _summary: summary information about burst and jobs (JSON)
   """
 
-  def __init__(self, id=None, cluster=None, account=None, pain=None, jobrange=None, state=None, summary=None):
+  def __init__(self, id=None, cluster=None, account=None, pain=None,
+      jobrange=None, state=None, summary=None, epoch=None):
 
     self._id = id
     self._cluster = cluster
@@ -136,11 +161,12 @@ class Burst():
     self._jobrange = jobrange
     self._state = state
     self._summary = summary
+    self._epoch = epoch
 
     # handle instantiation by factory
     # pylint: disable=too-many-boolean-expressions
     if id and cluster and account and jobrange and state and \
-        pain is not None and summary is not None:
+        pain is not None and summary is not None and epoch is not None:
       return
 
     # verify initialized correctly
@@ -165,9 +191,11 @@ class Burst():
           "Could not load burst with id '{}'".format(id)
         )
     else:
-      # see if there is already a suitable burst
+      # see if there is already a suitable burst--one where the current
+      # report's starting job falls within the (first, last) range of the
+      # existing record
       get_log().debug("Looking for existing burst")
-      res = db.execute(SQL_FIND_EXISTING, (cluster, account, jobrange[1])).fetchone()
+      res = db.execute(SQL_FIND_EXISTING, (cluster, account, jobrange[0])).fetchone()
       if res:
         # found existing burst
         self._id = res['id']
@@ -186,7 +214,7 @@ class Burst():
 
         # update burst record
         try:
-          db.execute(SQL_UPDATE_EXISTING, (pain, jobrange[1], json.dumps(summary), self._id))
+          db.execute(SQL_UPDATE_EXISTING, (pain, jobrange[1], json.dumps(summary), epoch, self._id))
         except Exception as e:
           raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
       else:
@@ -196,7 +224,7 @@ class Burst():
 
         # create burst record
         try:
-          db.execute(SQL_CREATE, (cluster, account, pain, jobrange[0], jobrange[1], json.dumps(summary)))
+          db.execute(SQL_CREATE, (cluster, account, pain, jobrange[0], jobrange[1], json.dumps(summary), epoch))
         except Exception as e:
           raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
       try:

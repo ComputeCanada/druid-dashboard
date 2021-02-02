@@ -3,10 +3,15 @@
 #
 import hmac
 import base64
-from datetime import datetime, timezone
 from app.db import get_db
 from app.log import get_log
 from app.exceptions import DatabaseException
+
+# how the digest works:
+# sh: echo -n "So this is how the world ends" | openssl dgst -sha256 -hmac "secret" -binary | base64
+# py: h = hmac.new(b'secret', digestmod='sha256')
+#     h.update(b'So this is how the world ends')
+#     base64.b64encode(h.digest())
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -69,30 +74,6 @@ APIKEY_UPDATE_LAST_USED = '''
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
-
-# how the digest works:
-# sh: echo -n "So this is how the world ends" | openssl dgst -sha256 -hmac "secret" -binary | base64
-# py: h = hmac.new(b'secret', digestmod='sha256')
-#     h.update(b'So this is how the world ends')
-#     base64.b64encode(h.digest())
-# TODO: superseded by ApiKey::verify() ?
-def verify_message(access_key, message, digest, update_used=False):
-
-  # get API key
-  apikey = ApiKey(access_key)
-
-  # calculate digest
-  h = hmac.new(apikey.secret.encode(), digestmod='sha256')
-  h.update(message.encode())
-
-  # do they match?
-  verified = base64.b64encode(h.digest()).decode('utf-8') == digest
-
-  # update last-use if requested (and verified)
-  if verified and update_used:
-    apikey.update_use()
-
-  return verified
 
 def get_apikeys(pretty=False):
   """
@@ -205,7 +186,7 @@ class ApiKey():
           )
         ) from e
 
-  def verify(self, message, digest, update_used=True):
+  def verify(self, message, digest):
 
     # calculate digest
     h = hmac.new(self.secret.encode(), digestmod='sha256')
@@ -214,14 +195,9 @@ class ApiKey():
     # do they match?
     verified = base64.b64encode(h.digest()).decode('utf-8') == digest
 
-    # update last-use if requested (and verified)
-    if verified and update_used:
-      self.update_use()
-
     return verified
 
-  def update_use(self):
-    lastused = datetime.now(timezone.utc)
+  def update_use(self, lastused):
     db = get_db()
     db.execute(APIKEY_UPDATE_LAST_USED, (lastused, self._access))
     db.commit()

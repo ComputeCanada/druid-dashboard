@@ -31,7 +31,7 @@ CREATE TABLE apikeys (
   access VARCHAR(16) UNIQUE NOT NULL,
   secret CHAR(64) NOT NULL,
   component VARCHAR(32) NOT NULL,
-  lastused TIMESTAMP,
+  lastused INTEGER,
   state CHAR(1) DEFAULT 'a',
   FOREIGN KEY (component) REFERENCES components(id)
 );
@@ -55,5 +55,6 @@ CREATE TABLE bursts (
   firstjob INTEGER NOT NULL,
   lastjob INTEGER NOT NULL,
   summary TEXT,
+  epoch INTEGER NOT NULL,
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );

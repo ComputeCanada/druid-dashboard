@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
+import time
 from email.utils import formatdate
 import hmac
 import base64
@@ -110,3 +111,57 @@ def test_post_burst(client):
       }
     ]})
   assert response.status_code == 201
+
+def test_post_bursts(client):
+
+  time.sleep(1)
+  response = api_post(client, '/api/bursts', {
+    'report': [
+      {
+        'rapi': 'def-dleske-aa',
+        'pain': 1.0,
+        'firstjob': 1005,
+        'lastjob': 2005,
+        'summary': {}
+      },
+      {
+        'rapi': 'def-bobaloo-aa',
+        'pain': 1.5,
+        'firstjob': 1015,
+        'lastjob': 2015,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 201
+
+  time.sleep(1)
+  response = api_post(client, '/api/bursts', {
+    'report': [
+      {
+        'rapi': 'def-dleske-aa',
+        'pain': 1.2,
+        'firstjob': 1020,
+        'lastjob': 2015,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 201
+
+  # now login and retrieve burst candidates as manager would
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+  response = client.get('/xhr/bursts/')
+  assert response.status_code == 200
+
+  # test we see what we should and not what we shouldn't
+  for burst in json.loads(response.data):
+    if burst['account'] == 'def-dleske-aa':
+      # assert pain was updated
+      assert burst['pain'] == 1.2
+
+      # assert job range is updated correctly (range only extends upward)
+      assert burst['jobrange'] == [1005,2015]
+    else:
+      # we should _not_ see the "bobaloo" account because it was in the
+      # previous epoch and so no longer current
+      assert burst['account'] != 'def-bobaloo-aa'

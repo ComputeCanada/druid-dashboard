@@ -21,6 +21,12 @@ SQL_GET_ALL = '''
   FROM    components
 '''
 
+SQL_GET_BY_CLUSTER_AND_SERVICE = '''
+  SELECT  id, name
+  FROM    components
+  WHERE   cluster = ? AND service = ?
+'''
+
 SQL_CREATE_NEW = '''
   INSERT INTO components
               (id, name, cluster, service)
@@ -87,7 +93,7 @@ class Component():
     _lastheard: lastheard
   """
 
-  def __init__(self, id, name=None, cluster=None, service=None, get_last_heard=False, factory_load=False):
+  def __init__(self, id=None, name=None, cluster=None, service=None, get_last_heard=False, factory_load=False):
 
     self._id = id
     self._name = name
@@ -115,21 +121,30 @@ class Component():
         raise ValueError(
           "Could not load component with id '{}'".format(id)
         )
-    else:
-      if not cluster and not service:
-        # update component name
-        try:
-          db.execute(SQL_UPDATE_NAME, (name, id))
-          db.commit()
-        except Exception as e:
-          raise DatabaseException(
-            "Could not execute SQL_UPDATE_NAME for {}, name='{}'".format(
-              id, name
-            )
-          ) from e
-      elif not cluster or not service:
-        # TODO: this exception is a pile of worms in a police uniform
-        raise Exception("Specify id, id and name, or id, name, cluster and service")
+    elif not id and not name and cluster and service:
+      res = db.execute(SQL_GET_BY_CLUSTER_AND_SERVICE, (cluster, service)).fetchone()
+      if res:
+        self._id = res['id']
+        self._name = res['name']
+        if get_last_heard:
+          self.load_lastheard()
+      else:
+        raise ValueError(
+          "Could not load component for cluster {} and service {}".format(
+            cluster, service
+          ))
+    elif not cluster and not service:
+      # update component name
+      try:
+        db.execute(SQL_UPDATE_NAME, (name, id))
+        db.commit()
+      except Exception as e:
+        raise DatabaseException(
+          "Could not execute SQL_UPDATE_NAME for {}, name='{}'".format(
+            id, name
+          )
+        ) from e
+    elif id and name and cluster and service:
       try:
         db.execute(SQL_CREATE_NEW, (id, name, cluster, service))
         db.commit()
@@ -140,6 +155,9 @@ class Component():
             id, name, cluster, service, e
           )
         ) from e
+    else:
+      # TODO: this exception is a pile of worms in a police uniform
+      raise Exception("Bad call: specify, id, id and name, cluster and service, or everything")
 
   def load_lastheard(self):
     # query related API keys for most recently used

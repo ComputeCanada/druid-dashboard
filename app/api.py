@@ -3,7 +3,7 @@
 #
 import re
 import functools
-from datetime import datetime, timezone
+import time
 import email.utils
 from flask import (
     Blueprint, request, abort, session, jsonify
@@ -114,12 +114,15 @@ def api_key_required(view):
 
     # Check date is relatively recent.  Do this AFTER message digest
     # verification because it's to guard against replay attacks
-    now = datetime.now(timezone.utc)
-    then = email.utils.parsedate_to_datetime(datestamp)
+    now = int(time.time())
+    then = email.utils.mktime_tz(email.utils.parsedate_tz(datestamp))
     delta = now - then
-    if delta.total_seconds() > 300:
+    if delta > 300:
       get_log().warning("Out-of-date API request")
       abort(400)
+
+    # update last-used timestamp
+    apikey.update_use(now)
 
     # check for API version
     api_version = request.headers.get('apiversion', '0')
@@ -128,6 +131,7 @@ def api_key_required(view):
     session['api_keyname'] = accesskey
     session['api_component'] = apikey.component
     session['api_version'] = api_version
+    session['api_epoch'] = now
 
     get_log().debug("API key %s successfully authenticated", accesskey)
 
@@ -221,6 +225,7 @@ def api_post_bursts():
   get_log().debug("In api.post_bursts()")
 
   cluster = Component(session['api_component']).cluster
+  epoch = session['api_epoch']
   get_log().debug("Registering burst for cluster %s", cluster)
   bursts = []
   data = request.get_json()
@@ -241,7 +246,8 @@ def api_post_bursts():
         account=burst['rapi'],
         pain=burst['pain'],
         jobrange=(firstjob, lastjob),
-        summary=burst['summary']
+        summary=burst['summary'],
+        epoch=epoch
       ))
   except KeyError as e:
     # client not following API
