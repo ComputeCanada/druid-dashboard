@@ -29,7 +29,7 @@ default:
       - .gitlab-ci.yml
       - ccldap
       - "i18n/*"
-      - "app/**/*"
+      - "manager/**/*"
       - requirements.txt
       - "tests/**/*"
       - deployment/Dockerfile
@@ -53,7 +53,7 @@ default:
     entrypoint: [""]
   script:
     - echo "Building image to tag '$IMAGENAME' with build info '$BUILDINFO'"
-    - sed -i 's/Built with Flask/'$BUILDINFO'/' app/templates/base.html
+    - sed -i 's/Built with Flask/'$BUILDINFO'/' manager/templates/base.html
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/deployment/Dockerfile --destination $SHA_IMAGE --destination $IMAGENAME
@@ -100,8 +100,8 @@ unittest:
   script:
     - apt-get install -y libldap2-dev libsasl2-dev
     - pip3 install -r requirements.txt
-    - pybabel compile -d app/translations
-    - pytest -v --cov=app tests/test_sqlite.py
+    - pybabel compile -d manager/translations
+    - pytest -v --cov=manager tests/test_sqlite.py
 
 integration:
   extends:
@@ -113,8 +113,8 @@ integration:
     - 'echo hi > /dev/tcp/ldap/389 || echo "Could not contact LDAP container"'
     - apt-get install -y libldap2-dev libsasl2-dev
     - pip3 install -r requirements.txt
-    - pybabel compile -d app/translations
-    - pytest -v --cov=app tests/test_sqlite.py tests/test_pgsql.py tests/test_integration.py
+    - pybabel compile -d manager/translations
+    - pytest -v --cov=manager tests/test_sqlite.py tests/test_pgsql.py tests/test_integration.py
 
 build_test:
   extends:
