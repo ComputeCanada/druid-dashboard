@@ -2,9 +2,9 @@
 # pylint: disable=W0621
 #
 from flask import Blueprint
-from app.db import get_schema_version
-from app.log import get_log
-from app.ldap import get_ldap
+from manager.db import get_schema_version
+from manager.log import get_log
+from manager.ldap import get_ldap
 
 
 # establish blueprint

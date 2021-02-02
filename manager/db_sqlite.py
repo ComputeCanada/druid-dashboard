@@ -3,7 +3,7 @@
 #
 import re
 import sqlite3
-from app.exceptions import DatabaseException
+from manager.exceptions import DatabaseException
 
 
 def register_adapter(target):

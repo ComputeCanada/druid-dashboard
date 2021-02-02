@@ -8,10 +8,10 @@ import email.utils
 from flask import (
     Blueprint, request, abort, session, jsonify
 )
-from app.log import get_log
-from app.apikey import ApiKey
-from app.burst import Burst, get_bursts
-from app.component import Component
+from manager.log import get_log
+from manager.apikey import ApiKey
+from manager.burst import Burst, get_bursts
+from manager.component import Component
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')

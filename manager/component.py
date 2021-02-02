@@ -2,9 +2,9 @@
 # pylint: disable=W0621
 #
 from datetime import date
-from app.db import get_db
-from app.exceptions import DatabaseException
-from app.apikey import most_recent_use
+from manager.db import get_db
+from manager.exceptions import DatabaseException
+from manager.apikey import most_recent_use
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries

@@ -17,5 +17,5 @@ build/
 .lintcache
 
 # translation output
-app/translations/*/LC_MESSAGES/messages.mo
+manager/translations/*/LC_MESSAGES/messages.mo
 i18n/messages.pot

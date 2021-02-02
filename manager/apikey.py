@@ -3,9 +3,9 @@
 #
 import hmac
 import base64
-from app.db import get_db
-from app.log import get_log
-from app.exceptions import DatabaseException
+from manager.db import get_db
+from manager.log import get_log
+from manager.exceptions import DatabaseException
 
 # how the digest works:
 # sh: echo -n "So this is how the world ends" | openssl dgst -sha256 -hmac "secret" -binary | base64

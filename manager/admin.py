@@ -4,7 +4,7 @@
 
 from flask import Blueprint, render_template
 
-from app.auth import admin_required
+from manager.auth import admin_required
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 

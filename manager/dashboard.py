@@ -7,10 +7,10 @@ from flask import (
   request, Response
 )
 
-from app.auth import login_required
-from app.notification import get_latest_notifications
-from app.db import close_db
-from app.log import get_log
+from manager.auth import login_required
+from manager.notification import get_latest_notifications
+from manager.db import close_db
+from manager.log import get_log
 
 bp = Blueprint('dashboard', __name__)
 

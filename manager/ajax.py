@@ -4,11 +4,11 @@
 
 from flask import Blueprint, jsonify, request
 
-from app.auth import login_required, admin_required
-from app.log import get_log
-from app.apikey import get_apikeys, add_apikey, delete_apikey
-from app.component import get_components, add_component, delete_component
-from app.burst import get_bursts, update_burst_states
+from manager.auth import login_required, admin_required
+from manager.log import get_log
+from manager.apikey import get_apikeys, add_apikey, delete_apikey
+from manager.component import get_components, add_component, delete_component
+from manager.burst import get_bursts, update_burst_states
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')

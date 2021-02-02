@@ -2,10 +2,10 @@
 # pylint: disable=W0621
 #
 import json
-from app.db import get_db
-from app.log import get_log
-from app.exceptions import DatabaseException, BadCall
-from app.component import Component
+from manager.db import get_db
+from manager.log import get_log
+from manager.exceptions import DatabaseException, BadCall
+from manager.component import Component
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries

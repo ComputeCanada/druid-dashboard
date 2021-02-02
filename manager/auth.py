@@ -8,8 +8,8 @@ from flask import (
 )
 from werkzeug.exceptions import abort
 
-from app.log import get_log
-from app.ldap import get_ldap
+from manager.log import get_log
+from manager.ldap import get_ldap
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 

@@ -4,8 +4,8 @@
 import ldap
 from flask import current_app, g
 from ccldap import ccldap
-from app.log import get_log
-from app.exceptions import LdapException
+from manager.log import get_log
+from manager.exceptions import LdapException
 
 # LDAP options translation table
 _ldap_opts = {

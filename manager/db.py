@@ -5,8 +5,8 @@ from enum import Enum
 import click
 from flask import current_app, g
 from flask.cli import with_appcontext
-from app.log import get_log
-from app import exceptions
+from manager.log import get_log
+from manager import exceptions
 
 
 # Current database schema version
@@ -52,11 +52,11 @@ def open_db(uri):
   scheme = uri.split(':', 1)[0]
 
   if scheme == 'file':
-    from app.db_sqlite import open_db_sqlite, register_adapter
+    from manager.db_sqlite import open_db_sqlite, register_adapter
     db = open_db_sqlite(uri)
 
   elif scheme == 'postgresql':
-    from app.db_postgres import open_db_postgres, register_adapter
+    from manager.db_postgres import open_db_postgres, register_adapter
     db = open_db_postgres(uri)
 
   else:
