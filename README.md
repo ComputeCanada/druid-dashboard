@@ -98,7 +98,7 @@ better way to handle this, let me know.
 Set up some variables for running the Flask development server:
 
 ```
-$ export FLASK_APP=app
+$ export FLASK_APP=manager
 $ export FLASK_ENV=development
 ```
 
@@ -125,7 +125,7 @@ application configuration.
 
 ### App configuration
 
-Put something like the following in `instance/app.conf`:
+Put something like the following in `instance/manager.conf`:
 ```
 [ldap]
 uri = ldap://localhost:3389
@@ -165,19 +165,19 @@ steps (only needs to be done when adding new user-facing messages):
     ```
 2. Update the messages translation file with empty translations:
     ```
-    $ pybabel update -i i18n/messages.pot -d app/translations
+    $ pybabel update -i i18n/messages.pot -d manager/translations
     ```
 3. Fill in the missing translations with your favourite editor.
 4. Compile the messages:
     ```
-    $ pybabel compile -d app/translations
+    $ pybabel compile -d manager/translations
     ```
 
 If I decide to replace the English strings in the Python source with static
 "constants" (sigh, _Python_) then here'd be how to initialize that:
 
 ```
-pybabel init -i messages.pot -d app/translations -l en
+pybabel init -i messages.pot -d manager/translations -l en
 ```
 
 ## Testing
@@ -253,7 +253,7 @@ $ digest=$(echo -en "GET $path\n$date" | openssl dgst -sha256 -hmac "$secret" -b
 $ curl -H "Authorization: BEAM $access $digest" -H "Date: $date" localhost:5000${path}
 ```
 
-A Python example can be found in `app/apikey.py`.
+A Python example can be found in `manager/apikey.py`.
 
 ## Logging
 

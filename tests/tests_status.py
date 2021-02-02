@@ -1,7 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
-from app.db import SCHEMA_VERSION
+from manager.db import SCHEMA_VERSION
 
 # ---------------------------------------------------------------------------
 #                                                                STATUS

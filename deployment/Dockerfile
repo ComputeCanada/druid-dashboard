@@ -23,11 +23,11 @@ RUN apk del build-base python3-dev gmp-dev openldap-dev && \
 WORKDIR /home/beam
 RUN mkdir beam ccldap
 COPY ccldap/ ccldap/
-COPY app/ app/
+COPY manager/ manager/
 COPY deployment/development.sqlite development.sqlite
 ENV BEAM_DATABASE_URI=file:////home/beam/development.sqlite
-RUN pybabel compile -d app/translations
-ENV FLASK_APP=/home/beam/app
+RUN pybabel compile -d manager/translations
+ENV FLASK_APP=/home/beam/manager
 
 EXPOSE 5000
 USER beam

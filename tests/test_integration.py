@@ -11,8 +11,8 @@ from tests_api import *
 from tests_authentication import *
 from tests_components import *
 from tests_dashboard import *
-from app import create_app
-from app.db import get_db, init_db, seed_db
+from manager import create_app
+from manager.db import get_db, init_db, seed_db
 
 test_params = [{
   'schema': 'schema.psql',

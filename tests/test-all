@@ -22,4 +22,4 @@ then
 fi
 
 # functional testing
-pytest -v --cov=app --cov-report=term --cov-report=html  tests/test_sqlite.py $pgsql_testing $ldap_testing || exit 1
+pytest -v --cov=manager --cov-report=term --cov-report=html  tests/test_sqlite.py $pgsql_testing $ldap_testing || exit 1
