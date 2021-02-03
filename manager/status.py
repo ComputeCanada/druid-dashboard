@@ -2,7 +2,7 @@
 # pylint: disable=W0621
 #
 from flask import Blueprint
-from manager.db import get_schema_version
+from manager.db import get_schema_version, upgrade_schema
 from manager.log import get_log
 from manager.ldap import get_ldap
 
@@ -53,3 +53,15 @@ def get_status():
 
   status_all = "\n".join(statuses)
   return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
+
+# Use as a startup probe.  Will check DB schema version and update if necessary.
+@bp.route('/db', methods=['GET'])
+def update_db():
+  (actual, expected, actions) = upgrade_schema()
+  if actions:
+    status_text = "DB required upgrade from {} to {}\n{}".format(
+      actual, expected, "\n".join(actions))
+  else:
+    status_text = "DB schema at {}, code schema at {}, no action taken".format(actual, expected)
+
+  return status_text, 200, {'Content-type': 'text/plain; charset=utf-8'}
