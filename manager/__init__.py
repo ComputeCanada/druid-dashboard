@@ -190,6 +190,7 @@ def init_app(app):
   app.teardown_appcontext(log.close_log)
   app.cli.add_command(db.init_db_command)
   app.cli.add_command(db.seed_db_command)
+  app.cli.add_command(db.upgrade_db_command)
 
 
 @babel.localeselector
