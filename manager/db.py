@@ -12,12 +12,13 @@ from manager import exceptions
 
 
 # Current database schema version
-# format is integer, YYYYMMDD[.R] where R is an arbitrary digit in the case of
-# multiple releases in day.
+# format is string: YYYYMMDD
 #
 # This number must match the latest entry in the database's schemalog table,
 # or an upgrade should be performed.
-SCHEMA_VERSION = 20201209
+#
+# See README in SQL scripts dir for guidance on updating the schema.
+SCHEMA_VERSION = '20210203'
 
 # query to fetch latest schema version
 SQL_GET_SCHEMA_VERSION = """
@@ -95,12 +96,16 @@ def init_db():
   with current_app.open_resource(schema) as f:
     db.executescript(f.read().decode('utf8'))
 
+  db.commit()
+
 
 def seed_db(seedfile):
   db = get_db()
 
   with current_app.open_resource(seedfile) as f:
     db.executescript(f.read().decode('utf8'))
+
+  db.commit()
 
 
 def get_schema_version():
@@ -136,46 +141,51 @@ def upgrade_schema():
     ext = 'sql'
   elif db.type == 'postgres':
     ext = 'psql'
-  regex = re.compile(r'^([^_]+)_to_([^_]+).' + ext)
+  regex = re.compile(r'^([^_]+)_to_([^_]+)\.{}$'.format(ext))
 
   # iterate through each file and if it's an update script add it to dict
   # pylint: disable=unused-variable
-  for root, dirs, files in os.walk(SQL_SCRIPTS_DIR):
+  for root, dirs, files in os.walk(current_app.root_path + '/' + SQL_SCRIPTS_DIR):
     for file in files:
-      print(file)
       m = regex.match(file)
       if m:
         if m[1] in scriptdict:
           # this should not happen
-          # TODO: proper exception
-          raise Exception("This should not have happened.  Also this is a bad exception")
-        scriptdict[m[1]] = (m[2], file)
+          description = 'Multiple upgrade scripts have the same starting ' \
+            'version.  This is not supported and leaves no clear upgrade ' \
+            'path.  In conflict: {} and {}.  Trying to upgrade schema from ' \
+            '{} to {}'.format(scriptdict[m[1]][1], file, actual, expected)
+          raise exceptions.ImpossibleSchemaUpgrade(description)
+        scriptdict[m[1]] = (m[2], "{}/{}".format(root, file))
 
   # find path through upgrades from actual to expected
   have_upgrade_path = False
   upgrade_path = []
-  current = actual
+  current = str(actual)
   while current in scriptdict:
-    if len(scriptdict[current]) == 1:
-      upgrade_path.append(scriptdict[current][1])
-      current = scriptdict[current][0]
-      if current == expected:
-        have_upgrade_path = True
-        break
+    upgrade_path.append(scriptdict[current][1])
+    current = scriptdict[current][0]
+    if current == expected:
+      have_upgrade_path = True
+      break
 
   if not have_upgrade_path:
     # this is a pretty serious application error
-    # TODO: proper exception
-    raise Exception("There is no upgrade path from the existing schema to the expected version.")
+    description = \
+      'There is no upgrade path available from schema version {} (in the ' \
+      'database) to {} (expected by the application).  Available upgrades: '\
+      '{}'.format(actual, expected, upgrade_path)
+    raise exceptions.ImpossibleSchemaUpgrade(description)
 
   # run through upgrade scripts
   actions = []
   for upgrade in upgrade_path:
     with current_app.open_resource(upgrade) as f:
-      get_log.info("Upgrading DB: %s...", upgrade)
+      get_log().info("Upgrading DB: %s...", upgrade)
       db.executescript(f.read().decode('utf8'))
       actions.append("Executed {}".format(upgrade))
-  get_log.info("Upgraded DB.")
+      db.commit()
+  get_log().info("Upgraded DB.")
 
   return (actual, expected, actions)
 
@@ -196,6 +206,28 @@ def seed_db_command(seedfile):
   init_db()
   seed_db(seedfile)
   click.echo('Initialized and seeded the database.')
+
+
+@click.command('upgrade-db')
+@with_appcontext
+def upgrade_db_command():
+  """Upgrade database to expected schema version."""
+
+  try:
+    (actual, expected, actions) = upgrade_schema()
+    if actions:
+      status_text = "DB required upgrade from {} to {}\n{}".format(
+        actual, expected, "\n".join(actions))
+    else:
+      status_text = "DB schema at {}, code schema at {}, no action taken".format(actual, expected)
+    #status_code = 0
+  except exceptions.UnupgradableDatabase as e:
+    status_text = str(e)
+    #status_code = 1
+
+  click.echo(status_text)
+  # I don't like how this has some side effects as an exception
+  #click.get_current_context().exit(status_code)
 
 
 class DbEnum(Enum):
