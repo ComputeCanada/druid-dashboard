@@ -148,8 +148,6 @@ build_release:
 
 deploy_development:
   extends: .code
-  # failure allowed while Kubernetes down
-  allow_failure: true
   only:
     - main
   except:
@@ -160,10 +158,11 @@ deploy_development:
 
 deploy_release:
   extends: .code
-  # failure allowed while Kubernetes down
-  allow_failure: true
+  # Only deploy for tags, not branches, where the tag is a version string
   only:
-    - tags
+    - /^v[0-9]+(\.[0-9]+){1,2}(-[0-9]+)?
+  except:
+    - branches
   stage: deploy
   script:
     - kubectl version
