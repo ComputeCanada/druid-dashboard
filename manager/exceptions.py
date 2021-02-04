@@ -46,6 +46,27 @@ class DatabaseException(AppException):
   Exception raised when some database exception occurs.
   """
 
+class UnupgradableDatabase(AppException):
+  """
+  Exception raised when the database schema expected by the code does not
+  match the schema version present in the database.
+
+  Attributes:
+    expected: schema version expected by code
+    actual: schema version present in database
+    available: list of upgrades available that provide a partial upgrade path
+  """
+
+  def __init__(self, expected, actual, available):
+    self._expected = expected
+    self._actual = actual
+    self._available = available
+    description = \
+      'There is no upgrade path available from schema version {} (in the ' \
+      'database) to {} (expected by the application).  Available upgrades: '\
+      '{}'.format(actual, expected, available)
+    super().__init__(description)
+
 class LdapException(AppException):
   """
   Exception raised when some LDAP issue occurs.
