@@ -5,6 +5,7 @@ from flask import Blueprint
 from manager.db import get_schema_version, upgrade_schema
 from manager.log import get_log
 from manager.ldap import get_ldap
+from manager import exceptions
 
 
 # establish blueprint
@@ -57,11 +58,16 @@ def get_status():
 # Use as a startup probe.  Will check DB schema version and update if necessary.
 @bp.route('/db', methods=['GET'])
 def update_db():
-  (actual, expected, actions) = upgrade_schema()
-  if actions:
-    status_text = "DB required upgrade from {} to {}\n{}".format(
-      actual, expected, "\n".join(actions))
-  else:
-    status_text = "DB schema at {}, code schema at {}, no action taken".format(actual, expected)
+  try:
+    (actual, expected, actions) = upgrade_schema()
+    if actions:
+      status_text = "DB required upgrade from {} to {}\n{}".format(
+        actual, expected, "\n".join(actions))
+    else:
+      status_text = "DB schema at {}, code schema at {}, no action taken".format(actual, expected)
+    status_code = 200
+  except exceptions.ImpossibleSchemaUpgrade as e:
+    status_text = str(e)
+    status_code = 500
 
-  return status_text, 200, {'Content-type': 'text/plain; charset=utf-8'}
+  return status_text, status_code, {'Content-type': 'text/plain; charset=utf-8'}
