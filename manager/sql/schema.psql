@@ -6,10 +6,10 @@ DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 
 CREATE TABLE schemalog (
-  version INTEGER PRIMARY KEY,
+  version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20201209', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210203', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,

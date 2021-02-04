@@ -1,0 +1,3 @@
+ALTER TABLE schemalog ALTER COLUMN version TYPE VARCHAR(10);
+
+INSERT INTO schemalog (version, applied) VALUES ('20210203', CURRENT_TIMESTAMP);
