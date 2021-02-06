@@ -24,7 +24,7 @@ SCHEMA_VERSION = '20210203'
 SQL_GET_SCHEMA_VERSION = """
   SELECT    version
   FROM      schemalog
-  ORDER BY  applied DESC
+  ORDER BY  version DESC
   LIMIT     1
 """
 
@@ -85,13 +85,16 @@ def close_db(e=None):
     db.close()
 
 
-def init_db():
+def init_db(schema=None):
   db = get_db()
 
-  if db.type == 'sqlite':
-    schema = "{}/schema.sql".format(SQL_SCRIPTS_DIR)
-  elif db.type == 'postgres':
-    schema = "{}/schema.psql".format(SQL_SCRIPTS_DIR)
+  if not schema:
+    if db.type == 'sqlite':
+      schema = "{}/schema.sql".format(SQL_SCRIPTS_DIR)
+    elif db.type == 'postgres':
+      schema = "{}/schema.psql".format(SQL_SCRIPTS_DIR)
+
+  get_log().debug("Initializing database with %s", schema)
 
   with current_app.open_resource(schema) as f:
     db.executescript(f.read().decode('utf8'))
@@ -126,6 +129,8 @@ def upgrade_schema():
   if actual == expected:
     # trivial: actual matches expected, no action needed
     return (actual, expected, None)
+
+  get_log().info("DB schema is at version {}; app expects {}".format(actual, expected))
 
   ## Find upgrade path.  Scripts are "${from}_to_${to}.[sql|psql]".  Might need
   ## to run several, such as if there is ${from}_to_int1.sql, int1_to_${to}.sql
