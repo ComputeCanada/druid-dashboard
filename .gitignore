@@ -19,3 +19,6 @@ build/
 # translation output
 manager/translations/*/LC_MESSAGES/messages.mo
 i18n/messages.pot
+
+html/
+TODO.md
