@@ -13,5 +13,5 @@ def test_status(client):
   should be here because it's stubbed out.
   """
   response = client.get('/status/')
-  assert response.status_code == 200
   assert response.data == 'LDAP: Okay\nDB: Okay (schema version {})'.format(SCHEMA_VERSION).encode('utf-8')
+  assert response.status_code == 200
