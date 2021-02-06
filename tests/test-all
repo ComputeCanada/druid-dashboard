@@ -2,10 +2,78 @@
 # Git apparently always sets the working directory to the root of the
 # workspace, so using relative paths from there is fine.
 
+fail_to()
+{
+  echo Unable to $@
+  exit 1
+}
+
+# get arguments
+test_schema=0
+linting=1
+exitfirst=0
+while [ -n "$1" ]
+do
+  case "$1" in
+    --schema)
+      test_schema=1
+      ;;
+    --no-linting)
+      linting=0
+      ;;
+    -x|--exitfirst)
+      exitfirst=1
+      ;;
+    *)
+      echo "$(basename $0) [--schema] [--no-linting] [-x|--exitfirst]"
+      exit 1
+  esac
+  shift
+done
+
+pytest_opts="-v --cov=manager --cov-report=term --cov-report=html"
+if (( exitfirst ))
+then
+  pytest_opts="$pytest_opts -x"
+fi
+
+if (( test_schema ))
+then
+  # create temporary directory for this stuff
+  tmpdir=$(mktemp -d /tmp/$(basename $0).XXXXXX) || fail_to create temporary directory
+
+  # get schema versions from git
+  versions=$(git tag | awk -F- '$1 == "schema" { print $2 }' | sort)
+
+  # grab base schema versions and create databases with them
+  for version in $versions
+  do
+    git show schema-$version:manager/sql/schema.sql > $tmpdir/schema-$version.sql
+    git show schema-$version:tests/data.sql > $tmpdir/seed-$version.sql
+  done
+
+  # setup pytest stuff
+  export SCHEMA_BASEDIR=$tmpdir
+  export SCHEMA_VERSIONS=$(echo $versions | tr ' ' ',') 
+  schema_testing="tests/test_sqlite_upgrade.py"
+fi
+
+cleanup()
+{
+  if (( test_schema ))
+  then
+    rm -Rf $tmpdir
+  fi
+}
+trap cleanup EXIT
+
 export PYTHONPATH=.:$PYTHONPATH
 
 # linting
-tests/linting/test-all || exit 1
+if (( linting ))
+then
+  tests/linting/test-all || exit 1
+fi
 
 # test pgsql if container is running
 pgsql_testing=""
@@ -22,4 +90,4 @@ then
 fi
 
 # functional testing
-pytest -v --cov=manager --cov-report=term --cov-report=html  tests/test_sqlite.py $pgsql_testing $ldap_testing || exit 1
+pytest $pytest_opts tests/test_sqlite.py $schema_testing $pgsql_testing $ldap_testing || exit 1
