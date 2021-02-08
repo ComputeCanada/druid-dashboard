@@ -29,7 +29,6 @@ def seeded_app(request):
   uri = 'file://' + sqlite_fn
   schema = '{}/schema-{}.sql'.format(sql_base_dir, version)
   seed = '{}/seed-{}.sql'.format(sql_base_dir, version)
-  print("Going to town with schema = {}, seed = {}".format(schema, seed))
 
   app = create_app({
     'TESTING': True,
