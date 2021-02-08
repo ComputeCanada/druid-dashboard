@@ -65,8 +65,3 @@ def empty_app(request):
     get_db().commit()
 
   yield app
-
-  print(request.param['uri'])
-  if request.param.get('delete_afterwards', False):
-    #os.close(request.param['filehandle'])
-    os.unlink(request.param['filename'])
