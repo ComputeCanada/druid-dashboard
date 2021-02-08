@@ -49,6 +49,7 @@ then
   for version in $versions
   do
     git show schema-$version:manager/sql/schema.sql > $tmpdir/schema-$version.sql
+    git show schema-$version:manager/sql/schema.psql > $tmpdir/schema-$version.psql
     git show schema-$version:tests/data.sql > $tmpdir/seed-$version.sql
   done
 
@@ -81,6 +82,10 @@ ldap_testing=""
 if docker ps | grep -q postgres-beam
 then
   pgsql_testing="tests/test_pgsql.py"
+  if (( test_schema ))
+  then
+    schema_testing="${schema_testing} tests/test_pgsql_upgrade.py"
+  fi
 
   # test if LDAP container is running
   if docker ps | grep -q ldap-beam
