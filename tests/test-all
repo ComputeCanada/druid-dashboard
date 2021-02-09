@@ -25,6 +25,7 @@ do
       exitfirst=1
       ;;
     *)
+      echo "Unrecognized option: $1"
       echo "$(basename $0) [--schema] [--no-linting] [-x|--exitfirst]"
       exit 1
   esac
