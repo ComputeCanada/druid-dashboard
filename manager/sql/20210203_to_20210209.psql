@@ -1,0 +1,3 @@
+ALTER TABLE bursts ADD COLUMN ticks INTEGER DEFAULT 0;
+
+INSERT INTO schemalog (version, applied) VALUES ('20210209', CURRENT_TIMESTAMP);

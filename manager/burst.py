@@ -30,7 +30,8 @@ SQL_UPDATE_EXISTING = '''
   SET     pain = ?,
           lastjob = ?,
           summary = ?,
-          epoch = ?
+          epoch = ?,
+          ticks = ?
   WHERE   id = ?
 '''
 
@@ -58,13 +59,6 @@ SQL_REJECT = '''
   WHERE   id = ?
 '''
 
-# TODO: These are not limited to "current" bursts
-SQL_GET_ALL = '''
-  SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
-  FROM    bursts
-  WHERE   epoch = ?
-'''
-
 SQL_GET_CURRENT_BURSTS = '''
   SELECT  B.*
   FROM    bursts B
@@ -77,7 +71,7 @@ SQL_GET_CURRENT_BURSTS = '''
 '''
 
 SQL_GET_CLUSTER_BURSTS = '''
-  SELECT  id, cluster, account, pain, firstjob, lastjob, state, summary
+  SELECT  *
   FROM    bursts
   WHERE   cluster = ? AND epoch = ? AND state='a'
 '''
@@ -97,7 +91,8 @@ def _burst_array(db_results):
       jobrange=(row['firstjob'], row['lastjob']),
       state=row['state'],
       summary=row['summary'],
-      epoch=row['epoch']
+      epoch=row['epoch'],
+      ticks=row['ticks']
     ))
   return bursts
 
@@ -116,7 +111,8 @@ def _bursts_by_cluster_epoch(db_results):
       jobrange=(row['firstjob'], row['lastjob']),
       state=row['state'],
       summary=row['summary'],
-      epoch=row['epoch']
+      epoch=row['epoch'],
+      ticks=row['ticks']
     ))
   return map
 
@@ -168,10 +164,12 @@ class Burst():
     _jobrange: tuple of first and last job IDs in burst
     _state: state of burst
     _summary: summary information about burst and jobs (JSON)
+    _epoch: epoch timestamp of last report
+    _ticks: number of times reported
   """
 
   def __init__(self, id=None, cluster=None, account=None, pain=None,
-      jobrange=None, state=None, summary=None, epoch=None):
+      jobrange=None, state=None, summary=None, epoch=None, ticks=None):
 
     self._id = id
     self._cluster = cluster
@@ -181,11 +179,13 @@ class Burst():
     self._state = state
     self._summary = summary
     self._epoch = epoch
+    self._ticks = ticks
 
     # handle instantiation by factory
     # pylint: disable=too-many-boolean-expressions
-    if id and cluster and account and jobrange and state and \
-        pain is not None and summary is not None and epoch is not None:
+    # "pain is not None" etc because they are numbers
+    if id and cluster and account and jobrange and state and summary and \
+        pain is not None and epoch is not None and ticks is not None:
       return
 
     # verify initialized correctly
@@ -219,6 +219,8 @@ class Burst():
         # found existing burst
         self._id = res['id']
         self._jobrange = [res['firstjob'], jobrange[1]]
+        self._ticks = res['ticks'] + 1
+        get_log().debug("Ticks updated from %d to %d", res['ticks'], self._ticks)
 
         # update burst for shifting definition:
         # As time goes on, the first job reported in a burst may have
@@ -233,7 +235,7 @@ class Burst():
 
         # update burst record
         try:
-          db.execute(SQL_UPDATE_EXISTING, (pain, jobrange[1], json.dumps(summary), epoch, self._id))
+          db.execute(SQL_UPDATE_EXISTING, (pain, jobrange[1], json.dumps(summary), epoch, self._ticks, self._id))
         except Exception as e:
           raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
       else:

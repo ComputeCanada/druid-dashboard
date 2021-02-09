@@ -4,12 +4,13 @@ DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
 DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
+DROP TABLE IF EXISTS notifiers;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210203', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210209', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -56,5 +57,12 @@ CREATE TABLE bursts (
   lastjob INTEGER NOT NULL,
   summary TEXT,
   epoch INTEGER NOT NULL,
+  ticks INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (cluster) REFERENCES clusters(id)
+);
+
+CREATE TABLE notifiers (
+  name VARCHAR(32) PRIMARY KEY,
+  type VARCHAR(16) NOT NULL,
+  config TEXT
 );
