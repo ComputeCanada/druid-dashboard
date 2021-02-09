@@ -41,6 +41,8 @@ def list_notifiers():
 def get_notifiers():
   db = get_db()
   res = db.execute(SQL_GET_NOTIFIERS).fetchall()
+  if not res:
+    return None
   return [
     notifiers[row['type']](row['name'], json.loads(row['config']))
     for row in res

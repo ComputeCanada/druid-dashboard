@@ -22,8 +22,9 @@ def register_event(type, cls):
 def report(event):
 
   notifiers = get_notifiers()
-  for notifier in notifiers:
-    notifier.notify("We got an event: {}".format(event))
+  if notifiers:
+    for notifier in notifiers:
+      notifier.notify("We got an event: {}".format(event))
 
 # ---------------------------------------------------------------------------
 #                                                               Event class
