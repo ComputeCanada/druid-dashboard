@@ -12,6 +12,7 @@ from manager.log import get_log
 from manager.apikey import ApiKey
 from manager.burst import Burst, get_bursts
 from manager.component import Component
+from manager.event import report, BurstReportReceived
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -256,5 +257,10 @@ def api_post_bursts():
   except Exception as e:
     get_log().error("Could not register burst: '{}'".format(e))
     abort(500)
+
+  # report event
+  # TODO: better summary
+  summary = "Burst report something something"
+  report(BurstReportReceived(summary))
 
   return jsonify({'status': 'OK'}), 201
