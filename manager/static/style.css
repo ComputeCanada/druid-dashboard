@@ -289,6 +289,13 @@ table.not-table td {
   text-align: right;
 }
 
+th.section {
+  text-align: left;
+  font-weight: normal;
+  background: lightblue;
+  border: 0px;
+}
+
 td.number {
   text-align: right;
 }

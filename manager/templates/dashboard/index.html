@@ -43,7 +43,13 @@ function refresh_bursts() {
   });
 }
 
-function display_bursts(bursts, status, jqXHR) {
+function epoch_to_local_time(epoch) {
+  // epochs in Javascript are milliseconds but we're using seconds
+  var d = new Date(epoch * 1000);
+  return(d.toLocaleString());
+}
+
+function display_bursts(reports, status, jqXHR) {
 
   // clear out body of table, leaving header and footer intact
   var tbody = document.getElementById("bursts_body");
@@ -53,55 +59,60 @@ function display_bursts(bursts, status, jqXHR) {
   burst_states = {};
   burst_updates = {};
 
-  // create row for each burst
-  if (bursts) {
-    for (burst of bursts) {
-      burst_states[burst['id']] = burst['state'];
-
-      // summary information is JSON, make it... not that
-      var summary = JSON.parse(burst['summary']);
-      var summaryHTML = ''; //`<tr><th>Reported</th><td>${burst['epoch']}</td></tr>`;
-      for (key in summary) {
-        summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
-      }
-      r = document.createElement("tr");
-      state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
-      state_checked = {'a': '', 'p': '', 'r': ''};
-      state_checked[burst['state']] = "checked='checked'";
-
-      var plotBaseUrl = "https://static.frak.c3.ca/usage-graphs/" + burst['account'];
-      var cumulativePlot = plotBaseUrl + "_cumu_plot.html";
-      var instantPlot = plotBaseUrl + "_insta_plot.html";
-
-      var id = burst['id']
-      r.innerHTML = `
-        <td>${burst['id']}</td>
-        <td title="Reported: ${burst['epoch']}">${burst['cluster']}</td>
-        <td>${burst['account']}</td>
-        <td><a target="beamplot" href="${instantPlot}">Snapshot</a><br/><a target="beamplot" href="${cumulativePlot}">Cumulative</a></td>
-        <td class='number'>${burst['pain'].toFixed(2)}</td>
-        <td class='summary'><table class='not-table'>${summaryHTML}</table></td>
-        <td>${state_pretty}</td>
-        <td class='action'>
-          <label class='switch'>
-            <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
-              <span class='toggle'>👍</span>
-            </input>
-          </label><label class='switch'>
-            <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
-              <span class='toggle'>👎</span>
-            </input>
-          </label><label class='switch'>
-            <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
-              <span class='toggle'>🤷</span>
-            </input>
-          </label>
-        </td>`;
+  // burst reports are organized by cluster
+  if (reports) {
+    for (var cluster in reports) {
+      var r = document.createElement('tr');
+      r.innerHTML = `<th colspan=7 class='section'>${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}</th>`;
       tbody.appendChild(r);
+
+      for (burst of reports[cluster]['bursts']) {
+        burst_states[burst['id']] = burst['state'];
+
+        // summary information is JSON, make it... not that
+        var summary = JSON.parse(burst['summary']);
+        var summaryHTML = ''; //`<tr><th>Reported</th><td>${burst['epoch']}</td></tr>`;
+        for (key in summary) {
+          summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
+        }
+        r = document.createElement("tr");
+        state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
+        state_checked = {'a': '', 'p': '', 'r': ''};
+        state_checked[burst['state']] = "checked='checked'";
+
+        var plotBaseUrl = "https://static.frak.c3.ca/usage-graphs/" + burst['account'];
+        var cumulativePlot = plotBaseUrl + "_cumu_plot.html";
+        var instantPlot = plotBaseUrl + "_insta_plot.html";
+
+        var id = burst['id']
+        r.innerHTML = `
+          <td>${burst['id']}</td>
+          <td>${burst['account']}</td>
+          <td><a target="beamplot" href="${instantPlot}">Snapshot</a><br/><a target="beamplot" href="${cumulativePlot}">Cumulative</a></td>
+          <td class='number'>${burst['pain'].toFixed(2)}</td>
+          <td class='summary'><table class='not-table'>${summaryHTML}</table></td>
+          <td>${state_pretty}</td>
+          <td class='action'>
+            <label class='switch'>
+              <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
+                <span class='toggle'>👍</span>
+              </input>
+            </label><label class='switch'>
+              <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
+                <span class='toggle'>👎</span>
+              </input>
+            </label><label class='switch'>
+              <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
+                <span class='toggle'>🤷</span>
+              </input>
+            </label>
+          </td>`;
+        tbody.appendChild(r);
+      }
     }
   } else {
     r = document.createElement("tr");
-    r.innerHTML = "<td></td><td colspan=7>There are currently no bursts defined.</td>";
+    r.innerHTML = "<td></td><td colspan=6>There are currently no bursts defined.</td>";
     tbody.appendChild(r);
   }
 
@@ -304,7 +315,6 @@ $(function() {
   <thead>
     <tr>
       <th></th>
-      <th>Cluster</th>
       <th>Account</th>
       <th>Usage</th>
       <th>Pain</th>
@@ -317,7 +327,7 @@ $(function() {
     <tr><td colspan=7><i>Loading burst information, probably...</i></td></tr>
   </tbody>
   <tfooter>
-    <td colspan=7></td>
+    <td colspan=6></td>
     <td id='button' colspan=3><button id='submit_actions' value='Submit' onclick='submit_actions()'>Update</button></td>
   </tfooter>
 </table>

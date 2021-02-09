@@ -154,7 +154,7 @@ def test_post_bursts(client):
   assert response.status_code == 200
 
   # test we see what we should and not what we shouldn't
-  for burst in json.loads(response.data):
+  for burst in json.loads(response.data)['testcluster']['bursts']:
     if burst['account'] == 'def-dleske-aa':
       # assert pain was updated
       assert burst['pain'] == 1.2

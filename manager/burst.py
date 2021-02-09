@@ -86,7 +86,7 @@ SQL_GET_CLUSTER_BURSTS = '''
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
-def _make_burst_array(db_results):
+def _burst_array(db_results):
   bursts = []
   for row in db_results:
     bursts.append(Burst(
@@ -101,6 +101,25 @@ def _make_burst_array(db_results):
     ))
   return bursts
 
+def _bursts_by_cluster_epoch(db_results):
+  map = {}
+  for row in db_results:
+    cluster = row['cluster']
+    epoch = row['epoch']
+    if (cluster, epoch) not in map:
+      map[(cluster, epoch)] = []
+    map[(cluster, epoch)].append(Burst(
+      id=row['id'],
+      cluster=row['cluster'],
+      account=row['account'],
+      pain=row['pain'],
+      jobrange=(row['firstjob'], row['lastjob']),
+      state=row['state'],
+      summary=row['summary'],
+      epoch=row['epoch']
+    ))
+  return map
+
 def get_cluster_bursts(cluster):
   db = get_db()
 
@@ -111,14 +130,14 @@ def get_cluster_bursts(cluster):
   res = db.execute(SQL_GET_CLUSTER_BURSTS, (cluster, detector.lastheard)).fetchall()
   if not res:
     return None
-  return _make_burst_array(res)
+  return _burst_array(res)
 
 def get_current_bursts():
   db = get_db()
   res = db.execute(SQL_GET_CURRENT_BURSTS).fetchall()
   if not res:
     return None
-  return _make_burst_array(res)
+  return _bursts_by_cluster_epoch(res)
 
 def get_bursts(cluster=None):
   if cluster:
