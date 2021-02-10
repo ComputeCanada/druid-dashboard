@@ -2,10 +2,20 @@
 # pylint: disable=W0621
 #
 import json
+from enum import Enum
 from manager.db import get_db
 from manager.log import get_log
 from manager.exceptions import DatabaseException, BadCall
 from manager.component import Component
+
+# ---------------------------------------------------------------------------
+#                                                                     enums
+# ---------------------------------------------------------------------------
+
+class State(Enum):
+  ACCEPTED = 'a'
+  REJECTED = 'r'
+  PENDING = 'p'
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -143,7 +153,10 @@ def get_bursts(cluster=None):
 def update_burst_states(updates):
   db = get_db()
   for (id, state) in updates.items():
-    res = db.execute(SQL_UPDATE_STATE, (state, id))
+    res = db.execute(SQL_UPDATE_STATE, (State(state).value, id))
+    # TODO: consider catching from above
+    # except ValueError:
+    #   raise Exception()
     if not res:
       raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
   db.commit()
@@ -169,14 +182,14 @@ class Burst():
   """
 
   def __init__(self, id=None, cluster=None, account=None, pain=None,
-      jobrange=None, state=None, summary=None, epoch=None, ticks=None):
+      jobrange=None, state='p', summary=None, epoch=None, ticks=0):
 
     self._id = id
     self._cluster = cluster
     self._account = account
     self._pain = pain
     self._jobrange = jobrange
-    self._state = state
+    self._state = State(state)
     self._summary = summary
     self._epoch = epoch
     self._ticks = ticks
@@ -184,8 +197,8 @@ class Burst():
     # handle instantiation by factory
     # pylint: disable=too-many-boolean-expressions
     # "pain is not None" etc because they are numbers
-    if id and cluster and account and jobrange and state and summary and \
-        pain is not None and epoch is not None and ticks is not None:
+    if id and cluster and account and jobrange and summary and \
+        pain is not None and epoch is not None:
       return
 
     # verify initialized correctly
@@ -253,8 +266,16 @@ class Burst():
       except Exception as e:
         raise DatabaseException("Could not {}".format(trying_to)) from e
 
+  @property
+  def ticks(self):
+    return self._ticks
+
+  @property
+  def state(self):
+    return self._state
+
   def serializable(self):
     return {
-      key.lstrip('_'): val
+      key.lstrip('_'): val.value if issubclass(type(val), Enum) else val
       for (key, val) in self.__dict__.items()
     }
