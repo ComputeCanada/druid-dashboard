@@ -24,6 +24,9 @@ from . import status
 # misc
 from . import errors
 
+# this is so that the notifiers are registered
+from . import notifier_slack
+
 # override default JSON encoder to look for `serializable` method
 def json_encoder_override(self, obj):
   return getattr(

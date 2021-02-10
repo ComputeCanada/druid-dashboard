@@ -86,7 +86,7 @@ function display_bursts(reports, status, jqXHR) {
 
         var id = burst['id']
         r.innerHTML = `
-          <td>${burst['id']}</td>
+          <td class='number'>${burst['ticks']}</td>
           <td>${burst['account']}</td>
           <td><a target="beamplot" href="${instantPlot}">Snapshot</a><br/><a target="beamplot" href="${cumulativePlot}">Cumulative</a></td>
           <td class='number'>${burst['pain'].toFixed(2)}</td>

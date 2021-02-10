@@ -18,7 +18,7 @@ from manager import exceptions
 # or an upgrade should be performed.
 #
 # See README in SQL scripts dir for guidance on updating the schema.
-SCHEMA_VERSION = '20210203'
+SCHEMA_VERSION = '20210209'
 
 # query to fetch latest schema version
 SQL_GET_SCHEMA_VERSION = """

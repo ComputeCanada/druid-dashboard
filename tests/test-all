@@ -12,26 +12,39 @@ fail_to()
 test_schema=0
 linting=1
 exitfirst=0
+verbose=0
+sqlite=1
 while [ -n "$1" ]
 do
   case "$1" in
     --schema)
       test_schema=1
       ;;
+    --no-sqlite)
+      sqlite=0
+      ;;
     --no-linting)
       linting=0
+      ;;
+    -v|--verbose)
+      verbose=1
       ;;
     -x|--exitfirst)
       exitfirst=1
       ;;
     *)
-      echo "$(basename $0) [--schema] [--no-linting] [-x|--exitfirst]"
+      echo "Unrecognized option: $1"
+      echo "$(basename $0) [--schema] [--no-sqlite] [--no-linting] [-x|--exitfirst] [-v|--verbose]"
       exit 1
   esac
   shift
 done
 
-pytest_opts="-v --cov=manager --cov-report=term --cov-report=html"
+pytest_opts="--cov=manager --cov-report=term --cov-report=html"
+if (( verbose ))
+then
+  pytest_opts="$pytest_opts -v"
+fi
 if (( exitfirst ))
 then
   pytest_opts="$pytest_opts -x"
@@ -56,7 +69,6 @@ then
   # setup pytest stuff
   export SCHEMA_BASEDIR=$tmpdir
   export SCHEMA_VERSIONS=$(echo $versions | tr ' ' ',') 
-  schema_testing="tests/test_sqlite_upgrade.py"
 fi
 
 cleanup()
@@ -76,6 +88,16 @@ then
   tests/linting/test-all || exit 1
 fi
 
+# test sqlite if desired
+if (( sqlite ))
+then
+  sqlite_testing="tests/test_sqlite.py"
+  if (( test_schema ))
+  then
+    sqlite_testing="${sqlite_testing} tests/test_sqlite_upgrade.py"
+  fi
+fi
+
 # test pgsql if container is running
 pgsql_testing=""
 ldap_testing=""
@@ -84,7 +106,7 @@ then
   pgsql_testing="tests/test_pgsql.py"
   if (( test_schema ))
   then
-    schema_testing="${schema_testing} tests/test_pgsql_upgrade.py"
+    pgsql_testing="${pgsql_testing} tests/test_pgsql_upgrade.py"
   fi
 
   # test if LDAP container is running
@@ -95,4 +117,4 @@ then
 fi
 
 # functional testing
-pytest $pytest_opts tests/test_sqlite.py $schema_testing $pgsql_testing $ldap_testing || exit 1
+pytest $pytest_opts $sqlite_testing $pgsql_testing $ldap_testing || exit 1

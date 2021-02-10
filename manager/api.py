@@ -10,8 +10,9 @@ from flask import (
 )
 from manager.log import get_log
 from manager.apikey import ApiKey
-from manager.burst import Burst, get_bursts
+from manager.burst import Burst, get_bursts, State
 from manager.component import Component
+from manager.event import report, BurstReportReceived
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -139,6 +140,30 @@ def api_key_required(view):
 
   return wrapped_view
 
+def summarize_burst_report(cluster, bursts):
+
+  # counts
+  newbs = 0
+  existing = 0
+  by_state = {
+    State.ACCEPTED: 0,
+    State.REJECTED: 0,
+    State.PENDING: 0
+  }
+
+  for burst in bursts:
+    if burst.ticks > 0:
+      existing += 1
+    else:
+      newbs += 1
+
+    by_state[burst.state] += 1
+
+  return "A new burst report came in from {} with {} new burst record(s)" \
+    " and {} existing.  In total there are {} accepted, {} rejected and {}" \
+    " pending.".format(cluster, newbs, existing, by_state[State.ACCEPTED],
+    by_state[State.REJECTED], by_state[State.PENDING])
+
 # ---------------------------------------------------------------------------
 #                                                                 BURST API
 # ---------------------------------------------------------------------------
@@ -256,5 +281,9 @@ def api_post_bursts():
   except Exception as e:
     get_log().error("Could not register burst: '{}'".format(e))
     abort(500)
+
+  # report event
+  summary = summarize_burst_report(cluster, bursts)
+  report(BurstReportReceived(summary))
 
   return jsonify({'status': 'OK'}), 201
