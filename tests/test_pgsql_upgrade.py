@@ -2,7 +2,10 @@
 # pylint: disable=W0621,wildcard-import,unused-wildcard-import
 #
 import os
+import random
+import string
 import pytest
+import psycopg2
 from tests_cli import *
 from tests_status import *
 from tests_app import *
@@ -15,12 +18,23 @@ from ldapstub import LdapStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db, upgrade_schema
 
+def random_database_name():
+  return 'tmp_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k = 8))
+
 upgrade_versions = os.environ['SCHEMA_VERSIONS'].split(',')
 sql_base_dir = os.environ['SCHEMA_BASEDIR']
 uri = os.environ.get('BEAM_PGSQL_URI', 'postgresql://postgres:supersecretpassword@localhost:5432/postgres')
 
 @pytest.fixture(scope='module', params=upgrade_versions)
 def seeded_app(request):
+
+  # create random database
+  dbname = random_database_name()
+  pgconn = psycopg2.connect(uri)
+  pgconn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+  pgconn.cursor().execute("CREATE DATABASE {}".format(dbname))
+
+  tempuri = 'postgresql://postgres:supersecretpassword@localhost:5432/{}'.format(dbname)
 
   version = request.param
 
@@ -30,7 +44,7 @@ def seeded_app(request):
 
   app = create_app({
     'TESTING': True,
-    'DATABASE_URI': uri,
+    'DATABASE_URI': tempuri,
     'CONFIG': 'tests/app.conf',
     'LDAP_STUB': LdapStub()
   })
@@ -42,9 +56,20 @@ def seeded_app(request):
 
   yield app
 
+  pgconn.cursor().execute("DROP DATABASE {}".format(dbname))
+  pgconn.close()
+
 
 @pytest.fixture(scope='module', params=upgrade_versions)
 def empty_app(request):
+
+  # create random database
+  dbname = random_database_name()
+  pgconn = psycopg2.connect(uri)
+  pgconn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+  pgconn.cursor().execute("CREATE DATABASE {}".format(dbname))
+
+  tempuri = 'postgresql://postgres:supersecretpassword@localhost:5432/{}'.format(dbname)
 
   version = request.param
 
@@ -53,7 +78,7 @@ def empty_app(request):
 
   app = create_app({
     'TESTING': True,
-    'DATABASE_URI': uri,
+    'DATABASE_URI': tempuri,
     'CONFIG': 'tests/app.conf'
   })
 
@@ -73,3 +98,6 @@ def empty_app(request):
     get_db().commit()
 
   yield app
+
+  pgconn.cursor().execute("DROP DATABASE {}".format(dbname))
+  pgconn.close()
