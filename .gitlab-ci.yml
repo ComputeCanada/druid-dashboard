@@ -29,10 +29,19 @@ default:
       - .gitlab-ci.yml
       - ccldap
       - "i18n/*"
-      - "manager/**/*"
+      - "manager/*.py"
+      - "manager/translations/**/*"
+      - "manager/sql/*.sql"
+      - "manager/sql/*.psql"
       - requirements.txt
       - "tests/**/*"
       - deployment/Dockerfile
+
+.presentation:
+  only:
+    changes:
+      - "manager/static/**/*"
+      - "manager/templates/**/*"
 
 .integration:
   before_script:
@@ -60,7 +69,9 @@ default:
   dependencies:
     - syntax
 
+# todos only occur in code.
 todos:
+  extends: .code
   except:
     - main
   allow_failure: true
@@ -68,7 +79,9 @@ todos:
   script:
     - tests/linting/todos
 
+# todos only occur in code.  Remove `extends: .code` if this stops working.
 todos_main:
+  extends: .code
   only:
     - main
   allow_failure: true
@@ -119,6 +132,7 @@ integration:
 build_test:
   extends:
     - .code
+    - .presentation
     - .build
   stage: build
   before_script:
@@ -127,6 +141,7 @@ build_test:
 build_dev:
   extends:
     - .code
+    - .presentation
     - .build
   only:
     - main
@@ -139,6 +154,7 @@ build_dev:
 build_release:
   extends:
     - .code
+    - .presentation
     - .build
   only:
     - tags
@@ -147,7 +163,9 @@ build_release:
     - IMAGENAME=$PROD_IMAGE
 
 deploy_development:
-  extends: .code
+  extends:
+    - .code
+    - .presentation
   only:
     - main
   except:
@@ -157,7 +175,9 @@ deploy_development:
     - kubectl --kubeconfig="$K8S_CONFIG" patch deployment beam-dev -p '{"spec":{"template":{"spec":{"containers":[{"name":"beam","image":"'${SHA_IMAGE}'"}]}}}}'
 
 deploy_release:
-  extends: .code
+  extends:
+    - .code
+    - .presentation
   # Only deploy for tags, not branches, where the tag is a version string
   only:
     - /^v[0-9]+(\.[0-9]+){1,2}(-[0-9]+)?
