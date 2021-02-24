@@ -45,6 +45,7 @@ babel = Babel()
 
 # static defaults
 defaults = {
+  'APPLICATION_TAG': 'beam',
   'SECRET_KEY': 'dev',
   'LDAP_URI': 'ldap://localhost',
   'LDAP_BINDDN': '',
@@ -183,6 +184,7 @@ def create_app(test_config=None):
   app.register_error_handler(403, errors.error_403)
   app.register_error_handler(404, errors.error_404)
   app.register_error_handler(500, errors.error_500)
+  app.register_error_handler(Exception, errors.generic_exception)
 
   return app
 
