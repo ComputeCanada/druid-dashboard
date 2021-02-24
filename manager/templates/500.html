@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block header %}
-  <h1>{% block title %}Internal Server Error (500){% endblock %}</h1>
+  <h1>{% block title %}{{ _('500 title') }} (500){% endblock %}</h1>
 {% endblock %}
 
 {% block content %}
-  <p>Sorry.  We're definitely looking into it though.</p>
+  <p>{{ _('500 explanation') }}</p>
 {% endblock %}

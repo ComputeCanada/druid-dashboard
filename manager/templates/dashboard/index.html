@@ -6,9 +6,6 @@
 
 {% block extra %}
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
-  <style type='text/css'>
-    #timeleft { width: 240px; height: 45px; }
-  </style>
 {% endblock %}
 
 {# --------------------------------------------------------------------------
@@ -24,7 +21,8 @@ var burst_updates;
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
 var i18n_texts = {
-  "Cancel": "{{ _('Cancel') }}"
+  "Cancel": "{{ _('Cancel') }}",
+  "Update": "{{ _('Update') }}"
 };
 
 
@@ -112,7 +110,7 @@ function display_bursts(reports, status, jqXHR) {
     }
   } else {
     r = document.createElement("tr");
-    r.innerHTML = "<td></td><td colspan=6>There are currently no bursts defined.</td>";
+    r.innerHTML = "<td></td><td colspan=6>{{ _('There are currently no bursts defined.') }}</td>";
     tbody.appendChild(r);
   }
 
@@ -134,12 +132,12 @@ function updateSelection(id, new_state) {
   var button = document.getElementById("submit_actions");
   var burst_update_count = Object.keys(burst_updates).length;
   if (burst_update_count == 0) {
-    label = 'Update';
+    label = "{{ _('Update') }}";
     button.disabled = true;
     button.innerHTML = label;
   }
   else {
-    label = `Update (${burst_update_count})`;
+    label = "{{ _('Update') }}" + ` (${burst_update_count})`;
     button.disabled = false;
     button.innerHTML = label;
   }
@@ -311,24 +309,24 @@ $(function() {
 
 <div id='bursts'>
 <table>
-  <caption>Bursts</caption>
+  <caption>{{ _('Bursts') }}</caption>
   <thead>
     <tr>
       <th></th>
-      <th>Account</th>
-      <th>Usage</th>
-      <th>Pain</th>
-      <th>Summary</th>
-      <th>State</th>
-      <th>Action</th>
+      <th>{{ _('Account') }}</th>
+      <th>{{ _('Usage') }}</th>
+      <th>{{ _('Pain') }}</th>
+      <th>{{ _('Summary') }}</th>
+      <th>{{ _('State') }}</th>
+      <th>{{ _('Action') }}</th>
     </tr>
   </thead>
   <tbody id='bursts_body'>
-    <tr><td colspan=7><i>Loading burst information, probably...</i></td></tr>
+    <tr><td colspan=7><i>{{ _('Loading burst information, probably...') }}</i></td></tr>
   </tbody>
   <tfooter>
     <td colspan=6></td>
-    <td id='button' colspan=3><button id='submit_actions' value='Submit' onclick='submit_actions()'>Update</button></td>
+    <td id='button' colspan=3><button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button></td>
   </tfooter>
 </table>
 </div>
