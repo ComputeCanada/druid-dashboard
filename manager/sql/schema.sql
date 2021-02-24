@@ -10,7 +10,7 @@ CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210209', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210224', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -46,7 +46,8 @@ CREATE TABLE notifications (
   message TEXT NOT NULL
 );
 
--- state: 'a' = accepted, 'p' = pending, 'r' = rejected
+-- state: 'p' = pending/unactioned, 'c' = claimed, 't' = ticketed, 'a' = accepted, 'r' = rejected
+-- see burst.py::State
 CREATE TABLE bursts (
   id INTEGER PRIMARY KEY,
   state CHAR(1) NOT NULL DEFAULT 'p',
@@ -58,6 +59,7 @@ CREATE TABLE bursts (
   summary TEXT,
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 0,
+  CHECK (state in ('p', 'c', 't', 'a', 'r')),
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
 

@@ -146,9 +146,11 @@ def summarize_burst_report(cluster, bursts):
   newbs = 0
   existing = 0
   by_state = {
+    State.UNACTIONED: 0,
+    State.CLAIMED: 0,
+    State.TICKETED: 0,
     State.ACCEPTED: 0,
-    State.REJECTED: 0,
-    State.PENDING: 0
+    State.REJECTED: 0
   }
 
   for burst in bursts:
@@ -160,9 +162,12 @@ def summarize_burst_report(cluster, bursts):
     by_state[burst.state] += 1
 
   return "A new burst report came in from {} with {} new burst record(s)" \
-    " and {} existing.  In total there are {} accepted, {} rejected and {}" \
-    " pending.".format(cluster, newbs, existing, by_state[State.ACCEPTED],
-    by_state[State.REJECTED], by_state[State.PENDING])
+    " and {} existing.  In total there are {} claimed, {} ticketed, {}" \
+    " accepted, {} rejected and {} pending.".format(
+      cluster, newbs, existing, by_state[State.CLAIMED],
+      by_state[State.TICKETED], by_state[State.ACCEPTED],
+      by_state[State.REJECTED], by_state[State.UNACTIONED]
+    )
 
 # ---------------------------------------------------------------------------
 #                                                                 BURST API

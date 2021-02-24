@@ -3,6 +3,7 @@
 #
 import json
 from enum import Enum
+from flask_babel import _
 from manager.db import get_db
 from manager.log import get_log
 from manager.exceptions import DatabaseException, BadCall
@@ -12,10 +13,24 @@ from manager.component import Component
 #                                                                     enums
 # ---------------------------------------------------------------------------
 
+# enum of states: values are tuple of indicator used in database and the
+# display label
+# NOTE: if updating this, ensure schema matches
 class State(Enum):
-  ACCEPTED = 'a'
-  REJECTED = 'r'
-  PENDING = 'p'
+  UNACTIONED  = 'p'
+  CLAIMED     = 'c'
+  TICKETED    = 't'
+  ACCEPTED    = 'a'
+  REJECTED    = 'r'
+
+  def __str__(self):
+    return {
+      'p': _('Unactioned'),
+      'c': _('Claimed'),
+      't': _('Ticketed'),
+      'a': _('Accepted'),
+      'r': _('Rejected')
+    }[self.value]
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -75,7 +90,7 @@ SQL_GET_CURRENT_BURSTS = '''
   JOIN    (
             SELECT    cluster, MAX(epoch) AS epoch
             FROM      bursts
-            GROUP BY  cluster 
+            GROUP BY  cluster
           ) J
   ON      B.cluster = J.cluster AND B.epoch = J.epoch
 '''
