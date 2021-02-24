@@ -83,16 +83,18 @@ def xhr_get_bursts():
   # get_bursts() returns dict keyed on tuple, which can't be jsonified, so
   # break down by cluster
   bbc = {}
-  for ce, bursts in get_bursts().items():
-    cluster = ce[0]
-    epoch = ce[1]
-    if cluster not in bbc:
-      bbc[cluster] = {}
-      bbc[cluster]['epoch'] = epoch
-      bbc[cluster]['bursts'] = bursts
-    elif bbc[cluster]['epoch'] != epoch:
-      # TODO: proper exception
-      raise Exception("There should not be multiple epochs for the same cluster")
+  allbursts = get_bursts()
+  if allbursts:
+    for ce, bursts in allbursts.items():
+      cluster = ce[0]
+      epoch = ce[1]
+      if cluster not in bbc:
+        bbc[cluster] = {}
+        bbc[cluster]['epoch'] = epoch
+        bbc[cluster]['bursts'] = bursts
+      elif bbc[cluster]['epoch'] != epoch:
+        # TODO: proper exception
+        raise Exception("There should not be multiple epochs for the same cluster")
   return jsonify(bbc)
 
 @bp.route('/bursts/', methods=['PATCH'])

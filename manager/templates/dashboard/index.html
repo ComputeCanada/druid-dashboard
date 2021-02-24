@@ -58,7 +58,7 @@ function display_bursts(reports, status, jqXHR) {
   burst_updates = {};
 
   // burst reports are organized by cluster
-  if (reports) {
+  if (Object.keys(reports).length > 0) {
     for (var cluster in reports) {
       var r = document.createElement('tr');
       r.innerHTML = `<th colspan=7 class='section'>${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}</th>`;
