@@ -53,6 +53,13 @@ defaults = {
   'LDAP_SKIP_TLS': False
 }
 
+# optional that may appear in environment or configuration
+optionals = [
+  'SYSLOG_SERVER',
+  'SYSLOG_PORT',
+  'SYSLOG_PROTOCOL'
+]
+
 def determine_config(default_config_file, default_config, test_config=None):
   """
   Given hardcoded defaults, a config file, and possibly a test config, as well
@@ -122,6 +129,13 @@ def determine_config(default_config_file, default_config, test_config=None):
   # override with environment variables
   for key in config.keys():
     envvar = 'BEAM_' + key.upper()
+    if envvar in os.environ:
+      config[key] = os.environ[envvar]
+
+  # also check for optional configurations that have no defaults and may not
+  # have been specified in configuration
+  for key in optionals:
+    envvar = 'BEAM_' + key
     if envvar in os.environ:
       config[key] = os.environ[envvar]
 
