@@ -17,17 +17,15 @@ from manager.component import Component
 # display label
 # NOTE: if updating this, ensure schema matches
 class State(Enum):
-  UNACTIONED  = 'p'
-  CLAIMED     = 'c'
-  TICKETED    = 't'
-  ACCEPTED    = 'a'
-  REJECTED    = 'r'
+  UNCLAIMED = 'p'
+  CLAIMED   = 'c'
+  ACCEPTED  = 'a'
+  REJECTED  = 'r'
 
   def __str__(self):
     return {
-      'p': _('Unactioned'),
+      'p': _('Unclaimed'),
       'c': _('Claimed'),
-      't': _('Ticketed'),
       'a': _('Accepted'),
       'r': _('Rejected')
     }[self.value]
@@ -290,7 +288,9 @@ class Burst():
     return self._state
 
   def serializable(self):
-    return {
+    d = {
       key.lstrip('_'): val.value if issubclass(type(val), Enum) else val
       for (key, val) in self.__dict__.items()
     }
+    d['state_pretty'] = str(self._state)
+    return d

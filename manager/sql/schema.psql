@@ -46,7 +46,7 @@ CREATE TABLE notifications (
   message TEXT NOT NULL
 );
 
--- state: 'p' = pending/unactioned, 'c' = claimed, 't' = ticketed, 'a' = accepted, 'r' = rejected
+-- state: 'p' = pending/unactioned, 'c' = claimed, 'a' = accepted, 'r' = rejected
 -- see burst.py::State
 CREATE TABLE bursts (
   id SERIAL PRIMARY KEY,
@@ -59,7 +59,7 @@ CREATE TABLE bursts (
   summary TEXT,
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 0,
-  CHECK (state in ('p', 'c', 't', 'a', 'r')),
+  CHECK (state in ('p', 'c', 'a', 'r')),
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
 
