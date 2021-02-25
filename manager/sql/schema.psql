@@ -59,6 +59,7 @@ CREATE TABLE bursts (
   summary TEXT,
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 0,
+  claimant CHAR(7),
   CHECK (state in ('p', 'c', 'a', 'r')),
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );

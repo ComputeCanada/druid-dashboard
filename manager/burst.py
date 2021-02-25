@@ -3,6 +3,7 @@
 #
 import json
 from enum import Enum
+from flask import g
 from flask_babel import _
 from manager.db import get_db
 from manager.log import get_log
@@ -64,6 +65,12 @@ SQL_UPDATE_STATE = '''
   WHERE   id = ?
 '''
 
+SQL_UPDATE_STATE_CLAIMED = '''
+  UPDATE  bursts
+  SET     state = ?, claimant = ?
+  WHERE   id = ?
+'''
+
 SQL_CREATE = '''
   INSERT INTO bursts
               (cluster, account, pain, firstjob, lastjob, summary, epoch)
@@ -115,7 +122,8 @@ def _burst_array(db_results):
       state=row['state'],
       summary=row['summary'],
       epoch=row['epoch'],
-      ticks=row['ticks']
+      ticks=row['ticks'],
+      claimant=row['claimant']
     ))
   return bursts
 
@@ -135,7 +143,8 @@ def _bursts_by_cluster_epoch(db_results):
       state=row['state'],
       summary=row['summary'],
       epoch=row['epoch'],
-      ticks=row['ticks']
+      ticks=row['ticks'],
+      claimant=row['claimant']
     ))
   return map
 
@@ -166,7 +175,13 @@ def get_bursts(cluster=None):
 def update_burst_states(updates):
   db = get_db()
   for (id, state) in updates.items():
-    res = db.execute(SQL_UPDATE_STATE, (State(state).value, id))
+    s = State(state)
+    if s == State.CLAIMED:
+      res = db.execute(SQL_UPDATE_STATE_CLAIMED, (s.value, g.user['cci'], id))
+    elif s == State.UNCLAIMED:
+      res = db.execute(SQL_UPDATE_STATE_CLAIMED, (s.value, None, id))
+    else:
+      res = db.execute(SQL_UPDATE_STATE, (s.value, id))
     # TODO: consider catching from above
     # except ValueError:
     #   raise Exception()
@@ -192,10 +207,12 @@ class Burst():
     _summary: summary information about burst and jobs (JSON)
     _epoch: epoch timestamp of last report
     _ticks: number of times reported
+    _claimant: analyst following up
   """
 
   def __init__(self, id=None, cluster=None, account=None, pain=None,
-      jobrange=None, state='p', summary=None, epoch=None, ticks=0):
+      jobrange=None, state='p', summary=None, epoch=None, ticks=0,
+      claimant=None):
 
     self._id = id
     self._cluster = cluster
@@ -206,6 +223,7 @@ class Burst():
     self._summary = summary
     self._epoch = epoch
     self._ticks = ticks
+    self._claimant = claimant
 
     # handle instantiation by factory
     # pylint: disable=too-many-boolean-expressions
@@ -287,10 +305,8 @@ class Burst():
   def state(self):
     return self._state
 
-  def serializable(self):
-    d = {
+  def serialize(self):
+    return {
       key.lstrip('_'): val.value if issubclass(type(val), Enum) else val
       for (key, val) in self.__dict__.items()
     }
-    d['state_pretty'] = str(self._state)
-    return d
