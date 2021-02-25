@@ -1,0 +1,43 @@
+## Default section, does not need to be present
+#[DEFAULT]
+## By default all uncaught exceptions are caught at the last minute and
+## logged with a traceback logged at debug level.  (Otherwise uncaught
+## exceptions would bypass the log system.)  This is less helpful when
+## running the app locally.
+#catch_all_exceptions = yes
+
+## LDAP definitions.  A valid, usable LDAP service is required for the app
+## to function.
+[ldap]
+
+## servers are specified via URI.  ldap with StartTLS or ldaps are both
+## supported.
+uri = ldap://localhost
+
+## don't use TLS (defaults to no, and you should only set this to yes for
+## testing and development, locally)
+#skip_tls = yes
+
+## By default, set to 'demand' which indicates the server must provide a
+## valid certificate.  Set to 'allow' to permit mismatched certificates
+## or those without known CAs.
+#tls_reqcert = allow
+
+## bind DN and password for authentication
+binddn = uid=myname,ou=People,dc=computecanada,dc=ca
+password = you actually put this in cleartext d00d
+
+## Database section.
+[database]
+
+## URI for database, including username, password, host, port, and database
+## name.  Acceptable schemes are "file" for SQLite or "postgresql" for
+## Postgres.
+uri = postgresql://user:secret@localhost:5432/beam_dev
+
+## Syslog section.  Optional--will log to console whether or not this is
+## present.
+#[syslog]
+#server = logger.example.org
+#port = 514
+#protocol = tcp
