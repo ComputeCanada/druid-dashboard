@@ -74,9 +74,11 @@ function display_bursts(reports, status, jqXHR) {
           summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
         }
         r = document.createElement("tr");
-        //state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
         state_pretty = burst['state_pretty'];
-        state_checked = {'a': '', 'p': '', 'r': ''};
+        if (burst['state'] == 'c') {
+          state_pretty += ` by ${burst['claimant_pretty']}`;
+        }
+        state_checked = {}
         state_checked[burst['state']] = "checked='checked'";
 
         var plotBaseUrl = "https://static.frak.c3.ca/usage-graphs/" + burst['account'];
@@ -92,29 +94,29 @@ function display_bursts(reports, status, jqXHR) {
           <td class='summary'><table class='not-table'>${summaryHTML}</table></td>
           <td>${state_pretty}</td>
           <td class='action'>
-            <label class='click'>
+            <label class='click' title='{{ _("Create a ticket to follow up with user") }}'>
               <input type='button' name='ticket_${id}' class='grey'  id='ticket_${id}' onClick='createTicket(${ id })'>
                 <span class='toggle'>&#x1f39f;</span>
               </input>
             </label>
           </td>
           <td class='action'>
-            <label class='switch'>
+            <label class='switch' title='{{ _("Unclaim") }}'>
               <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
                 <span class='toggle'>&#x1f97a;</span>
               </input>
             </label>
-            <label class='switch'>
+            <label class='switch' title='{{ _("Claim this burst candidate for followup") }}'>
               <input type='radio' name='moderation_${id}' class='grey'  id='claim_${ id }'  ${ state_checked["c"] } onClick='updateSelection(${ id }, "c")'>
                 <span class='toggle'>&#x1f914;</span>
               </input>
             </label>
-            <label class='switch'>
+            <label class='switch' title='{{ _("Promote this account for bursting") }}'>
               <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
                 <span class='toggle'>&#x1f600;</span>
               </input>
             </label>
-            <label class='switch'>
+            <label class='switch' title='{{ _("Do not promote this account for bursting") }}'>
               <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
                 <span class='toggle'>&#x1f625;</span>
               </input>

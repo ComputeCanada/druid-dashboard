@@ -6,9 +6,10 @@ from flask import Blueprint, jsonify, request
 
 from manager.auth import login_required, admin_required
 from manager.log import get_log
+from manager.ldap import get_ldap
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
-from manager.burst import get_bursts, update_burst_states
+from manager.burst import get_bursts, update_burst_states, State
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
@@ -23,8 +24,12 @@ bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
 # get_bursts() returns dict keyed on tuple, which can't be jsonified, so
 # break down by cluster
+# TODO: clean this up, maybe move caching to ccldap library
+# pylint: disable=too-many-nested-blocks
 def _bursts_by_cluster():
 
+  ldap = get_ldap()
+  cci_map = {}
   bbc = {}
   allbursts = get_bursts()
   if allbursts:
@@ -34,7 +39,28 @@ def _bursts_by_cluster():
       if cluster not in bbc:
         bbc[cluster] = {}
         bbc[cluster]['epoch'] = epoch
-        bbc[cluster]['bursts'] = bursts
+        bbc[cluster]['bursts'] = []
+        for burstObj in bursts:
+          # serialize here so we can add a couple of pretty things
+          burst = burstObj.serialize()
+
+          if burstObj.state == State.CLAIMED:
+            cci = burst['claimant']
+            if cci not in cci_map:
+              person = ldap.get_person_by_cci(burst['claimant'])
+              if not person:
+                get_log().error("Could not find name for cci '%s'", burst['claimant'])
+                prettyname = cci
+              else:
+                prettyname = person['givenName']
+              cci_map[cci] = prettyname
+            else:
+              prettyname = cci_map[cci]
+            burst['claimant_pretty'] = prettyname
+
+          burst['state_pretty'] = str(burstObj.state)
+
+          bbc[cluster]['bursts'].append(burst)
       elif bbc[cluster]['epoch'] != epoch:
         # TODO: proper exception
         raise Exception("There should not be multiple epochs for the same cluster")
