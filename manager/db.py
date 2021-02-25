@@ -255,5 +255,5 @@ class DbEnum(Enum):
     return str(self.value)
 
   # return serializable representation for JSON encoder
-  def serializable(self):
+  def serialize(self):
     return self.__str__()

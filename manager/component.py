@@ -173,7 +173,7 @@ class Component():
   def cluster(self):
     return self._cluster
 
-  def serializable(self):
+  def serialize(self):
     tmp = {
       key.lstrip('_'): val
       for (key, val) in self.__dict__.items()

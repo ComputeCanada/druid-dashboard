@@ -31,7 +31,7 @@ from . import notifier_slack
 def json_encoder_override(self, obj):
   return getattr(
     obj.__class__,
-    "serializable",
+    "serialize",
     json_encoder_override.default
   )(obj)
 json_encoder_override.default = JSONEncoder().default
