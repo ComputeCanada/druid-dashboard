@@ -398,5 +398,5 @@ input.grey:checked + .toggle {
 input:active + .toggle {
   border: 2px solid;
   padding: 1px 3px;
-  background-color: #00CC00;
+  background-color: #999999;
 }
