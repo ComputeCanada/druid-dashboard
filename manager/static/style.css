@@ -363,6 +363,7 @@ input + .toggle {
 
 input:checked + .toggle {
   border: 2px solid;
+  padding: 1px 3px;
 }
 
 input.green:checked + .toggle {
@@ -379,4 +380,23 @@ input.red:checked + .toggle {
 input.grey:checked + .toggle {
   background-color: #CCCCFF;
   color: #000033;
+}
+
+/* --------------------------------------------------------------------------
+                                                            other buttons
+--------------------------------------------------------------------------- */
+
+.click {
+}
+
+.click input {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+input:active + .toggle {
+  border: 2px solid;
+  padding: 1px 3px;
+  background-color: #00CC00;
 }

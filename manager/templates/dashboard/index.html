@@ -61,7 +61,7 @@ function display_bursts(reports, status, jqXHR) {
   if (Object.keys(reports).length > 0) {
     for (var cluster in reports) {
       var r = document.createElement('tr');
-      r.innerHTML = `<th colspan=7 class='section'>${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}</th>`;
+      r.innerHTML = `<th colspan=8 class='section'>${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}</th>`;
       tbody.appendChild(r);
 
       for (burst of reports[cluster]['bursts']) {
@@ -74,7 +74,8 @@ function display_bursts(reports, status, jqXHR) {
           summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
         }
         r = document.createElement("tr");
-        state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
+        //state_pretty = {'a':'Accepted','p':'Pending','r':'Rejected'}[burst['state']];
+        state_pretty = burst['state_pretty'];
         state_checked = {'a': '', 'p': '', 'r': ''};
         state_checked[burst['state']] = "checked='checked'";
 
@@ -91,17 +92,31 @@ function display_bursts(reports, status, jqXHR) {
           <td class='summary'><table class='not-table'>${summaryHTML}</table></td>
           <td>${state_pretty}</td>
           <td class='action'>
+            <label class='click'>
+              <input type='button' name='ticket_${id}' class='grey'  id='ticket_${id}' onClick='createTicket(${ id })'>
+                <span class='toggle'>&#x1f39f;</span>
+              </input>
+            </label>
+          </td>
+          <td class='action'>
+            <label class='switch'>
+              <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
+                <span class='toggle'>&#x1f97a;</span>
+              </input>
+            </label>
+            <label class='switch'>
+              <input type='radio' name='moderation_${id}' class='grey'  id='claim_${ id }'  ${ state_checked["c"] } onClick='updateSelection(${ id }, "c")'>
+                <span class='toggle'>&#x1f914;</span>
+              </input>
+            </label>
             <label class='switch'>
               <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
-                <span class='toggle'>👍</span>
+                <span class='toggle'>&#x1f600;</span>
               </input>
-            </label><label class='switch'>
+            </label>
+            <label class='switch'>
               <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
-                <span class='toggle'>👎</span>
-              </input>
-            </label><label class='switch'>
-              <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
-                <span class='toggle'>🤷</span>
+                <span class='toggle'>&#x1f625;</span>
               </input>
             </label>
           </td>`;
@@ -110,7 +125,7 @@ function display_bursts(reports, status, jqXHR) {
     }
   } else {
     r = document.createElement("tr");
-    r.innerHTML = "<td></td><td colspan=6>{{ _('There are currently no bursts defined.') }}</td>";
+    r.innerHTML = "<td></td><td colspan=7>{{ _('There are currently no bursts defined.') }}</td>";
     tbody.appendChild(r);
   }
 
@@ -141,6 +156,10 @@ function updateSelection(id, new_state) {
     button.disabled = false;
     button.innerHTML = label;
   }
+}
+
+function createTicket(id) {
+  console.log("createTicket(" + id + ")");
 }
 
 // Populate this to refresh content areas.
@@ -318,15 +337,16 @@ $(function() {
       <th>{{ _('Pain') }}</th>
       <th>{{ _('Summary') }}</th>
       <th>{{ _('State') }}</th>
+      <th>{{ _('Ticket') }}</th>
       <th>{{ _('Action') }}</th>
     </tr>
   </thead>
   <tbody id='bursts_body'>
-    <tr><td colspan=7><i>{{ _('Loading burst information, probably...') }}</i></td></tr>
+    <tr><td colspan=8><i>{{ _('Loading burst information, probably...') }}</i></td></tr>
   </tbody>
   <tfooter>
-    <td colspan=6></td>
-    <td id='button' colspan=3><button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button></td>
+    <td colspan=7></td>
+    <td id='button'><button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button></td>
   </tfooter>
 </table>
 </div>
