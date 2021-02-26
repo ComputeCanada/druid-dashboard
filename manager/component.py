@@ -3,7 +3,7 @@
 #
 from datetime import date
 from manager.db import get_db
-from manager.exceptions import DatabaseException
+from manager.exceptions import DatabaseException, BadCall
 from manager.apikey import most_recent_use
 
 # ---------------------------------------------------------------------------
@@ -156,8 +156,7 @@ class Component():
           )
         ) from e
     else:
-      # TODO: this exception is a pile of worms in a police uniform
-      raise Exception("Bad call: specify, id, id and name, cluster and service, or everything")
+      raise BadCall("Specify id, id and name, cluster and service, or everything")
 
   def load_lastheard(self):
     # query related API keys for most recently used
