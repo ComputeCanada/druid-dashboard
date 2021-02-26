@@ -5,6 +5,8 @@ import logging
 import logging.handlers
 import socket
 from flask import g, current_app
+from manager.exceptions import BadConfig
+
 
 def get_log():
   if 'logger' not in g:
@@ -27,10 +29,8 @@ def get_log():
         }[protocol]
         sl_handler = logging.handlers.SysLogHandler(address=(server, port), socktype=sockit)
       except KeyError:
-        # TODO: better exception
-        # also TODO: this is definitely going to confuse me
         # pylint: disable=raise-missing-from
-        logging.error('ConfigError("Bad protocol specified; you suck")')
+        raise BadConfig("Bad protocol specified ('%s'), only 'tcp' and 'udp' permitted" % [protocol])
       else:
         # apparently only affects TCP: messages are not properly parsed with
         # rsyslog if append_nul is True, which is default, and messages don't
