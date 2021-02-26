@@ -57,3 +57,10 @@ class LdapException(AppException):
   """
   Exception raised when some LDAP issue occurs.
   """
+
+class ImpossibleException(AppException):
+  """
+  Exception raised when something that should be impossible has occurred.
+  These are the type of situation where it might make sense to not even try
+  to detect it in the first place; that's how impossible it is, or should be.
+  """
