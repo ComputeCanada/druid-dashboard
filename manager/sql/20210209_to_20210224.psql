@@ -1,0 +1,5 @@
+ALTER TABLE bursts
+  ADD COLUMN claimant CHAR(7),
+  ADD CHECK (state in ('p', 'c', 'a', 'r'));
+
+INSERT INTO schemalog (version, applied) VALUES ('20210224', CURRENT_TIMESTAMP);
