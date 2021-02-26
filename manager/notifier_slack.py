@@ -4,7 +4,9 @@
 import json
 import requests
 from manager.db import get_db
+from manager.log import get_log
 from manager.notifier import register_notifier, Notifier, SQL_GET_NOTIFIER
+from manager.exceptions import BadCall
 
 # used for displaying configuration form
 definition = {
@@ -39,8 +41,7 @@ class SlackNotifier(Notifier):
     try:
       self._url = config['url']
     except KeyError:
-      # TODO: proper exception
-      raise Exception("URL must be defined for Slack notifier")
+      raise BadCall("URL must be defined for Slack notifier")
 
     self._from = config.get('from')
     self._emoji = config.get('emoji')
@@ -57,19 +58,12 @@ class SlackNotifier(Notifier):
       data['icon_emoji'] = self._emoji
 
     r = requests.post(self._url, data=json.dumps(data))
-
-    # TODO: check this and raise exception, then like log that or whatever?
-    assert r.status_code == 200
-
-#  def config_load(self):
-#
-#    # deserialize configurations
-#    self._deserialize(defn)
-#
-#  def config_save(self):
-#
-#    # serialize configurations
-#    defn = self._serialize()
+    if r.status_code == 200:
+      get_log().info("Sent Slack notification")
+    else:
+      get_log().error("Sending Slack notification failed")
+      get_log().debug("url=%s, from=%s, emoji=%s, message=%s",
+        self._url, self._from, self._emoji, message)
 
 # ---------------------------------------------------------------------------
 #                                                     notifier registration
