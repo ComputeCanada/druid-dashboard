@@ -15,3 +15,14 @@ def test_status(client):
   response = client.get('/status/')
   assert response.data == 'LDAP: Okay\nDB: Okay (schema version {})'.format(SCHEMA_VERSION).encode('utf-8')
   assert response.status_code == 200
+
+def test_update_db(client):
+  """
+  Test that database status correctly reports that the schema in the DB and
+  in the code match.
+  """
+  response = client.get('/status/db')
+  print(response.data)
+  expected = 'DB schema at %s, code schema at %s, no action taken' % (SCHEMA_VERSION, SCHEMA_VERSION)
+  assert response.data == expected.encode('utf-8')
+  assert response.status_code == 200

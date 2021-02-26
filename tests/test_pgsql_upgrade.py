@@ -14,6 +14,7 @@ from tests_api import *
 from tests_authentication import *
 from tests_components import *
 from tests_dashboard import *
+from tests_upgrades import *
 from ldapstub import LdapStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db, upgrade_schema
@@ -24,6 +25,44 @@ def random_database_name():
 upgrade_versions = os.environ['SCHEMA_VERSIONS'].split(',')
 sql_base_dir = os.environ['SCHEMA_BASEDIR']
 uri = os.environ.get('BEAM_PGSQL_URI', 'postgresql://postgres:supersecretpassword@localhost:5432/postgres')
+
+@pytest.fixture(scope='module', params=upgrade_versions)
+def unupgraded_app(request):
+
+  # create random database
+  dbname = random_database_name()
+  pgconn = psycopg2.connect(uri)
+  pgconn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+  pgconn.cursor().execute("CREATE DATABASE {}".format(dbname))
+
+  tempuri = 'postgresql://postgres:supersecretpassword@localhost:5432/{}'.format(dbname)
+
+  version = request.param
+
+  # parametrize the stuff
+  schema = '{}/schema-{}.psql'.format(sql_base_dir, version)
+  seed = '{}/seed-{}.sql'.format(sql_base_dir, version)
+
+  app = create_app({
+    'TESTING': True,
+    'DATABASE_URI': tempuri,
+    'CONFIG': 'tests/app.conf',
+    'LDAP_STUB': LdapStub()
+  })
+
+  with app.app_context():
+    init_db(schema)
+    seed_db(seed)
+
+  yield app
+
+  pgconn.cursor().execute("DROP DATABASE {}".format(dbname))
+  pgconn.close()
+
+# this needs to be defined here because it's not common to non-upgrade contexts
+@pytest.fixture(scope='module')
+def unupgraded_client(unupgraded_app):
+  return unupgraded_app.test_client()
 
 @pytest.fixture(scope='module', params=upgrade_versions)
 def seeded_app(request):
