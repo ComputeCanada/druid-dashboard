@@ -200,7 +200,8 @@ def create_app(test_config=None):
   app.register_error_handler(500, errors.error_500)
 
   # register generic error handler, unless testing
-  if not app.config.get('TESTING', False) or app.config.get('CATCH_ALL_EXCEPTIONS', True):
+  if (not app.config.get('TESTING', False)
+      and app.config.get('CATCH_ALL_EXCEPTIONS', True)):
     app.register_error_handler(Exception, errors.generic_exception)
 
   return app
