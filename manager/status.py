@@ -3,7 +3,6 @@
 #
 from flask import Blueprint
 from manager.db import get_schema_version, upgrade_schema
-from manager.log import get_log
 from manager.ldap import get_ldap
 from manager import exceptions
 
@@ -24,7 +23,6 @@ def get_status():
 
   statuses = []
   status = 200
-  get_log().debug('In get_status()')
 
   # try to get an LDAP record
   try:
