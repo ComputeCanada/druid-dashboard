@@ -10,6 +10,7 @@ from manager.ldap import get_ldap
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
 from manager.burst import get_bursts, update_burst_states, State
+from manager.exceptions import ImpossibleException
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
@@ -22,48 +23,54 @@ bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 #                                                                   HELPERS
 # ---------------------------------------------------------------------------
 
-# get_bursts() returns dict keyed on tuple, which can't be jsonified, so
-# break down by cluster
-# TODO: clean this up, maybe move caching to ccldap library
-# pylint: disable=too-many-nested-blocks
 def _bursts_by_cluster():
+  """
+  Convert dict returned by get_bursts(), which is keyed on a tuple and cannot
+  be jsonified, and key by cluster instead.  Add display values such as
+  claimant's name.
+  """
 
   ldap = get_ldap()
-  cci_map = {}
+
+  # bursts by cluster
   bbc = {}
-  allbursts = get_bursts()
-  if allbursts:
-    for ce, bursts in allbursts.items():
+
+  # bursts by cluster and epoch
+  bbce = get_bursts()
+
+  # simplify to bursts by cluster
+  if bbce:
+    for ce, bursts in bbce.items():
       cluster = ce[0]
       epoch = ce[1]
-      if cluster not in bbc:
-        bbc[cluster] = {}
-        bbc[cluster]['epoch'] = epoch
-        bbc[cluster]['bursts'] = []
-        for burstObj in bursts:
-          # serialize here so we can add a couple of pretty things
-          burst = burstObj.serialize()
+      if cluster in bbc:
+        # if this happens, then the data structure returned by get_bursts()
+        # is semantically broken; probably because somehow two different
+        # epochs were returned for the same cluster.
+        raise ImpossibleException("Cluster reported twice in get_bursts()")
 
-          if burstObj.state == State.CLAIMED:
-            cci = burst['claimant']
-            if cci not in cci_map:
-              person = ldap.get_person_by_cci(burst['claimant'])
-              if not person:
-                get_log().error("Could not find name for cci '%s'", burst['claimant'])
-                prettyname = cci
-              else:
-                prettyname = person['givenName']
-              cci_map[cci] = prettyname
-            else:
-              prettyname = cci_map[cci]
-            burst['claimant_pretty'] = prettyname
+      bbc[cluster] = {}
+      bbc[cluster]['epoch'] = epoch
 
-          burst['state_pretty'] = str(burstObj.state)
+      # serialize bursts individually so as to add attributes
+      bbc[cluster]['bursts'] = []
+      for burstObj in bursts:
+        burst = burstObj.serialize()
 
-          bbc[cluster]['bursts'].append(burst)
-      elif bbc[cluster]['epoch'] != epoch:
-        # TODO: proper exception
-        raise Exception("There should not be multiple epochs for the same cluster")
+        # add claimant's name
+        if burstObj.state == State.CLAIMED:
+          cci = burst['claimant']
+          person = ldap.get_person_by_cci(burst['claimant'])
+          if not person:
+            get_log().error("Could not find name for cci '%s'", burst['claimant'])
+            prettyname = cci
+          else:
+            prettyname = person['givenName']
+          burst['claimant_pretty'] = prettyname
+
+        burst['state_pretty'] = str(burstObj.state)
+
+        bbc[cluster]['bursts'].append(burst)
   return bbc
 
 # ---------------------------------------------------------------------------
