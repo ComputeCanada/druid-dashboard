@@ -78,7 +78,19 @@ def test_get_burst(client):
   response = api_get(client, '/api/bursts/10')
   assert response.status_code == 200
   x = json.loads(response.data)
-  assert x == {}
+  print(x)
+  assert x == {
+    'account': 'def-ccc-aa',
+    'claimant': None,
+    'cluster': 'testcluster2',
+    'epoch': 25,
+    'id': 10,
+    'jobrange': [17, 27],
+    'pain': 2.5,
+    'state': 'p',
+    'summary': None,
+    'ticks': 0
+  }
 
 def test_post_incomplete_burst(client):
 

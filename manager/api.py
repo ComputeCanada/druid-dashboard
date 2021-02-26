@@ -174,13 +174,10 @@ def summarize_burst_report(cluster, bursts):
 
 @bp.route('/bursts/<int:id>', methods=['GET'])
 @api_key_required
-def get_burst(id):
+def api_get_burst(id):
 
   get_log().debug("In api.get_burst(%d)", id)
-
-  # TODO: burst = Burst(id)
-  burst = {}
-  return burst
+  return jsonify(Burst(id=id))
 
 @bp.route('/bursts', methods=['GET'])
 @api_key_required

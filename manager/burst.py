@@ -247,8 +247,15 @@ class Burst():
       # lookup operation
       res = db.execute(SQL_GET, (id,)).fetchone()
       if res:
-        # TODO: will this case be used?
-        pass
+        self._cluster = res['cluster']
+        self._account = res['account']
+        self._pain = res['pain']
+        self._jobrange = (res['firstjob'], res['lastjob'])
+        self._state = State(res['state'])
+        self._summary = res['summary']
+        self._epoch = res['epoch']
+        self._ticks = res['ticks']
+        self._claimant = res['claimant']
       else:
         raise ValueError(
           "Could not load burst with id '{}'".format(id)
