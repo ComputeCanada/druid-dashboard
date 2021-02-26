@@ -182,9 +182,6 @@ def update_burst_states(updates):
       res = db.execute(SQL_UPDATE_STATE_CLAIMED, (s.value, None, id))
     else:
       res = db.execute(SQL_UPDATE_STATE, (s.value, id))
-    # TODO: consider catching from above
-    # except ValueError:
-    #   raise Exception()
     if not res:
       raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
   db.commit()
