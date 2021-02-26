@@ -18,6 +18,12 @@ class BadCall(AppException):
   nonsensical combination of parameters.
   """
 
+class BadConfig(AppException):
+  """
+  Exception raised when a configuration cannot be interpreted, such as when a
+  value given is illegal or if the overall configuration is nonsensical.
+  """
+
 class ResourceNotFound(AppException):
   """
   Exception raised for when requested resources are not available.
