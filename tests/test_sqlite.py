@@ -16,14 +16,12 @@ from tests.ldapstub import LdapStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db
 
-(sqlite_fh, sqlite_fn) = tempfile.mkstemp()
+# common test params; this was more useful when both SQLite and Postgres
+# were handled in the same test setup module
 test_params = [{
   'schema': 'schema.sql',
   'seed': '../tests/data.sql',
-  'uri': 'file://' + sqlite_fn,
   'delete_afterwards': True,
-  'filehandle': sqlite_fh,
-  'filename': sqlite_fn
 }]
 test_ids = ['sqlite']
 
@@ -31,9 +29,12 @@ test_ids = ['sqlite']
 @pytest.fixture(scope='module', params=test_params, ids=test_ids)
 def seeded_app(request):
 
+  (filehandle, filename) = tempfile.mkstemp()
+  uri = 'file://' + filename
+
   app = create_app({
     'TESTING': True,
-    'DATABASE_URI': request.param['uri'],
+    'DATABASE_URI': uri,
     'CONFIG': 'tests/app.conf',
     'LDAP_STUB': LdapStub()
   })
@@ -46,20 +47,19 @@ def seeded_app(request):
   yield app
 
   if request.param.get('delete_afterwards', False):
-    try:
-      os.close(request.param['filehandle'])
-      os.unlink(request.param['filename'])
-    except OSError:
-      # TODO: figure out why this was already closed/unlinked
-      pass
+    os.close(filehandle)
+    os.unlink(filename)
 
 
 @pytest.fixture(scope='module', params=test_params, ids=test_ids)
 def empty_app(request):
 
+  (filehandle, filename) = tempfile.mkstemp()
+  uri = 'file://' + filename
+
   app = create_app({
     'TESTING': True,
-    'DATABASE_URI': request.param['uri'],
+    'DATABASE_URI': uri,
     'CONFIG': 'tests/app.conf'
   })
 
@@ -77,7 +77,6 @@ def empty_app(request):
 
   yield app
 
-  print(request.param['uri'])
   if request.param.get('delete_afterwards', False):
-    #os.close(request.param['filehandle'])
-    os.unlink(request.param['filename'])
+    os.close(filehandle)
+    os.unlink(filename)
