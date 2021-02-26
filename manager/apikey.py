@@ -5,7 +5,7 @@ import hmac
 import base64
 from manager.db import get_db
 from manager.log import get_log
-from manager.exceptions import DatabaseException
+from manager.exceptions import DatabaseException, BadCall
 
 # how the digest works:
 # sh: echo -n "So this is how the world ends" | openssl dgst -sha256 -hmac "secret" -binary | base64
@@ -89,22 +89,10 @@ def get_apikeys(pretty=False):
   res = db.execute(sql).fetchall()
   if not res:
     return None
-  if pretty:
-    # TODO: implement - needs the something generic like the following,
-    # which doesn't work
-    # return [ { k: v for (k, v) in rec.items() } for rec in res ]
-    return [
-      {
-        'access': rec['access'],
-        'cluster': rec['cluster'],
-        'component': rec['component']
-      }
-      for rec in res
-    ]
   return [
     {
-      'access': rec['access'],
-      'component': rec['component']
+      k: rec[k]
+      for k in rec.keys()
     }
     for rec in res
   ]
@@ -173,8 +161,7 @@ class ApiKey():
         )
     else:
       if not component:
-        # TODO: this exception is a pile of worms in a police uniform
-        raise Exception("You need to specify the component!")
+        raise BadCall("Must specify component")
       try:
         db.execute(APIKEY_CREATE_NEW, (access, secret, component))
         db.commit()
