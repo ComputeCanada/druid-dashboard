@@ -15,10 +15,23 @@ _fake_tree = {
     'cn': 'Test PI 1',
     'cci': 'tst-002'
   },
+  'user1': {
+    'cn': 'Test User 1',
+    'givenName': 'User 1',
+    'preferredLanguage': 'en',
+    'cci': 'tst-005',
+    'eduPersonEntitlement': ['frak.computecanada.ca/burst/analyst'],
+  },
   'user2': {
     'cn': 'Test User 2',
     'givenName': 'User 2',
     'cci': 'tst-003'
+  },
+  'user3': {
+    'cn': 'Test User 3',
+    'givenName': 'User 3',
+    'preferredLanguage': 'en',
+    'cci': 'tst-006',
   },
   'ldapcanary': {
     'cn': 'Fake Canary',

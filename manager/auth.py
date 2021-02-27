@@ -32,7 +32,7 @@ def admin_required(view):
   @functools.wraps(view)
   def wrapped_view(**kwargs):
     if not session.get('admin'):
-      abort(404)
+      abort(403)
     return view(**kwargs)
   return wrapped_view
 
@@ -54,9 +54,9 @@ def login_required(view):
         authenticated_user = request.headers['X_AUTHENTICATED_USER']
       get_log().debug("X_AUTHENTICATED_USER = %s", authenticated_user)
 
-      # this flags whether user is fully authenticated (i.e. user information
-      # is loaded from LDAP)
-      authenticated_externally = False
+      # this flags whether user is authorized to use app: must be authenticated
+      # and either analyst or admin
+      authorized = False
 
       # check if externally authenticated
       if authenticated_user:
@@ -89,6 +89,10 @@ def login_required(view):
 
             # has analyst rights?
             session['analyst'] = 'frak.computecanada.ca/burst/analyst' in details['eduPersonEntitlement']
+            get_log().debug("Analyst? %s", session['analyst'])
+
+            # if has one of those two, is authorized for app
+            authorized = True
 
           else:
             session['admin'] = False
@@ -96,11 +100,10 @@ def login_required(view):
             session['analyst'] = False
 
           load_logged_in_user()
-          authenticated_externally = True
 
           session['authenticated_externally'] = True
 
-      if not authenticated_externally:
+      if not authorized:
         abort(403)
 
     # TODO: not sure, this may be useful with SSE

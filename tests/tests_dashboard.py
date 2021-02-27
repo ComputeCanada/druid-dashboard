@@ -11,11 +11,12 @@ def test_dashboard(client):
   WHEN  a correct user credential pair is provided to the login page
   THEN  the client will see the SAW dashboard
   """
-  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'pi1'})
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
   assert response.status_code == 200
 
   # check response data
   # just kidding
+
 
 def test_basic_translation(client):
   """
@@ -23,6 +24,6 @@ def test_basic_translation(client):
   WHEN  an authenticated user requests French
   THEN  the client will see the SAW dashboard in French
   """
-  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'pi1'})
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
   response = client.get('/', environ_base={'HTTP_ACCEPT_LANGUAGE': 'fr'})
   assert b'Bonjour' in response.data

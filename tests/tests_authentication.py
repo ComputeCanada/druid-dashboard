@@ -11,9 +11,9 @@ def test_delegated_credential(client):
   WHEN  a username is set in the environment
   THEN  the client will authenticate that username
   """
-  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'pi1'})
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
   assert response.status_code == 200
-  assert b'Hello, PI 1' in response.data
+  assert b'Hello, User 1' in response.data
 
 
 def test_user_missing_attributes(client):
@@ -22,6 +22,28 @@ def test_user_missing_attributes(client):
   THEN the authorization fails
   """
   response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user2'})
+  assert response.status_code == 403
+
+
+def test_user_denied(client):
+  """
+  GIVEN a Flask application
+  WHEN  a correct user credential identifier is provided but one without
+        analyst privileges tries to access the dashboard
+  THEN  the client is denied
+  """
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user3'})
+  assert response.status_code == 403
+
+
+def test_admin_denied(client):
+  """
+  GIVEN a Flask application
+  WHEN  a correct user credential identifier is provided but one without admin
+        privileges tries to access the admin dashboard
+  THEN  the client is denied
+  """
+  response = client.get('/admin/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
   assert response.status_code == 403
 
 
