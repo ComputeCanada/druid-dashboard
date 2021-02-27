@@ -10,6 +10,7 @@ from tests_app import *
 from tests_apikeys import *
 from tests_api import *
 from tests_authentication import *
+from tests_bursts import *
 from tests_components import *
 from tests_dashboard import *
 from tests.ldapstub import LdapStub
