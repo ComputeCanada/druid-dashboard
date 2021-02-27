@@ -15,9 +15,11 @@ from tests_dashboard import *
 from tests_upgrades import *
 from tests.ldapstub import LdapStub
 from manager import create_app
-from manager.db import init_db, seed_db, upgrade_schema
+from manager.db import init_db, seed_db, upgrade_schema, SCHEMA_VERSION
 
 upgrade_versions = os.environ['SCHEMA_VERSIONS'].split(',')
+if SCHEMA_VERSION in upgrade_versions:
+  del upgrade_versions[-1]
 sql_base_dir = os.environ['SCHEMA_BASEDIR']
 
 @pytest.fixture(scope='module', params=upgrade_versions)

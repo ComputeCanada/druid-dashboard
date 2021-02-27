@@ -17,12 +17,14 @@ from tests_dashboard import *
 from tests_upgrades import *
 from ldapstub import LdapStub
 from manager import create_app
-from manager.db import get_db, init_db, seed_db, upgrade_schema
+from manager.db import get_db, init_db, seed_db, upgrade_schema, SCHEMA_VERSION
 
 def random_database_name():
   return 'tmp_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k = 8))
 
 upgrade_versions = os.environ['SCHEMA_VERSIONS'].split(',')
+if SCHEMA_VERSION in upgrade_versions:
+  del upgrade_versions[-1]
 sql_base_dir = os.environ['SCHEMA_BASEDIR']
 uri = os.environ.get('BEAM_PGSQL_URI', 'postgresql://postgres:supersecretpassword@localhost:5432/postgres')
 
