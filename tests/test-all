@@ -13,6 +13,7 @@ test_schema=0
 linting=1
 exitfirst=0
 verbose=0
+debug=0
 sqlite=1
 while [ -n "$1" ]
 do
@@ -25,6 +26,9 @@ do
       ;;
     --no-linting)
       linting=0
+      ;;
+    -d|--debug)
+      debug=1
       ;;
     -v|--verbose)
       verbose=1
@@ -41,6 +45,10 @@ do
 done
 
 pytest_opts="--cov=manager --cov-report=term --cov-report=html"
+if (( debug ))
+then
+  pytest_opts="$pytest_opts --log-level=debug"
+fi
 if (( verbose ))
 then
   pytest_opts="$pytest_opts -v"
