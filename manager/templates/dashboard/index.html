@@ -166,7 +166,7 @@ function createTicket(id) {
 
 // Populate this to refresh content areas.
 function refresh_content() {
-  refresh_bursts();
+  //refresh_bursts();
 }
 
 // find first row in a table
@@ -299,10 +299,104 @@ if (!('Notification' in window)) {
   }
 }
 
-// for when document is ready (this syntax is recommended but not very
-// readable or searchable)
-$(function() {
+function jsonToTable(json) {
+  var summary = JSON.parse(json);
+  var summaryHTML = '';
+  for (key in summary) {
+    summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
+  }
+  return `<table class='not-table'>${summaryHTML}</table>`;
+  
+}
+
+function renderActionButtons(id, state_checked) {
+  return `
+    <label class='switch' title='{{ _("Unclaim") }}'>
+      <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
+        <span class='toggle'>&#x1f97a;</span>
+      </input>
+    </label>
+    <label class='switch' title='{{ _("Claim this burst candidate for followup") }}'>
+      <input type='radio' name='moderation_${id}' class='grey'  id='claim_${ id }'  ${ state_checked["c"] } onClick='updateSelection(${ id }, "c")'>
+        <span class='toggle'>&#x1f914;</span>
+      </input>
+    </label>
+    <label class='switch' title='{{ _("Promote this account for bursting") }}'>
+      <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
+        <span class='toggle'>&#x1f600;</span>
+      </input>
+    </label>
+    <label class='switch' title='{{ _("Do not promote this account for bursting") }}'>
+      <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
+        <span class='toggle'>&#x1f625;</span>
+      </input>
+    </label>
+  `;
+}
+
+function renderTableData(data) {
+  /* get data like this:
+    {
+      "protocluster": {
+        "bursts": [
+          {
+            "account": "def-raveeg1_cpu", 
+            "claimant": null, 
+            "cluster": "protocluster", 
+            "epoch": 1614266800, 
+            "id": 1, 
+            "jobrange": [
+              10000, 
+              10500
+            ], 
+            "pain": 0.4, 
+            "state": "p", 
+            "state_pretty": "Unclaimed", 
+            "summary": "{\"cpus_total\": 100, \"jobs_total\": 50, \"mem_total\": 200}", 
+            "ticks": 0
+          }
+        ], 
+        "epoch": 1614266800
+      }
+    }
+  */
+  burst_states = {};
+  burst_updates = {};
+
+  bycols = [];
+  bursts = data.protocluster.bursts;
+  for (var i=0, ien=bursts.length; i<ien; i++) {
+    var state_checked = {}
+    state_checked[bursts[i].state] = "checked='checked'";
+
+    bycols[i] = [
+      bursts[i].ticks,
+      bursts[i].account,
+      `<a href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_cumu_plot.html">Cumulative</a>
+       <a href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_insta_plot.html">Instant</a>`,
+      bursts[i].pain,
+      jsonToTable(bursts[i].summary),
+      bursts[i].state_pretty,
+      "None",
+      renderActionButtons(bursts[i].id, state_checked)
+    ];
+  }
+  return bycols;
+}
+
+$(document).ready(function() {
   refresh_content();
+
+  $('#bursts_table').dataTable({
+    "ajax": {
+      "url": "/xhr/bursts/",
+      "dataSrc": renderTableData
+    }
+    /*"data": [
+      [ 1, "xav-105-ss", "link to graph", 4.23, "cpu_total: 53", "Unclaimed", "None", "Actions" ],
+      [ 2, "bbe-052-ss", "link to graph", 2042.54, "cpu_total: 2044", "Unclaimed", "None", "Actions" ],
+    ]*/
+  });
 
   // disable submit-actions button
   document.getElementById("submit_actions").disabled = true;
@@ -329,11 +423,11 @@ $(function() {
 </div>
 
 <div id='bursts'>
-<table>
+<table id='bursts_table' class='display'>
   <caption>{{ _('Bursts') }}</caption>
   <thead>
     <tr>
-      <th></th>
+      <th>Occurrences</th>
       <th>{{ _('Account') }}</th>
       <th>{{ _('Usage') }}</th>
       <th>{{ _('Pain') }}</th>
@@ -343,13 +437,12 @@ $(function() {
       <th>{{ _('Action') }}</th>
     </tr>
   </thead>
-  <tbody id='bursts_body'>
-    <tr><td colspan=8><i>{{ _('Loading burst information, probably...') }}</i></td></tr>
+  <tbody>
   </tbody>
-  <tfooter>
+  <tfoot>
     <td colspan=7></td>
     <td id='button'><button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button></td>
-  </tfooter>
+  </tfoot>
 </table>
 </div>
 
