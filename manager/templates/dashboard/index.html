@@ -390,13 +390,21 @@ $(document).ready(function() {
   $('#bursts_table').dataTable({
     "ajax": {
       "url": "/xhr/bursts/",
-      "dataSrc": renderTableData
-    }
+      "dataSrc": renderTableData,
+    },
+    /*"columns": [
+      null, null, { "searchable": false }, null, null, null, null, { "searchable": false }
+    ],*/
+    "columnDefs": [
+      { searchable: false, targets: 'nosearch' },
+      { orderable: false, targets: 'nosort' }
+    ],
     /*"data": [
       [ 1, "xav-105-ss", "link to graph", 4.23, "cpu_total: 53", "Unclaimed", "None", "Actions" ],
       [ 2, "bbe-052-ss", "link to graph", 2042.54, "cpu_total: 2044", "Unclaimed", "None", "Actions" ],
     ]*/
-  });
+    }
+  );
 
   // disable submit-actions button
   document.getElementById("submit_actions").disabled = true;
@@ -427,14 +435,14 @@ $(document).ready(function() {
   <caption>{{ _('Bursts') }}</caption>
   <thead>
     <tr>
-      <th>Occurrences</th>
-      <th>{{ _('Account') }}</th>
-      <th>{{ _('Usage') }}</th>
-      <th>{{ _('Pain') }}</th>
-      <th>{{ _('Summary') }}</th>
-      <th>{{ _('State') }}</th>
-      <th>{{ _('Ticket') }}</th>
-      <th>{{ _('Action') }}</th>
+      <th                        >Occurrences</th>
+      <th                        >{{ _('Account') }}</th>
+      <th class='nosearch nosort'>{{ _('Usage') }}</th>
+      <th                        >{{ _('Pain') }}</th>
+      <th class='nosort'         >{{ _('Summary') }}</th>
+      <th                        >{{ _('State') }}</th>
+      <th                        >{{ _('Ticket') }}</th>
+      <th class='nosearch nosort'>{{ _('Action') }}</th>
     </tr>
   </thead>
   <tbody>
