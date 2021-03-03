@@ -37,7 +37,9 @@ function refresh_bursts() {
     url: '/xhr/bursts/',
     method: 'GET',
     success: display_bursts,
-    error: function() { console.error("refresh_bursts() AJAX error"); }
+    error: function() {
+      flash_error("refresh_bursts() AJAX error")
+    }
   });
 }
 
@@ -49,82 +51,87 @@ function epoch_to_local_time(epoch) {
 
 function display_bursts(reports, status, jqXHR) {
 
-  // clear out body of table, leaving header and footer intact
-  var tbody = document.getElementById("bursts_body");
-  tbody.innerHTML = "";
-
   // reset burst IDs array
   burst_states = {};
   burst_updates = {};
 
+  // used to track clusters
+  var clusters = [];
+
   // burst reports are organized by cluster
   if (Object.keys(reports).length > 0) {
+
+    // get main accordion container
+    var accordionParent = document.getElementById('bursts_accordion');
+
     for (var cluster in reports) {
-      var r = document.createElement('tr');
-      r.innerHTML = `<th colspan=8 class='section'>${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}</th>`;
-      tbody.appendChild(r);
 
-      for (burst of reports[cluster]['bursts']) {
-        burst_states[burst['id']] = burst['state'];
+      clusters.push(cluster);
 
-        // summary information is JSON, make it... not that
-        var summary = JSON.parse(burst['summary']);
-        var summaryHTML = ''; //`<tr><th>Reported</th><td>${burst['epoch']}</td></tr>`;
-        for (key in summary) {
-          summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
+      // TODO: i18n
+      var title = `${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}`;
+
+      // create accordian for this
+      var accordion = document.createElement('div');
+      accordion.innerHTML = `<div class="accordion-item">
+        <h2 class="accordion-header" id="heading-${cluster}">
+          <button id="collapse-button-${cluster}" class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${cluster}" aria-expanded="false" aria-controls="collapse-${cluster}">
+            ${title}
+          </button>
+        </h2>
+        <div id="collapse-${cluster}" class="accordion-collapse collapse" aria-labelledby="heading-${cluster}" data-bs-parent="#bursts_accordion">
+          <div class="accordion-body">
+            <table id='bursts_table_${cluster}' class='' style='width: 100%'>
+              <thead>
+                <tr>
+                  <th                        >Occ</th>
+                  <th                        >{{ _('Account') }}</th>
+                  <th class='nosearch nosort'>{{ _('Usage') }}</th>
+                  <th                        >{{ _('Pain') }}</th>
+                  <th class='nosort'         >{{ _('Summary') }}</th>
+                  <th                        >{{ _('State') }}</th>
+                  <th                        >{{ _('Ticket') }}</th>
+                  <th class='nosearch nosort'>{{ _('Action') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+
+      // add to parent and so to the DOM
+      accordionParent.appendChild(accordion);
+
+      // create the table
+      $(`#bursts_table_${cluster}`).dataTable({
+        "autoWidth": false,
+        "data": renderTableData(reports[cluster]['bursts']),
+        "columnDefs": [
+          { searchable: false, targets: 'nosearch' },
+          { orderable: false, targets: 'nosort' }
+        ],
         }
-        r = document.createElement("tr");
-        state_pretty = burst['state_pretty'];
-        if (burst['state'] == 'c') {
-          state_pretty += ` by ${burst['claimant_pretty']}`;
-        }
-        state_checked = {}
-        state_checked[burst['state']] = "checked='checked'";
-
-        var plotBaseUrl = "https://static.frak.c3.ca/usage-graphs/" + burst['account'];
-        var cumulativePlot = plotBaseUrl + "_cumu_plot.html";
-        var instantPlot = plotBaseUrl + "_insta_plot.html";
-
-        var id = burst['id']
-        r.innerHTML = `
-          <td class='number'>${burst['ticks']}</td>
-          <td>${burst['account']}</td>
-          <td><a target="beamplot" href="${instantPlot}">Snapshot</a><br/><a target="beamplot" href="${cumulativePlot}">Cumulative</a></td>
-          <td class='number'>${burst['pain'].toFixed(2)}</td>
-          <td class='summary'><table class='not-table'>${summaryHTML}</table></td>
-          <td>${state_pretty}</td>
-          <td class='action'>
-            <label class='click' title='{{ _("Create a ticket to follow up with user") }}'>
-              <input type='button' name='ticket_${id}' class='grey'  id='ticket_${id}' onClick='createTicket(${ id })'>
-                <span class='toggle'>&#x1f39f;</span>
-              </input>
-            </label>
-          </td>
-          <td class='action'>
-            <label class='switch' title='{{ _("Unclaim") }}'>
-              <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "p")'>
-                <span class='toggle'>&#x1f97a;</span>
-              </input>
-            </label>
-            <label class='switch' title='{{ _("Claim this burst candidate for followup") }}'>
-              <input type='radio' name='moderation_${id}' class='grey'  id='claim_${ id }'  ${ state_checked["c"] } onClick='updateSelection(${ id }, "c")'>
-                <span class='toggle'>&#x1f914;</span>
-              </input>
-            </label>
-            <label class='switch' title='{{ _("Promote this account for bursting") }}'>
-              <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "a")'>
-                <span class='toggle'>&#x1f600;</span>
-              </input>
-            </label>
-            <label class='switch' title='{{ _("Do not promote this account for bursting") }}'>
-              <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "r")'>
-                <span class='toggle'>&#x1f625;</span>
-              </input>
-            </label>
-          </td>`;
-        tbody.appendChild(r);
-      }
+      );
     }
+
+    // determine which cluster should be expanded by default
+    var expand_cluster = Cookies.get("default-cluster");
+    if (!expand_cluster || !(expand_cluster in clusters)) {
+      expand_cluster = clusters[0];
+      Cookies.set("default_cluster", expand_cluster);
+    }
+
+    // expand that cluster's accordion
+    // There are two ways to do this: send a button-click message to the
+    // accordion button, or manipulate the classes of the accordion button
+    // and the accordioned division.  The latter eliminates the animation,
+    // which is too much fancy for a basic page load
+    //$(`#collapse-button-${expand_cluster}`).click();
+    $(`#collapse-button-${expand_cluster}`).removeClass('collapsed');
+    $(`#collapse-${expand_cluster}`).addClass('show');
+
   } else {
     r = document.createElement("tr");
     r.innerHTML = "<td></td><td colspan=7>{{ _('There are currently no bursts defined.') }}</td>";
@@ -162,11 +169,6 @@ function updateSelection(id, new_state) {
 
 function createTicket(id) {
   console.log("createTicket(" + id + ")");
-}
-
-// Populate this to refresh content areas.
-function refresh_content() {
-  //refresh_bursts();
 }
 
 // find first row in a table
@@ -334,8 +336,8 @@ function renderActionButtons(id, state_checked) {
   `;
 }
 
-function renderTableData(data) {
-  /* get data like this:
+function renderTableData(bursts) {
+  /* if this is used from the AJAX results, we get data like this:
     {
       "protocluster": {
         "bursts": [
@@ -364,7 +366,8 @@ function renderTableData(data) {
   burst_updates = {};
 
   bycols = [];
-  bursts = data.protocluster.bursts;
+  // ...but we don't get it like that no mo 
+  //bursts = data.protocluster.bursts;
   for (var i=0, ien=bursts.length; i<ien; i++) {
     var state_checked = {}
     state_checked[bursts[i].state] = "checked='checked'";
@@ -372,8 +375,8 @@ function renderTableData(data) {
     bycols[i] = [
       bursts[i].ticks,
       bursts[i].account,
-      `<a href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_cumu_plot.html">Cumulative</a>
-       <a href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_insta_plot.html">Instant</a>`,
+      `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_cumu_plot.html">Cumulative</a>
+       <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_insta_plot.html">Instant</a>`,
       bursts[i].pain,
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
@@ -385,26 +388,9 @@ function renderTableData(data) {
 }
 
 $(document).ready(function() {
-  refresh_content();
 
-  $('#bursts_table').dataTable({
-    "ajax": {
-      "url": "/xhr/bursts/",
-      "dataSrc": renderTableData,
-    },
-    /*"columns": [
-      null, null, { "searchable": false }, null, null, null, null, { "searchable": false }
-    ],*/
-    "columnDefs": [
-      { searchable: false, targets: 'nosearch' },
-      { orderable: false, targets: 'nosort' }
-    ],
-    /*"data": [
-      [ 1, "xav-105-ss", "link to graph", 4.23, "cpu_total: 53", "Unclaimed", "None", "Actions" ],
-      [ 2, "bbe-052-ss", "link to graph", 2042.54, "cpu_total: 2044", "Unclaimed", "None", "Actions" ],
-    ]*/
-    }
-  );
+  // load bursts
+  refresh_bursts();
 
   // disable submit-actions button
   document.getElementById("submit_actions").disabled = true;
@@ -430,29 +416,10 @@ $(document).ready(function() {
 <div id='error'>
 </div>
 
-<div id='bursts'>
-<table id='bursts_table' class='display'>
-  <caption>{{ _('Bursts') }}</caption>
-  <thead>
-    <tr>
-      <th                        >Occurrences</th>
-      <th                        >{{ _('Account') }}</th>
-      <th class='nosearch nosort'>{{ _('Usage') }}</th>
-      <th                        >{{ _('Pain') }}</th>
-      <th class='nosort'         >{{ _('Summary') }}</th>
-      <th                        >{{ _('State') }}</th>
-      <th                        >{{ _('Ticket') }}</th>
-      <th class='nosearch nosort'>{{ _('Action') }}</th>
-    </tr>
-  </thead>
-  <tbody>
-  </tbody>
-  <tfoot>
-    <td colspan=7></td>
-    <td id='button'><button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button></td>
-  </tfoot>
-</table>
+<div class='accordion' id='bursts_accordion'>
 </div>
+
+<button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button>
 
 {% endblock %}
 
