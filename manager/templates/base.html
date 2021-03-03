@@ -25,9 +25,11 @@
   <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/datatables-bootstrap-5/dataTables.bootstrap5.min.js"></script>
   <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/datatables-bootstrap-5/dataTables.select.min.js"></script> -->
 
-  <title>{% block title %}{% endblock %} - #frak</title>
+  <!-- local scriptage and stylings -->
   <script src="https://static.d4.c3.ca/js/js.cookie.js"></script>
   <link rel='stylesheet' href="{{ url_for('static', filename='style.css') }}">
+
+  <title>{{ _('Burst Enablement') }} - {% block title %}{% endblock %}</title>
   {% block extra %}{% endblock %}
   <script>
     // are we an admin?
@@ -38,7 +40,7 @@
 {% block dialog %}{% endblock %}
 {% block confirm %}{% endblock %}
 <nav>
-  <h1><a href="{{ url_for('index') }}">{{ _('Burst Enablement') }}</a></h1>
+  <h1><a href="{{ url_for('index') }}">{{ _('Burst Enablement') }} - {{ self.title() }}</a></h1>
 
   <ul>
     {%- if session['givenName'] %}
