@@ -79,15 +79,15 @@ function display_bursts(reports, status, jqXHR) {
             ${title}
           </button>
         </h2>
-        <div id="collapse-${cluster}" class="accordion-collapse collapse" aria-labelledby="heading-${cluster}" data-bs-parent="#bursts_accordion">
+        <div id="collapse-${cluster}" class="accordion-collapse collapse" aria-labelledby="heading-${cluster}" data-bs-parent="#bursts_accordion" data-ccf-cluster='${cluster}'>
           <div class="accordion-body">
             <table id='bursts_table_${cluster}' class='' style='width: 100%'>
               <thead>
                 <tr>
-                  <th                        >Occ</th>
+                  <th class='number'         >Occ</th>
                   <th                        >{{ _('Account') }}</th>
                   <th class='nosearch nosort'>{{ _('Usage') }}</th>
-                  <th                        >{{ _('Pain') }}</th>
+                  <th class='number'         >{{ _('Pain') }}</th>
                   <th class='nosort'         >{{ _('Summary') }}</th>
                   <th                        >{{ _('State') }}</th>
                   <th                        >{{ _('Ticket') }}</th>
@@ -104,23 +104,39 @@ function display_bursts(reports, status, jqXHR) {
       // add to parent and so to the DOM
       accordionParent.appendChild(accordion);
 
+      // get ordering
+      var orderingJSON = Cookies.get("ordering");
+      if (orderingJSON) {
+        var ordering = JSON.parse(orderingJSON);
+      } else {
+        var ordering = [[3, 'desc']];
+      }
+
       // create the table
       $(`#bursts_table_${cluster}`).dataTable({
         "autoWidth": false,
         "data": renderTableData(reports[cluster]['bursts']),
         "columnDefs": [
           { searchable: false, targets: 'nosearch' },
-          { orderable: false, targets: 'nosort' }
+          { orderable: false, targets: 'nosort' },
+          { className: 'number', targets: 'number' }
         ],
+        order: ordering
         }
       );
+
+      $(`#bursts_table_${cluster}`).on('order.dt', function(event) {
+        var order = $(event.target).DataTable().order();
+        Cookies.set("ordering", JSON.stringify(order));
+      });
+
     }
 
     // determine which cluster should be expanded by default
     var expand_cluster = Cookies.get("default-cluster");
-    if (!expand_cluster || !(expand_cluster in clusters)) {
+    if (!expand_cluster || clusters.indexOf(expand_cluster) == -1) {
       expand_cluster = clusters[0];
-      Cookies.set("default_cluster", expand_cluster);
+      Cookies.set("default-cluster", expand_cluster);
     }
 
     // expand that cluster's accordion
@@ -132,6 +148,11 @@ function display_bursts(reports, status, jqXHR) {
     $(`#collapse-button-${expand_cluster}`).removeClass('collapsed');
     $(`#collapse-${expand_cluster}`).addClass('show');
 
+    // add listener for saving user's preference
+    accordionParent.addEventListener('show.bs.collapse', function(event) {
+      defaultCluster = event.target.dataset.ccfCluster;
+      Cookies.set("default-cluster", defaultCluster);
+    });
   } else {
     r = document.createElement("tr");
     r.innerHTML = "<td></td><td colspan=7>{{ _('There are currently no bursts defined.') }}</td>";
@@ -231,7 +252,7 @@ function flash_error(summary, message) {
 }
 
 // NOTIFICATIONS
-// This mechanism adapted from 
+// This mechanism adapted from
 // https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API
 
 function handleNoNotifications(msg) {
@@ -308,7 +329,7 @@ function jsonToTable(json) {
     summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
   }
   return `<table class='not-table'>${summaryHTML}</table>`;
-  
+
 }
 
 function renderActionButtons(id, state_checked) {
@@ -342,22 +363,22 @@ function renderTableData(bursts) {
       "protocluster": {
         "bursts": [
           {
-            "account": "def-raveeg1_cpu", 
-            "claimant": null, 
-            "cluster": "protocluster", 
-            "epoch": 1614266800, 
-            "id": 1, 
+            "account": "def-raveeg1_cpu",
+            "claimant": null,
+            "cluster": "protocluster",
+            "epoch": 1614266800,
+            "id": 1,
             "jobrange": [
-              10000, 
+              10000,
               10500
-            ], 
-            "pain": 0.4, 
-            "state": "p", 
-            "state_pretty": "Unclaimed", 
-            "summary": "{\"cpus_total\": 100, \"jobs_total\": 50, \"mem_total\": 200}", 
+            ],
+            "pain": 0.4,
+            "state": "p",
+            "state_pretty": "Unclaimed",
+            "summary": "{\"cpus_total\": 100, \"jobs_total\": 50, \"mem_total\": 200}",
             "ticks": 0
           }
-        ], 
+        ],
         "epoch": 1614266800
       }
     }
@@ -366,7 +387,7 @@ function renderTableData(bursts) {
   burst_updates = {};
 
   bycols = [];
-  // ...but we don't get it like that no mo 
+  // ...but we don't get it like that no mo
   //bursts = data.protocluster.bursts;
   for (var i=0, ien=bursts.length; i<ien; i++) {
     var state_checked = {}
@@ -377,7 +398,7 @@ function renderTableData(bursts) {
       bursts[i].account,
       `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_cumu_plot.html">Cumulative</a>
        <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_insta_plot.html">Instant</a>`,
-      bursts[i].pain,
+      bursts[i].pain.toFixed(2),
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
       "None",
@@ -401,9 +422,9 @@ $(document).ready(function() {
 {# --------------------------------------------------------------------------
                                                                      HEADER
 -------------------------------------------------------------------------- #}
-
+{% block title %}{{ _('Dashboard') }}{% endblock %}
 {% block header %}
-  <h1>{% block title %}{{ _('Dashboard') }}{% endblock %}</h1>
+  <h1>Burst reports</h1>
 {% endblock %}
 
 {# --------------------------------------------------------------------------
