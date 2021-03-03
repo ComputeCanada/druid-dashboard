@@ -10,7 +10,6 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Lucida Console", Monaco, monospace;
   color: #377ba8;
   margin: 10px 0 4px;
 }
@@ -33,6 +32,7 @@ nav {
 }
 
 nav h1 {
+  font-size: large;
   flex: auto;
   margin: 0;
 }
@@ -170,115 +170,17 @@ div.columns div {
   border-left: 1px dashed;
 }
 
-table#auction_table {
-  border-collapse: collapse;
-}
-
-table#auction_table td {
-  padding: 4px 10px;
-}
-
-tbody#auctions tr:nth-child(4n+1), tbody#auctions tr:nth-child(4n+2) {
-  background: #ddd;
-}
-
-div#in_running {
-  position: relative;
-  width: 200px;
-  height: 20em;
-}
-
-div.columns div h4 {
-  font-size: 1.1em;
-  height: 1.4em;
-  border-bottom: 1px dashed;
-  margin-top: 0;
-}
-
-table#inbid {
-  position: absolute;
-  left: 4px;
-  width: 200px;
-  bottom: 0;
-  height: 18em;
-}
-
-table.auction tr td {
-  border: 1px solid black;
-  padding: 1px 4px;
-  font-size: smaller;
-  overflow: hidden;
-}
-
-table.auction td.your_bid {
-  position: relative;
-  background: lightgreen;
-}
-
-table.auction td.your_bid div.cancel_bid {
-  display: None;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0,0,0,0.5);
-  cursor: pointer;
-  border: 0px;
-}
-table.auction td.your_bid div.cancel_bid .text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: large;
-}
-
-table.auction td#free {
-  background: repeating-linear-gradient(
-    45deg,
-    cyan,
-    cyan 10px,
-    darkcyan 10px,
-    darkcyan 11px
-  );
-  height: auto;
-}
-
-ul.auction {
-  padding: 0px;
-  list-style: none;
-  font-size: smaller;
-}
-
-#resources {
-  list-style: none;
-  padding: 0px;
-}
-
-.ondemand {
-  display: none;
-}
-
-p#refresh_auction_link {
-  display: none;
-}
-
-.status table,tbody,tr,th,td {
-  border-collapse: collapse;
-  border: 1px solid black;
-  padding: 1px 10px;
-  spacing: 0px;
-}
-
-#bursts table {
+table.not-table {
   width: 100%;
-  empty-cells: hide;
+}
+
+table.not-table tbody th, table.not-table tbody td {
+  padding: 0px;
 }
 
 table.not-table th,table.not-table td {
   border: none;
+  border-collapse: collapse;
 }
 
 table.not-table th {
