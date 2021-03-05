@@ -35,3 +35,68 @@ function preferred_language() {
   return('en');
 }
 
+
+function epoch_to_local_time(epoch) {
+  // epochs in Javascript are milliseconds but we're using seconds
+  var d = new Date(epoch * 1000);
+  return(d.toLocaleString());
+}
+
+/* --------------------------------------------------------------------------
+                                                       bootstrap helpers
+-------------------------------------------------------------------------- */
+
+/**
+ * Make Toast component (requires Bootstrap) for alerts.
+ *
+ * @param {String} type "info", "alert", "error"
+ * @param {String} message
+ * @param {Object} options
+ * @returns {Toast} Bootstrap Toast object.
+ */
+function makeToast(type, message, options) {
+  // defaults
+  var parentSelector = '#toast-container';
+  var closeButtonHTML = '';
+  var title = 'Message';
+  var extraClasses = '';
+
+  // check for optional overrides
+  if (options.parent)
+    parentSelector = options.parent
+  if (!options.noClose)
+    closeButtonHTML = '<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>';
+
+  // handle types
+  switch (type) {
+    case "info":
+      title = "Info";
+      extraClasses = 'bg-info';
+      break;
+    case "alert":
+      title = "Alert";
+      extraClasses = 'bg-warning';
+      break;
+    case "error":
+      title = "Error";
+      extraClasses = 'text-white bg-danger';
+      break;
+    default:
+      break;
+  }
+
+  $(parentSelector).append(`
+    <div class="toast ${extraClasses}" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">${title}</strong>
+        <small></small>
+        ${closeButtonHTML}
+      </div>
+      <div class="toast-body">
+        ${message}
+      </div>
+    </div>
+  `);
+  var toast = $('#toast-container').children().toArray()[0];
+  return new bootstrap.Toast(toast, options);
+}
