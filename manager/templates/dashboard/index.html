@@ -25,6 +25,19 @@ var i18n_texts = {
   "Update": "{{ _('Update') }}"
 };
 
+var toasts = [];
+
+function status(msg) {
+  toast = makeToast("info", msg, {autohide: false, noClose: true});
+  toast.show();
+  toasts.push(toast);
+  return toasts.length - 1;
+}
+
+function status_clear(id) {
+  toasts[id].hide();
+  delete toasts[id];
+}
 
 $("#notification").hide();
 $("#error").hide();
@@ -32,24 +45,46 @@ $("#error").click(function(e) {
   $("#error").hide();
 });
 
-function refresh_bursts() {
+function requestBursts() {
+  status_id = status("Retrieving burst reports...")
   $.ajax({
     url: '/xhr/bursts/',
     method: 'GET',
-    success: display_bursts,
+    success: function(reports, status, jqXHR) {
+      status_clear(status_id);
+      displayBursts(reports, status, jqXHR);
+    },
     error: function() {
-      flash_error("refresh_bursts() AJAX error")
+      status_clear(status_id);
+      //TODO: should be status('error', ...)
+      flash_error("requestBursts() AJAX error")
     }
   });
 }
 
-function epoch_to_local_time(epoch) {
-  // epochs in Javascript are milliseconds but we're using seconds
-  var d = new Date(epoch * 1000);
-  return(d.toLocaleString());
+function makeTableBlank(cluster) {
+  return `
+            <table id='bursts_table_${cluster}' class='' style='width: 100%'>
+              <thead>
+                <tr>
+                  <th class='number'         >Occ</th>
+                  <th                        >{{ _('Account') }}</th>
+                  <th class='nosearch nosort'>{{ _('Usage') }}</th>
+                  <th class='number'         >{{ _('Pain') }}</th>
+                  <th class='nosort'         >{{ _('Summary') }}</th>
+                  <th                        >{{ _('State') }}</th>
+                  <th                        >{{ _('Ticket') }}</th>
+                  <th class='nosearch nosort'>{{ _('Action') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+  `;
 }
 
-function display_bursts(reports, status, jqXHR) {
+
+function displayBursts(reports, status, jqXHR) {
 
   // reset burst IDs array
   burst_states = {};
@@ -63,6 +98,14 @@ function display_bursts(reports, status, jqXHR) {
 
     // get main accordion container
     var accordionParent = document.getElementById('bursts_accordion');
+
+    // get ordering
+    var orderingJSON = Cookies.get("ordering");
+    if (orderingJSON) {
+      var ordering = JSON.parse(orderingJSON);
+    } else {
+      var ordering = [[3, 'desc']];
+    }
 
     for (var cluster in reports) {
 
@@ -81,36 +124,13 @@ function display_bursts(reports, status, jqXHR) {
         </h2>
         <div id="collapse-${cluster}" class="accordion-collapse collapse" aria-labelledby="heading-${cluster}" data-bs-parent="#bursts_accordion" data-ccf-cluster='${cluster}'>
           <div class="accordion-body">
-            <table id='bursts_table_${cluster}' class='' style='width: 100%'>
-              <thead>
-                <tr>
-                  <th class='number'         >Occ</th>
-                  <th                        >{{ _('Account') }}</th>
-                  <th class='nosearch nosort'>{{ _('Usage') }}</th>
-                  <th class='number'         >{{ _('Pain') }}</th>
-                  <th class='nosort'         >{{ _('Summary') }}</th>
-                  <th                        >{{ _('State') }}</th>
-                  <th                        >{{ _('Ticket') }}</th>
-                  <th class='nosearch nosort'>{{ _('Action') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
+            ${makeTableBlank(cluster)}
           </div>
         </div>
       </div>`;
 
       // add to parent and so to the DOM
       accordionParent.appendChild(accordion);
-
-      // get ordering
-      var orderingJSON = Cookies.get("ordering");
-      if (orderingJSON) {
-        var ordering = JSON.parse(orderingJSON);
-      } else {
-        var ordering = [[3, 'desc']];
-      }
 
       // create the table
       $(`#bursts_table_${cluster}`).dataTable({
@@ -159,9 +179,53 @@ function display_bursts(reports, status, jqXHR) {
     tbody.appendChild(r);
   }
 
-  var button = document.getElementById("submit_actions");
-  button.innerHTML = "Update";
-  button.disabled = true;
+  $('#submit_actions').html("Update");
+  $('#submit_actions').prop("disabled", true);
+}
+
+function refreshBursts(reports, status, jqXHR) {
+
+  // reset burst IDs array
+  burst_states = {};
+  burst_updates = {};
+
+  // burst reports are organized by cluster
+  if (Object.keys(reports).length == 0) {
+    //TODO: remove accordions and data tables and paste a message of some kind
+  }
+  else {
+
+    // get ordering
+    var orderingJSON = Cookies.get("ordering");
+    if (orderingJSON) {
+      var ordering = JSON.parse(orderingJSON);
+    } else {
+      var ordering = [[3, 'desc']];
+    }
+
+    for (var cluster in reports) {
+
+      // clear out the accordion
+      $(`#collapse-${cluster}`).html(`
+          <div class="accordion-body">
+            ${makeTableBlank(cluster)}
+          </div>`);
+
+      // create the table
+      $(`#bursts_table_${cluster}`).dataTable({
+        "autoWidth": false,
+        "data": renderTableData(reports[cluster]['bursts']),
+        "columnDefs": [
+          { searchable: false, targets: 'nosearch' },
+          { orderable: false, targets: 'nosort' },
+          { className: 'number', targets: 'number' }
+        ],
+        order: ordering
+        }
+      );
+
+    }
+  }
 }
 
 function updateSelection(id, new_state) {
@@ -173,18 +237,17 @@ function updateSelection(id, new_state) {
   }
 
   // determine update button label
-  var label;
-  var button = document.getElementById("submit_actions");
   var burst_update_count = Object.keys(burst_updates).length;
   if (burst_update_count == 0) {
     label = "{{ _('Update') }}";
-    button.disabled = true;
-    button.innerHTML = label;
+    $('#submit_actions').prop("disabled", true);
+    $('#submit_actions').hide();
   }
   else {
-    label = "{{ _('Update') }}" + ` (${burst_update_count})`;
-    button.disabled = false;
-    button.innerHTML = label;
+    var label = "{{ _('Update') }}" + ` (${burst_update_count})`;
+    $('#submit_actions').html(label);
+    $('#submit_actions').prop("disabled", false);
+    $('#submit_actions').show();
   }
 }
 
@@ -217,22 +280,34 @@ function* burstActionIterator() {
   }
 }
 
-function numerical_part(id) {
-  var re = /^[a-zA-Z]*_([0-9]+)$/
-  return id.match(re)[1];
-}
 
 // Submit actions
 function submit_actions() {
   // submit updates if there are any
   if (Object.keys(burst_updates).length > 0) {
+    // clear update button
+    $('#submit_actions').html("Update");
+    $('#submit_actions').prop("disabled", true);
+    $('#submit_actions').hide();
+
+    // show status
+    status_id = status("Submitting updates...");
+
+    // make request
     $.ajax({
       url: '/xhr/bursts/',
+      method: 'PATCH',
       data: JSON.stringify(burst_updates),
       contentType: 'application/json',
-      method: 'PATCH',
-      success: display_bursts,
-      error: function() { console.error("submit_actions() AJAX error"); }
+      success: function(reports, status, jqXHR) {
+        status_clear(status_id);
+        refreshBursts(reports, status, jqXHR);
+      },
+      error: function() {
+        status_clear(status_id);
+        //TODO: should be status('error', ...)
+        flash_error("submit_actions() AJAX error");
+      }
     });
   }
 }
@@ -358,40 +433,12 @@ function renderActionButtons(id, state_checked) {
 }
 
 function renderTableData(bursts) {
-  /* if this is used from the AJAX results, we get data like this:
-    {
-      "protocluster": {
-        "bursts": [
-          {
-            "account": "def-raveeg1_cpu",
-            "claimant": null,
-            "cluster": "protocluster",
-            "epoch": 1614266800,
-            "id": 1,
-            "jobrange": [
-              10000,
-              10500
-            ],
-            "pain": 0.4,
-            "state": "p",
-            "state_pretty": "Unclaimed",
-            "summary": "{\"cpus_total\": 100, \"jobs_total\": 50, \"mem_total\": 200}",
-            "ticks": 0
-          }
-        ],
-        "epoch": 1614266800
-      }
-    }
-  */
-  burst_states = {};
-  burst_updates = {};
 
   bycols = [];
-  // ...but we don't get it like that no mo
-  //bursts = data.protocluster.bursts;
   for (var i=0, ien=bursts.length; i<ien; i++) {
     var state_checked = {}
     state_checked[bursts[i].state] = "checked='checked'";
+    burst_states[bursts[i].id] = bursts[i].state;
 
     bycols[i] = [
       bursts[i].ticks,
@@ -411,10 +458,10 @@ function renderTableData(bursts) {
 $(document).ready(function() {
 
   // load bursts
-  refresh_bursts();
+  requestBursts();
 
-  // disable submit-actions button
-  document.getElementById("submit_actions").disabled = true;
+  // hide submit-actions button
+  $('#submit_actions').hide();
 });
   </script>
 {% endblock %}
