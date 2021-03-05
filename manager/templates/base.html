@@ -26,7 +26,8 @@
   <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/datatables-bootstrap-5/dataTables.select.min.js"></script> -->
 
   <!-- local scriptage and stylings -->
-  <script src="https://static.d4.c3.ca/js/js.cookie.js"></script>
+  <script src="https://stuff.frak.c3.ca/js.cookie.min.js"></script>
+  <script src="{{ url_for('static', filename='misc.js') }}"></script>
   <link rel='stylesheet' href="{{ url_for('static', filename='style.css') }}">
 
   <title>{{ _('Burst Enablement') }} - {% block title %}{% endblock %}</title>
@@ -37,6 +38,8 @@
   </script>
 </head>
 <body>
+<div id='toast-container' class='toast-container position-absolute bottom-0 end-0 p-3'>
+</div>
 {% block dialog %}{% endblock %}
 {% block confirm %}{% endblock %}
 <nav>
