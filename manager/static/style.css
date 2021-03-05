@@ -229,6 +229,9 @@ button#submit_actions {
   padding: 0.5em;
   width: 7em;
   max-width: 7em;
+  position: fixed;
+  right: 4em;
+  top: 5em;
 }
 
 button#submit_actions:disabled {
