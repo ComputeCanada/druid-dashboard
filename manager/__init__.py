@@ -12,6 +12,7 @@ from flask_babel import Babel
 from . import log
 from . import db
 from . import ldap
+from . import otrs
 
 # blueprints
 from . import admin

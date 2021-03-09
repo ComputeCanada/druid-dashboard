@@ -4,6 +4,7 @@
 from flask import Blueprint
 from manager.db import get_schema_version, upgrade_schema
 from manager.ldap import get_ldap
+from manager.otrs import get_otrs
 from manager import exceptions
 
 
@@ -41,7 +42,7 @@ def get_status():
   try:
     (actual, expected) = get_schema_version()
   except Exception as e:
-    statuses.append("DB: {}".format(e))
+    statuses.append("DB: Caught exception: {}".format(str(e).rstrip()))
     status = 500
   else:
     if actual == expected:
@@ -49,6 +50,15 @@ def get_status():
     else:
       statuses.append("DB: Schema version mismatch: {}, expected {}".format(actual, expected))
       status = 500
+
+  # test we have an OTRS client
+  otrs = get_otrs()
+  if otrs is None:
+    statuses.append("OTRS: could not create client session")
+    status = 500
+  else:
+    print("OTRS: {}".format(otrs))
+    statuses.append("OTRS: Okay")
 
   status_all = "\n".join(statuses)
   return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
