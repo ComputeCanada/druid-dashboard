@@ -2,14 +2,15 @@
 # pylint:
 #
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 
 from manager.auth import login_required, admin_required
 from manager.log import get_log
 from manager.ldap import get_ldap
+from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
-from manager.burst import get_bursts, update_burst_states, State
+from manager.burst import get_bursts, update_burst_states, State, set_ticket
 from manager.exceptions import ImpossibleException
 
 
@@ -67,6 +68,13 @@ def _bursts_by_cluster():
           else:
             prettyname = person['givenName']
           burst['claimant_pretty'] = prettyname
+
+        # add ticket URL there's a ticket
+        if burstObj.ticket_id:
+          burst['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
+            ticket_url(burstObj.ticket_id), burstObj.ticket_no)
+        else:
+          burst['ticket_href'] = None
 
         burst['state_pretty'] = str(burstObj.state)
 
@@ -140,6 +148,38 @@ def xhr_update_bursts():
   data = request.get_json()
   update_burst_states(data)
   return jsonify(_bursts_by_cluster())
+
+# ---------------------------------------------------------------------------
+#                                                          ROUTES - tickets
+# ---------------------------------------------------------------------------
+
+@bp.route('/tickets/', methods=['POST'])
+@login_required
+def xhr_create_ticket():
+
+  # get request data
+  burst_id = request.form['burst_id']
+  user = request.form['user']
+
+  # TODO: store template in database
+  body = "We've noticed you've got a potential burst happening.  Yo."
+
+  # create ticket via OTRS
+  deets = create_ticket('Potential for bursting', body, user, g.user['id'])
+  if not deets:
+    get_log().error("Could not create ticket")
+    return jsonify({'error': 'dang'}), 500
+  get_log().debug("Ticket created.  Deets: %s", deets)
+
+  # register the ticket with the burst candidate
+  set_ticket(burst_id, deets['ticket_id'], deets['ticket_no'])
+
+  return jsonify({
+    'burst_id': burst_id,
+    'ticket_id': deets['ticket_id'],
+    'ticket_no': deets['ticket_no'],
+    'url': ticket_url(deets['ticket_id'])
+  })
 
 # ---------------------------------------------------------------------------
 #                                          ROUTES - clusters and components

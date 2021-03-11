@@ -251,8 +251,29 @@ function updateSelection(id, new_state) {
   }
 }
 
-function createTicket(id) {
-  console.log("createTicket(" + id + ")");
+function updateTicket(ticket, status, jqXHR) {
+  var el_id = `#ticket_${ticket.burst_id}`;
+  var href = `<a href='${ticket.url}' target='_ticket'>${ticket.ticket_no}</a>`;
+  $(el_id).html(href);
+  console.log('Ticket = ' + ticket.burst_id);
+}
+
+function createTicket(id, user) {
+  status_id = status("Creating ticket...")
+  $.ajax({
+    url: '/xhr/tickets/',
+    method: 'POST',
+    data: { burst_id: id, user: user },
+    success: function(ticket, status, jqXHR) {
+      status_clear(status_id);
+      updateTicket(ticket, status, jqXHR);
+    },
+    error: function() {
+      status_clear(status_id);
+      //TODO: should be status('error', ...)
+      flash_error("createTicket() AJAX error")
+    }
+  });
 }
 
 // find first row in a table
@@ -432,6 +453,10 @@ function renderActionButtons(id, state_checked) {
   `;
 }
 
+function createTicketButton(id, user) {
+  return `<button type='button' class='btn btn-primary' onClick='createTicket(${id}, "${user}")' data-burst-id='${id}'>{{ _('Create') }}</button>`;
+}
+
 function renderTableData(bursts) {
 
   bycols = [];
@@ -439,6 +464,9 @@ function renderTableData(bursts) {
     var state_checked = {}
     state_checked[bursts[i].state] = "checked='checked'";
     burst_states[bursts[i].id] = bursts[i].state;
+
+    var id = bursts[i].id
+    var user = bursts[i].account.substr(4)
 
     bycols[i] = [
       bursts[i].ticks,
@@ -448,8 +476,8 @@ function renderTableData(bursts) {
       bursts[i].pain.toFixed(2),
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
-      "None",
-      renderActionButtons(bursts[i].id, state_checked)
+      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || createTicketButton(id, user) }</span>`,
+      renderActionButtons(id, state_checked)
     ];
   }
   return bycols;
