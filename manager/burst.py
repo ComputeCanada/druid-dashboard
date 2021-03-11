@@ -106,6 +106,12 @@ SQL_GET_CLUSTER_BURSTS = '''
   WHERE   cluster = ? AND epoch = ? AND state='a'
 '''
 
+SQL_SET_TICKET = '''
+  UPDATE  bursts
+  SET     ticket_id = ?, ticket_no = ?
+  WHERE   id = ?
+'''
+
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
@@ -123,7 +129,9 @@ def _burst_array(db_results):
       summary=row['summary'],
       epoch=row['epoch'],
       ticks=row['ticks'],
-      claimant=row['claimant']
+      claimant=row['claimant'],
+      ticket_id=row['ticket_id'],
+      ticket_no=row['ticket_no']
     ))
   return bursts
 
@@ -144,7 +152,9 @@ def _bursts_by_cluster_epoch(db_results):
       summary=row['summary'],
       epoch=row['epoch'],
       ticks=row['ticks'],
-      claimant=row['claimant']
+      claimant=row['claimant'],
+      ticket_id=row['ticket_id'],
+      ticket_no=row['ticket_no']
     ))
   return map
 
@@ -186,6 +196,13 @@ def update_burst_states(updates):
       raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
   db.commit()
 
+def set_ticket(id, ticket_id, ticket_no):
+  db = get_db()
+  res = db.execute(SQL_SET_TICKET, (ticket_id, ticket_no, id))
+  if not res:
+    raise DatabaseException("Could not set ticket information for Burst ID {}".format(id))
+  db.commit()
+
 # ---------------------------------------------------------------------------
 #                                                           component class
 # ---------------------------------------------------------------------------
@@ -205,11 +222,13 @@ class Burst():
     _epoch: epoch timestamp of last report
     _ticks: number of times reported
     _claimant: analyst following up
+    _ticket_id: associated ticket's ID
+    _ticket_no: associated ticket's number
   """
 
   def __init__(self, id=None, cluster=None, account=None, pain=None,
       jobrange=None, state='p', summary=None, epoch=None, ticks=0,
-      claimant=None):
+      claimant=None, ticket_id=None, ticket_no=None):
 
     self._id = id
     self._cluster = cluster
@@ -221,6 +240,8 @@ class Burst():
     self._epoch = epoch
     self._ticks = ticks
     self._claimant = claimant
+    self._ticket_id = ticket_id
+    self._ticket_no = ticket_no
 
     # handle instantiation by factory
     # pylint: disable=too-many-boolean-expressions
@@ -253,6 +274,8 @@ class Burst():
         self._epoch = res['epoch']
         self._ticks = res['ticks']
         self._claimant = res['claimant']
+        self._ticket_id = res['ticket_id']
+        self._ticket_no = res['ticket_no']
       else:
         raise ValueError(
           "Could not load burst with id '{}'".format(id)
@@ -308,6 +331,14 @@ class Burst():
   @property
   def state(self):
     return self._state
+
+  @property
+  def ticket_id(self):
+    return self._ticket_id
+
+  @property
+  def ticket_no(self):
+    return self._ticket_no
 
   def serialize(self):
     return {

@@ -10,7 +10,7 @@ CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210224', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210309', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -60,6 +60,8 @@ CREATE TABLE bursts (
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 0,
   claimant CHAR(7),
+  ticket_id INTEGER,
+  ticket_no VARCHAR(9),
   CHECK (state in ('p', 'c', 'a', 'r')),
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
