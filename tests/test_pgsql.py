@@ -13,6 +13,7 @@ from tests_bursts import *
 from tests_components import *
 from tests_dashboard import *
 from ldapstub import LdapStub
+from otrsstub import OtrsStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db
 
@@ -31,7 +32,8 @@ def seeded_app(request):
     'TESTING': True,
     'DATABASE_URI': request.param['uri'],
     'CONFIG': 'tests/app.conf',
-    'LDAP_STUB': LdapStub()
+    'LDAP_STUB': LdapStub(),
+    'OTRS_STUB': OtrsStub()
   })
 
   with app.app_context():

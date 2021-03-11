@@ -16,6 +16,7 @@ from tests_components import *
 from tests_dashboard import *
 from tests_upgrades import *
 from ldapstub import LdapStub
+from otrsstub import OtrsStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db, upgrade_schema, SCHEMA_VERSION
 
@@ -49,7 +50,8 @@ def unupgraded_app(request):
     'TESTING': True,
     'DATABASE_URI': tempuri,
     'CONFIG': 'tests/app.conf',
-    'LDAP_STUB': LdapStub()
+    'LDAP_STUB': LdapStub(),
+    'OTRS_STUB': OtrsStub()
   })
 
   with app.app_context():
@@ -87,7 +89,8 @@ def seeded_app(request):
     'TESTING': True,
     'DATABASE_URI': tempuri,
     'CONFIG': 'tests/app.conf',
-    'LDAP_STUB': LdapStub()
+    'LDAP_STUB': LdapStub(),
+    'OTRS_STUB': OtrsStub()
   })
 
   with app.app_context():

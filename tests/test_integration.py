@@ -11,6 +11,7 @@ from tests_api import *
 from tests_authentication import *
 from tests_components import *
 from tests_dashboard import *
+from tests.otrsstub import OtrsStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db
 
@@ -29,7 +30,8 @@ def seeded_app(request):
     'TESTING': True,
     'DATABASE_URI': request.param['uri'],
     'CONFIG': 'tests/app.conf',
-    'LDAP_URI': 'ldap://localhost'
+    'LDAP_URI': 'ldap://localhost',
+    'OTRS_STUB': OtrsStub()
   })
 
   with app.app_context():
