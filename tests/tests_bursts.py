@@ -22,20 +22,24 @@ def test_get_bursts_xhr(client):
       "bursts": [
         {"account":"def-dleske-aa","claimant":None,"cluster":"testcluster",
           "id":12,"jobrange":[1005,2015],"pain":1.2, "state":"p",
-          "state_pretty":"Unclaimed","summary":"{}","ticks":1}
+          "state_pretty":"Unclaimed","summary":"{}","ticks":1,
+          "ticket_id":None, "ticket_no":None, "ticket_href":None}
       ],
     },
     "testcluster2": {
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,
+          "ticket_id":None, "ticket_no":None, "ticket_href":None},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,
+          "ticket_id":None, "ticket_no":None, "ticket_href":None},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0}
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,
+          "ticket_id":None, "ticket_no":None, "ticket_href":None}
       ],
       "epoch":25
     }
@@ -45,7 +49,6 @@ def test_get_bursts_xhr(client):
 def test_update_bursts_xhr(client):
   data = {'12': 'c'}
   response = client.patch('/xhr/bursts/', json=data, environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
-  print(response.data)
   interpreted = json.loads(response.data.decode('utf-8'))
   del interpreted['testcluster']['bursts'][0]['epoch']
   del interpreted['testcluster']['epoch']
@@ -63,6 +66,8 @@ def test_update_bursts_xhr(client):
           "state":"c",
           "state_pretty": "Claimed",
           "summary": "{}",
+          "ticket_id": None,
+          "ticket_no": None, "ticket_href":None,
           "ticks": 1
         }
       ],
@@ -71,13 +76,16 @@ def test_update_bursts_xhr(client):
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,
+          "ticket_id":None, "ticket_no":None, "ticket_href":None},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,
+          "ticket_id":None, "ticket_no":None, "ticket_href":None},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0}
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,
+          "ticket_id":None, "ticket_no":None, "ticket_href":None}
       ],
       "epoch":25
     }

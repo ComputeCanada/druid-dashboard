@@ -89,6 +89,8 @@ def test_get_burst(client):
     'pain': 2.5,
     'state': 'p',
     'summary': None,
+    'ticket_id': None,
+    'ticket_no': None,
     'ticks': 0
   }
 
