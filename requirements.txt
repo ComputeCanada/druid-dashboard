@@ -2,4 +2,4 @@ Flask
 Flask-Babel
 psycopg2-binary>=2.5
 python-ldap>=3.2.0
-PyOTRS=0.10.0
+PyOTRS==0.10.0
