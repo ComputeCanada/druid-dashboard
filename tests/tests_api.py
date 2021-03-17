@@ -7,6 +7,8 @@ import hmac
 import base64
 import json
 
+from manager.api import API_VERSION
+
 def api_get(client, resource):
 
   # get current datestamp in RFC2822 format.  Without "localtime", will be
@@ -94,15 +96,27 @@ def test_get_burst(client):
     'ticks': 0
   }
 
-def test_post_incomplete_burst(client):
-
-  response = api_post(client, '/api/bursts', {'account': 'def-dleske'})
-  assert response.status_code == 400
-
-def test_post_incomplete_burst_2(client):
+def test_post_burst_no_version(client):
 
   response = api_post(client, '/api/bursts', {
-    'report': [
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'pain': 0.0,
+        'firstjob': 1000,
+        'lastjob': 2000
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: API violation: must define both \'version\' and \'bursts\'"}\n'
+
+def test_post_burst_old_version(client):
+  # Note: version 0 of the API used "report" instead of "bursts", so using a
+  # correct version 0 API call will trigger the wrong error response (in that
+  # it's not the test response we want to test).
+  response = api_post(client, '/api/bursts', {
+    'version': 0,
+    'bursts': [
       {
         'rapi': 'def-dleske',
         'pain': 0.0,
@@ -110,14 +124,59 @@ def test_post_incomplete_burst_2(client):
         'lastjob': 2000
       }
     ]})
+
+  expected = '{{"error":"400 Bad Request: Client API version (0) does not match server ({})"}}\n'.format(API_VERSION)
+
   assert response.status_code == 400
+  assert response.data == expected.encode('utf-8')
+
+def test_post_incomplete_burst_no_account(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'pain': 0.0,
+        'firstjob': 1000,
+        'lastjob': 2000
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'account\'"}\n'
+
+def test_post_incomplete_burst_no_summary(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'pain': 0.0,
+        'firstjob': 1000,
+        'lastjob': 2000
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'summary\'"}\n'
+
+def test_post_empty_burst_report(client):
+  """
+  Tests that a report with no bursts is accepted as valid.
+  """
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': []
+  })
+  assert response.status_code == 201
 
 def test_post_burst(client):
 
   response = api_post(client, '/api/bursts', {
-    'report': [
+    'version': 1,
+    'bursts': [
       {
-        'rapi': 'def-dleske',
+        'account': 'def-dleske',
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
@@ -130,16 +189,17 @@ def test_post_bursts(client):
 
   time.sleep(1)
   response = api_post(client, '/api/bursts', {
-    'report': [
+    'version': 1,
+    'bursts': [
       {
-        'rapi': 'def-dleske-aa',
+        'account': 'def-dleske-aa',
         'pain': 1.0,
         'firstjob': 1005,
         'lastjob': 2005,
         'summary': {}
       },
       {
-        'rapi': 'def-bobaloo-aa',
+        'account': 'def-bobaloo-aa',
         'pain': 1.5,
         'firstjob': 1015,
         'lastjob': 2015,
@@ -150,9 +210,10 @@ def test_post_bursts(client):
 
   time.sleep(1)
   response = api_post(client, '/api/bursts', {
-    'report': [
+    'version': 1,
+    'bursts': [
       {
-        'rapi': 'def-dleske-aa',
+        'account': 'def-dleske-aa',
         'pain': 1.2,
         'firstjob': 1020,
         'lastjob': 2015,
