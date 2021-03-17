@@ -44,7 +44,8 @@ SUPPORTED_LANGUAGES = ['en', 'fr']
 # declare Babel object to be initialized in factory
 babel = Babel()
 
-# static defaults
+# static defaults - even empty ones need to exist so that app knows to check
+# the environment
 defaults = {
   'APPLICATION_TAG': 'beam',
   'SECRET_KEY': 'dev',
@@ -52,6 +53,9 @@ defaults = {
   'LDAP_BINDDN': '',
   'LDAP_PASSWORD': '',
   'LDAP_SKIP_TLS': False,
+  'OTRS_URL': '',
+  'OTRS_USERNAME': '',
+  'OTRS_PASSWORD': '',
   'OTRS_QUEUE': 'Test'
 }
 
