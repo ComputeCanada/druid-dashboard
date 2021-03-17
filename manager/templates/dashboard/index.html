@@ -466,6 +466,9 @@ function renderTableData(bursts) {
     burst_states[bursts[i].id] = bursts[i].state;
 
     var id = bursts[i].id
+    // TODO: this is a horrible hack and should be handled otherwise:
+    // remove "def-" from "def-dleske" to get account name.  Will not work for
+    // accounts such as "def-dleske-ab" 
     var user = bursts[i].account.substr(4)
 
     bycols[i] = [
