@@ -51,7 +51,8 @@ defaults = {
   'LDAP_URI': 'ldap://localhost',
   'LDAP_BINDDN': '',
   'LDAP_PASSWORD': '',
-  'LDAP_SKIP_TLS': False
+  'LDAP_SKIP_TLS': False,
+  'OTRS_QUEUE': 'Test'
 }
 
 # optional that may appear in environment or configuration
