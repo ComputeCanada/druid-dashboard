@@ -76,8 +76,9 @@ def api_key_required(view):
 
     # check for authorization header
     if 'Authorization' not in request.headers:
-      get_log().info("Missing authorization header")
-      abort(401)
+      errmsg = "Missing authorization header"
+      get_log().info(errmsg)
+      abort(401, errmsg)
     get_log().debug("Authorization = %s", request.headers['Authorization'])
 
     # parse authorization header
@@ -89,8 +90,9 @@ def api_key_required(view):
         raise RuntimeError()
     except (RuntimeError, ValueError):
       # catches raised exception and also <3 strings to split above
-      get_log().error("Invalid authorization header")
-      abort(401)
+      errmsg = "Invalid authorization header"
+      get_log().error(errmsg)
+      abort(401, errmsg)
 
     # request.date NOT used because it reinterprets date according to locale
     datestamp = request.headers['date']
@@ -110,6 +112,8 @@ def api_key_required(view):
       apikey = ApiKey(accesskey)
     except ValueError as e:
       get_log().error("Could not find API key %s", accesskey)
+
+      # aborting without explanatory text in case of malicious intent
       abort(401)
 
     # verify digest given against our own calculated from request
@@ -119,6 +123,8 @@ def api_key_required(view):
         abort(401)
     except ValueError as e:
       get_log().error("Message authorization digest failure: '%s'", e)
+
+      # aborting without explanatory text in case of malicious intent
       abort(401)
 
     # Check date is relatively recent.  Do this AFTER message digest
@@ -128,6 +134,8 @@ def api_key_required(view):
     delta = now - then
     if delta > 300:
       get_log().warning("Out-of-date API request")
+
+      # aborting without explanatory text in case of malicious intent
       abort(400)
 
     # update last-used timestamp
@@ -266,13 +274,18 @@ def api_post_bursts():
 
   # check basic request validity
   data = request.get_json()
-  if not data or not data.get('version', None) or not data.get('bursts', None):
-    get_log().error("API violation: must define both 'version' and 'bursts'")
-    abort(400)
+  if (not data
+      or data.get('version', None) is None
+      or data.get('bursts', None) is None
+  ):
+    errmsg = "API violation: must define both 'version' and 'bursts'"
+    get_log().error(errmsg)
+    abort(400, errmsg)
   if int(data['version']) != API_VERSION:
-    get_log().error("Client API version (%d) does not match server (%d)",
+    errmsg = "Client API version ({}) does not match server ({})".format(
       int(data['version']), API_VERSION)
-    abort(400)
+    get_log().error(errmsg)
+    abort(400, errmsg)
 
   # build list of burst objects from report
   bursts = []
@@ -295,8 +308,9 @@ def api_post_bursts():
       ))
   except KeyError as e:
     # client not following API
-    get_log().error("Missing field required by API: %s", e)
-    abort(400)
+    errmsg = "Missing field required by API: {}".format(e)
+    get_log().error(errmsg)
+    abort(400, errmsg)
   except Exception as e:
     get_log().error("Could not register burst: '{}'".format(e))
     abort(500)
