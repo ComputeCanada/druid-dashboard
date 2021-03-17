@@ -104,7 +104,8 @@ def test_post_burst_no_version(client):
         'account': 'def-dleske',
         'pain': 0.0,
         'firstjob': 1000,
-        'lastjob': 2000
+        'lastjob': 2000,
+        'summary': {}
       }
     ]})
   assert response.status_code == 400
@@ -121,7 +122,8 @@ def test_post_burst_old_version(client):
         'rapi': 'def-dleske',
         'pain': 0.0,
         'firstjob': 1000,
-        'lastjob': 2000
+        'lastjob': 2000,
+        'summary': {}
       }
     ]})
 
@@ -136,13 +138,80 @@ def test_post_incomplete_burst_no_account(client):
     'version': 1,
     'bursts': [
       {
+        'resource': 'cpu',
         'pain': 0.0,
         'firstjob': 1000,
-        'lastjob': 2000
+        'lastjob': 2000,
+        'summary': {}
       }
     ]})
   assert response.status_code == 400
   assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'account\'"}\n'
+
+def test_post_incomplete_burst_no_firstjob(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'resource': 'cpu',
+        'pain': 0.0,
+        'lastjob': 2000,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'firstjob\'"}\n'
+
+def test_post_incomplete_burst_no_lastjob(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'resource': 'cpu',
+        'pain': 0.0,
+        'firstjob': 1000,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'lastjob\'"}\n'
+
+def test_post_incomplete_burst_no_pain(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'resource': 'cpu',
+        'firstjob': 1000,
+        'lastjob': 2000,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'pain\'"}\n'
+
+# TODO: enable once resource implemented
+#def test_post_incomplete_burst_no_resource(client):
+#
+#  response = api_post(client, '/api/bursts', {
+#    'version': 1,
+#    'bursts': [
+#      {
+#        'account': 'def-dleske',
+#        'pain': 0.0,
+#        'firstjob': 1000,
+#        'lastjob': 2000,
+#        'summary': {}
+#      }
+#    ]})
+#  assert response.status_code == 400
+#  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'resource\'"}\n'
 
 def test_post_incomplete_burst_no_summary(client):
 
@@ -151,6 +220,7 @@ def test_post_incomplete_burst_no_summary(client):
     'bursts': [
       {
         'account': 'def-dleske',
+        'resource': 'cpu',
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000
@@ -177,6 +247,7 @@ def test_post_burst(client):
     'bursts': [
       {
         'account': 'def-dleske',
+        'resource': 'cpu',
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
@@ -193,6 +264,7 @@ def test_post_bursts(client):
     'bursts': [
       {
         'account': 'def-dleske-aa',
+        'resource': 'cpu',
         'pain': 1.0,
         'firstjob': 1005,
         'lastjob': 2005,
@@ -200,6 +272,7 @@ def test_post_bursts(client):
       },
       {
         'account': 'def-bobaloo-aa',
+        'resource': 'cpu',
         'pain': 1.5,
         'firstjob': 1015,
         'lastjob': 2015,
@@ -214,6 +287,7 @@ def test_post_bursts(client):
     'bursts': [
       {
         'account': 'def-dleske-aa',
+        'resource': 'cpu',
         'pain': 1.2,
         'firstjob': 1020,
         'lastjob': 2015,
