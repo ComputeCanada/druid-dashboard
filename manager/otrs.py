@@ -70,7 +70,11 @@ def ticket_url(ticket_id):
 
 def create_ticket(title, body, user, owner):
 
-  queue = current_app.config.get('OTRS_QUEUE', 'Test')
+  try:
+    queue = current_app.config['OTRS_QUEUE']
+  except KeyError:
+    # TODO: this should throw exception--default should be defined if nothing configured
+    get_log().error("OTRS configuration missing")
 
   # create ticket object
   ticket = pyotrs.lib.Ticket.create_basic(
@@ -90,7 +94,8 @@ def create_ticket(title, body, user, owner):
   # create article
   article = pyotrs.lib.Article({
     'Subject': title,
-    'Body': body
+    'Body': body,
+    'ArticleType': 'email-external'
   })
   if not article:
     get_log().error("Could not create article object")
