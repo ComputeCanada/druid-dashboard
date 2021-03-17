@@ -21,6 +21,14 @@ bp = Blueprint('api', __name__, url_prefix='/api')
 job_id_re = re.compile(r'^(\d+)')
 
 # ---------------------------------------------------------------------------
+#                                                                 CONSTANTS
+# ---------------------------------------------------------------------------
+
+# API version.  Simple integer; increment as needed.  Should match what is
+# reported by the Detector.
+API_VERSION = 1
+
+# ---------------------------------------------------------------------------
 #                                                            ERROR HANDLERS
 # ---------------------------------------------------------------------------
 
@@ -200,12 +208,14 @@ def api_post_bursts():
   Format:
     ```
     report = {
-      [
+      version = 1,
+      bursts = [
         {
-          'account':  10-character string representing CC RAPI,
+          'account':  character string representing CC account name,
+          'resource': type of resource involved in burst (ex. 'cpu', 'gpu'),
           'pain':     number indicating pain ratio as defined by Detector,
-          'jobrange': tuple of (firstjob, lastjob) owned by account and
-                      currently in the system
+          'firstjob': first job owned by account currently in the system,
+          'lastjob':  last job owned by account currently in the system,
           'summary':  JSON-encoded key-value information about burst context
                       which may be of use to analyst in evaluation
         },
@@ -250,17 +260,25 @@ def api_post_bursts():
 
   get_log().debug("In api.post_bursts()")
 
-  cluster = Component(session['api_component']).cluster
   epoch = session['api_epoch']
+  cluster = Component(session['api_component']).cluster
   get_log().debug("Registering burst for cluster %s", cluster)
-  bursts = []
+
+  # check basic request validity
   data = request.get_json()
-  if not data or not data.get('report', None):
-    get_log().error("API violation: must include 'report' definition")
+  if not data or not data.get('version', None) or not data.get('bursts', None):
+    get_log().error("API violation: must define both 'version' and 'bursts'")
     abort(400)
+  if int(data['version']) != API_VERSION:
+    get_log().error("Client API version (%d) does not match server (%d)",
+      int(data['version']), API_VERSION)
+    abort(400)
+
+  # build list of burst objects from report
+  bursts = []
   try:
-    for burst in data['report']:
-      get_log().debug("Received burst information for account %s", burst['rapi'])
+    for burst in data['bursts']:
+      get_log().debug("Received burst information for account %s", burst['account'])
 
       # strip job array ID component, if present
       firstjob = just_job_id(burst['firstjob'])
@@ -269,7 +287,7 @@ def api_post_bursts():
       # create burst and append to list
       bursts.append(Burst(
         cluster=cluster,
-        account=burst['rapi'],
+        account=burst['account'],
         pain=burst['pain'],
         jobrange=(firstjob, lastjob),
         summary=burst['summary'],
