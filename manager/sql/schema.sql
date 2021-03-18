@@ -47,11 +47,13 @@ CREATE TABLE notifications (
 );
 
 -- state: 'p' = pending/unactioned, 'c' = claimed, 'a' = accepted, 'r' = rejected
--- see burst.py::State
+-- resource: 'c' = CPU, 'g' = GPU
+-- see burst.py::State, burst.py::Resource
 CREATE TABLE bursts (
   id INTEGER PRIMARY KEY,
   state CHAR(1) NOT NULL DEFAULT 'p',
   account VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
   cluster VARCHAR(16) NOT NULL,
   pain REAL NOT NULL,
   firstjob INTEGER NOT NULL,
@@ -63,6 +65,7 @@ CREATE TABLE bursts (
   ticket_id INTEGER,
   ticket_no VARCHAR(9),
   CHECK (state in ('p', 'c', 'a', 'r')),
+  CHECK (resource in ('c', 'g')),
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
 

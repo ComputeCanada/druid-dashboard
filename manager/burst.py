@@ -5,7 +5,7 @@ import json
 from enum import Enum
 from flask import g
 from flask_babel import _
-from manager.db import get_db
+from manager.db import get_db #, DbEnum
 from manager.log import get_log
 from manager.exceptions import DatabaseException, BadCall
 from manager.component import Component
@@ -31,6 +31,17 @@ class State(Enum):
       'r': _('Rejected')
     }[self.value]
 
+# enum of resources
+class Resource(Enum):
+  CPU = 'c'
+  GPU = 'g'
+
+  def __str__(self):
+    return {
+      'c': _('CPU'),
+      'g': _('GPU')
+    }[self.value]
+
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
 # ---------------------------------------------------------------------------
@@ -46,6 +57,7 @@ SQL_FIND_EXISTING = '''
   FROM    bursts
   WHERE   cluster = ?
     AND   account = ?
+    AND   resource = ?
     AND   ? <= lastjob
 '''
 
@@ -73,8 +85,8 @@ SQL_UPDATE_STATE_CLAIMED = '''
 
 SQL_CREATE = '''
   INSERT INTO bursts
-              (cluster, account, pain, firstjob, lastjob, summary, epoch)
-  VALUES      (?, ?, ?, ?, ?, ?, ?)
+              (cluster, account, resource, pain, firstjob, lastjob, summary, epoch)
+  VALUES      (?, ?, ?, ?, ?, ?, ?, ?)
 '''
 
 SQL_ACCEPT = '''
@@ -123,6 +135,7 @@ def _burst_array(db_results):
       id=row['id'],
       cluster=row['cluster'],
       account=row['account'],
+      resource=row['resource'],
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
       state=row['state'],
@@ -146,6 +159,7 @@ def _bursts_by_cluster_epoch(db_results):
       id=row['id'],
       cluster=row['cluster'],
       account=row['account'],
+      resource=row['resource'],
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
       state=row['state'],
@@ -214,7 +228,8 @@ class Burst():
   Attributes:
     _id: id
     _cluster: cluster ID referencing entry in cluster table
-    _account: account: accounting ID (i.e., RAPI)
+    _account: account name (such as 'def-dleske-ab')
+    _resource: resource type (type burst.Resource)
     _pain: pain
     _jobrange: tuple of first and last job IDs in burst
     _state: state of burst
@@ -226,13 +241,14 @@ class Burst():
     _ticket_no: associated ticket's number
   """
 
-  def __init__(self, id=None, cluster=None, account=None, pain=None,
-      jobrange=None, state='p', summary=None, epoch=None, ticks=0,
+  def __init__(self, id=None, cluster=None, account=None, resource='c',
+      pain=None, jobrange=None, state='p', summary=None, epoch=None, ticks=0,
       claimant=None, ticket_id=None, ticket_no=None):
 
     self._id = id
     self._cluster = cluster
     self._account = account
+    self._resource = Resource(resource)
     self._pain = pain
     self._jobrange = jobrange
     self._state = State(state)
@@ -267,6 +283,7 @@ class Burst():
       if res:
         self._cluster = res['cluster']
         self._account = res['account']
+        self._resource = Resource(res['resource'])
         self._pain = res['pain']
         self._jobrange = (res['firstjob'], res['lastjob'])
         self._state = State(res['state'])
@@ -285,7 +302,7 @@ class Burst():
       # report's starting job falls within the (first, last) range of the
       # existing record
       get_log().debug("Looking for existing burst")
-      res = db.execute(SQL_FIND_EXISTING, (cluster, account, jobrange[0])).fetchone()
+      res = db.execute(SQL_FIND_EXISTING, (cluster, account, resource, jobrange[0])).fetchone()
       if res:
         # found existing burst
         self._id = res['id']
@@ -316,7 +333,11 @@ class Burst():
 
         # create burst record
         try:
-          db.execute(SQL_CREATE, (cluster, account, pain, jobrange[0], jobrange[1], json.dumps(summary), epoch))
+          db.execute(SQL_CREATE, (
+            cluster, account, resource, pain, jobrange[0], jobrange[1],
+            json.dumps(summary), epoch
+            )
+          )
         except Exception as e:
           raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
       try:
@@ -331,6 +352,10 @@ class Burst():
   @property
   def state(self):
     return self._state
+
+  @property
+  def resource(self):
+    return self._resource
 
   @property
   def ticket_id(self):

@@ -17,29 +17,34 @@ def test_get_bursts_xhr(client):
   assert interpreted['testcluster']['bursts'][0]['epoch'] == interpreted['testcluster']['epoch']
   del interpreted['testcluster']['bursts'][0]['epoch']
   del interpreted['testcluster']['epoch']
+  print(interpreted)
   assert interpreted == {
     "testcluster": {
       "bursts": [
         {"account":"def-dleske-aa","claimant":None,"cluster":"testcluster",
           "id":12,"jobrange":[1005,2015],"pain":1.2, "state":"p",
-          "state_pretty":"Unclaimed","summary":"{}","ticks":1,
-          "ticket_id":None, "ticket_no":None, "ticket_href":None}
+          "state_pretty":"Unclaimed","summary":"{}","ticks":1,"resource":"c",
+          "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
+          "ticket_href":None}
       ],
     },
     "testcluster2": {
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,
-          "ticket_id":None, "ticket_no":None, "ticket_href":None},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
+          "ticket_href":None},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,
-          "ticket_id":None, "ticket_no":None, "ticket_href":None},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
+          "ticket_href":None},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,
-          "ticket_id":None, "ticket_no":None, "ticket_href":None}
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
+          "ticket_href":None}
       ],
       "epoch":25
     }
@@ -60,6 +65,8 @@ def test_update_bursts_xhr(client):
           "claimant":'tst-005',
           "claimant_pretty":'User 1',
           "cluster":"testcluster",
+          "resource":"c",
+          "resource_pretty": "CPU",
           "id":12,
           "jobrange":[1005,2015],
           "pain":1.2,
@@ -67,7 +74,8 @@ def test_update_bursts_xhr(client):
           "state_pretty": "Claimed",
           "summary": "{}",
           "ticket_id": None,
-          "ticket_no": None, "ticket_href":None,
+          "ticket_no": None,
+          "ticket_href":None,
           "ticks": 1
         }
       ],
@@ -76,16 +84,19 @@ def test_update_bursts_xhr(client):
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,
-          "ticket_id":None, "ticket_no":None, "ticket_href":None},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
+          "ticket_href":None},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,
-          "ticket_id":None, "ticket_no":None, "ticket_href":None},
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
+          "ticket_href":None},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,
-          "ticket_id":None, "ticket_no":None, "ticket_href":None}
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
+          "ticket_href":None}
       ],
       "epoch":25
     }

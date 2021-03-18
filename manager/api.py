@@ -289,31 +289,48 @@ def api_post_bursts():
 
   # build list of burst objects from report
   bursts = []
-  try:
-    for burst in data['bursts']:
-      get_log().debug("Received burst information for account %s", burst['account'])
+  for burst in data['bursts']:
+
+    # get the submitted data
+    try:
+      # pull the others
+      resource = burst['resource']
+      account = burst['account']
+      pain = burst['pain']
+      summary = burst['summary']
 
       # strip job array ID component, if present
       firstjob = just_job_id(burst['firstjob'])
       lastjob = just_job_id(burst['lastjob'])
 
-      # create burst and append to list
-      bursts.append(Burst(
-        cluster=cluster,
-        account=burst['account'],
-        pain=burst['pain'],
-        jobrange=(firstjob, lastjob),
-        summary=burst['summary'],
-        epoch=epoch
-      ))
-  except KeyError as e:
-    # client not following API
-    errmsg = "Missing field required by API: {}".format(e)
-    get_log().error(errmsg)
-    abort(400, errmsg)
-  except Exception as e:
-    get_log().error("Could not register burst: '{}'".format(e))
-    abort(500)
+    except KeyError as e:
+      # client not following API
+      errmsg = "Missing field required by API: {}".format(e)
+      get_log().error(errmsg)
+      abort(400, errmsg)
+
+    # convert resource to shorthand
+    try:
+      # burst resource type
+      type = {
+        'cpu': 'c',
+        'gpu': 'g'
+      }[resource]
+    except KeyError as e:
+      errmsg = "Invalid resource type: {}".format(e)
+      get_log().error(errmsg)
+      abort(400, errmsg)
+
+    # create burst and append to list
+    bursts.append(Burst(
+      cluster=cluster,
+      account=account,
+      resource=type,
+      pain=pain,
+      jobrange=(firstjob, lastjob),
+      summary=summary,
+      epoch=epoch
+    ))
 
   # report event
   summary = summarize_burst_report(cluster, bursts)

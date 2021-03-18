@@ -83,6 +83,7 @@ def test_get_burst(client):
   print(x)
   assert x == {
     'account': 'def-ccc-aa',
+    'resource': 'c',
     'claimant': None,
     'cluster': 'testcluster2',
     'epoch': 25,
@@ -196,22 +197,21 @@ def test_post_incomplete_burst_no_pain(client):
   assert response.status_code == 400
   assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'pain\'"}\n'
 
-# TODO: enable once resource implemented
-#def test_post_incomplete_burst_no_resource(client):
-#
-#  response = api_post(client, '/api/bursts', {
-#    'version': 1,
-#    'bursts': [
-#      {
-#        'account': 'def-dleske',
-#        'pain': 0.0,
-#        'firstjob': 1000,
-#        'lastjob': 2000,
-#        'summary': {}
-#      }
-#    ]})
-#  assert response.status_code == 400
-#  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'resource\'"}\n'
+def test_post_incomplete_burst_no_resource(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'pain': 0.0,
+        'firstjob': 1000,
+        'lastjob': 2000,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'resource\'"}\n'
 
 def test_post_incomplete_burst_no_summary(client):
 
@@ -228,6 +228,23 @@ def test_post_incomplete_burst_no_summary(client):
     ]})
   assert response.status_code == 400
   assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'summary\'"}\n'
+
+def test_post_bad_burst_bad_resource(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'resource': 'ppu',
+        'pain': 0.0,
+        'firstjob': 1000,
+        'lastjob': 2000,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Invalid resource type: \'ppu\'"}\n'
 
 def test_post_empty_burst_report(client):
   """

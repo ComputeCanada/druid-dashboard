@@ -76,7 +76,9 @@ def _bursts_by_cluster():
         else:
           burst['ticket_href'] = None
 
+        # add any prettified fields
         burst['state_pretty'] = str(burstObj.state)
+        burst['resource_pretty'] = str(burstObj.resource)
 
         bbc[cluster]['bursts'].append(burst)
   return bbc
