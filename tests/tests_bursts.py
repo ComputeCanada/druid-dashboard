@@ -22,8 +22,8 @@ def test_get_bursts_xhr(client):
     "testcluster": {
       "bursts": [
         {"account":"def-dleske-aa","claimant":None,"cluster":"testcluster",
-          "id":12,"jobrange":[1005,2015],"pain":1.2, "state":"p",
-          "state_pretty":"Unclaimed","summary":"{}","ticks":1,"resource":"c",
+          "id":12,"jobrange":[1005,2015],"pain":1.2, "state":"unclaimed",
+          "state_pretty":"Unclaimed","summary":"{}","ticks":1,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None}
       ],
@@ -31,18 +31,18 @@ def test_get_bursts_xhr(client):
     "testcluster2": {
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"unclaimed",
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"unclaimed",
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"unclaimed",
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None}
       ],
@@ -52,11 +52,12 @@ def test_get_bursts_xhr(client):
 
 
 def test_update_bursts_xhr(client):
-  data = {'12': 'c'}
+  data = {'12': 'claimed'}
   response = client.patch('/xhr/bursts/', json=data, environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
   interpreted = json.loads(response.data.decode('utf-8'))
   del interpreted['testcluster']['bursts'][0]['epoch']
   del interpreted['testcluster']['epoch']
+  print(interpreted)
   assert interpreted == {
     "testcluster": {
       "bursts": [
@@ -65,12 +66,12 @@ def test_update_bursts_xhr(client):
           "claimant":'tst-005',
           "claimant_pretty":'User 1',
           "cluster":"testcluster",
-          "resource":"c",
+          "resource":"cpu",
           "resource_pretty": "CPU",
           "id":12,
           "jobrange":[1005,2015],
           "pain":1.2,
-          "state":"c",
+          "state":"claimed",
           "state_pretty": "Claimed",
           "summary": "{}",
           "ticket_id": None,
@@ -83,18 +84,18 @@ def test_update_bursts_xhr(client):
     "testcluster2": {
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"unclaimed",
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"unclaimed",
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"p",
-          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"c",
+          "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"unclaimed",
+          "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None}
       ],
