@@ -236,6 +236,19 @@ def upgrade_db_command():
 
 
 class DbEnum(Enum):
+  """
+  The DbEnum class augments the standard enumeration be making it more JSON-
+  and database-friendly.  For JSON, it provides a serializable representation
+  of the enumeration names that is readable and consistent with general JSON
+  practice (full lowercase word) so for example ExampleEnum.EXAMPLE is
+  returned as "example".  Automatic deserialization isn't possible so the
+  get() class method is provided as an alternative to `ExampleEnum['example']`
+  and will return ExampleEnum.EXAMPLE.
+
+  For databases, the value is used which is typically a single character.  An
+  adapter is created so the database modules correctly interpret the
+  enumerations in both directions.
+  """
 
   # pylint: disable=W0613
   def __init__(self, *args):
@@ -251,9 +264,19 @@ class DbEnum(Enum):
   def getquoted(self):
     return str.encode("'" + self.value + "'")
 
+  # String representation is just the name--the value is used to store in
+  # the database.  For display purposes, translation is appropriate (ex.
+  # English translation of EXAMPLE is "Example"; French translation is--the
+  # same)
   def __str__(self):
-    return str(self.value)
+    return str(self.name)
 
-  # return serializable representation for JSON encoder
+  # For JSON serialization, use the lowercase representation of the name.
+  # JSON should be readable so "resource":"cpu" is more readable than
+  # "resource":"c"
   def serialize(self):
-    return self.__str__()
+    return self.name.lower()
+
+  @classmethod
+  def get(cls, name):
+    return cls[name.upper()]
