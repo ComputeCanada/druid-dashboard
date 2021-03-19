@@ -2,10 +2,8 @@
 # pylint: disable=W0621
 #
 import json
-from enum import Enum
 from flask import g
-from flask_babel import _
-from manager.db import get_db #, DbEnum
+from manager.db import get_db, DbEnum
 from manager.log import get_log
 from manager.exceptions import DatabaseException, BadCall
 from manager.component import Component
@@ -17,30 +15,16 @@ from manager.component import Component
 # enum of states: values are tuple of indicator used in database and the
 # display label
 # NOTE: if updating this, ensure schema matches
-class State(Enum):
+class State(DbEnum):
   UNCLAIMED = 'p'
   CLAIMED   = 'c'
   ACCEPTED  = 'a'
   REJECTED  = 'r'
 
-  def __str__(self):
-    return {
-      'p': _('Unclaimed'),
-      'c': _('Claimed'),
-      'a': _('Accepted'),
-      'r': _('Rejected')
-    }[self.value]
-
 # enum of resources
-class Resource(Enum):
+class Resource(DbEnum):
   CPU = 'c'
   GPU = 'g'
-
-  def __str__(self):
-    return {
-      'c': _('CPU'),
-      'g': _('GPU')
-    }[self.value]
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -135,10 +119,10 @@ def _burst_array(db_results):
       id=row['id'],
       cluster=row['cluster'],
       account=row['account'],
-      resource=row['resource'],
+      resource=Resource(row['resource']),
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
-      state=row['state'],
+      state=State(row['state']),
       summary=row['summary'],
       epoch=row['epoch'],
       ticks=row['ticks'],
@@ -159,10 +143,10 @@ def _bursts_by_cluster_epoch(db_results):
       id=row['id'],
       cluster=row['cluster'],
       account=row['account'],
-      resource=row['resource'],
+      resource=Resource(row['resource']),
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
-      state=row['state'],
+      state=State(row['state']),
       summary=row['summary'],
       epoch=row['epoch'],
       ticks=row['ticks'],
@@ -199,7 +183,7 @@ def get_bursts(cluster=None):
 def update_burst_states(updates):
   db = get_db()
   for (id, state) in updates.items():
-    s = State(state)
+    s = State.get(state)
     if s == State.CLAIMED:
       res = db.execute(SQL_UPDATE_STATE_CLAIMED, (s.value, g.user['cci'], id))
     elif s == State.UNCLAIMED:
@@ -232,7 +216,7 @@ class Burst():
     _resource: resource type (type burst.Resource)
     _pain: pain
     _jobrange: tuple of first and last job IDs in burst
-    _state: state of burst
+    _state: state of burst (type burst.State)
     _summary: summary information about burst and jobs (JSON)
     _epoch: epoch timestamp of last report
     _ticks: number of times reported
@@ -241,17 +225,18 @@ class Burst():
     _ticket_no: associated ticket's number
   """
 
-  def __init__(self, id=None, cluster=None, account=None, resource='c',
-      pain=None, jobrange=None, state='p', summary=None, epoch=None, ticks=0,
-      claimant=None, ticket_id=None, ticket_no=None):
+  def __init__(self, id=None, cluster=None, account=None,
+      resource=Resource.CPU, pain=None, jobrange=None, state=State.UNCLAIMED,
+      summary=None, epoch=None, ticks=0, claimant=None, ticket_id=None,
+      ticket_no=None):
 
     self._id = id
     self._cluster = cluster
     self._account = account
-    self._resource = Resource(resource)
+    self._resource = resource
     self._pain = pain
     self._jobrange = jobrange
-    self._state = State(state)
+    self._state = state
     self._summary = summary
     self._epoch = epoch
     self._ticks = ticks
@@ -367,6 +352,6 @@ class Burst():
 
   def serialize(self):
     return {
-      key.lstrip('_'): val.value if issubclass(type(val), Enum) else val
+      key.lstrip('_'): val
       for (key, val) in self.__dict__.items()
     }
