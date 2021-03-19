@@ -3,6 +3,7 @@
 #
 
 from flask import Blueprint, jsonify, request, g
+from flask_babel import _
 
 from manager.auth import login_required, admin_required
 from manager.log import get_log
@@ -77,8 +78,8 @@ def _bursts_by_cluster():
           burst['ticket_href'] = None
 
         # add any prettified fields
-        burst['state_pretty'] = str(burstObj.state)
-        burst['resource_pretty'] = str(burstObj.resource)
+        burst['state_pretty'] = _(str(burstObj.state))
+        burst['resource_pretty'] = _(str(burstObj.resource))
 
         bbc[cluster]['bursts'].append(burst)
   return bbc

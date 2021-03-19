@@ -107,3 +107,26 @@ msgstr ""
 #~ msgid "Dashboard"
 #~ msgstr ""
 
+#: added manually
+msgid "CPU"
+msgstr ""
+
+#: added manually
+msgid "GPU"
+msgstr ""
+
+#: added manually
+msgid "UNCLAIMED"
+msgstr "Unclaimed"
+
+#: added manually
+msgid "CLAIMED"
+msgstr "Claimed"
+
+#: added manually
+msgid "ACCEPTED"
+msgstr "Accepted"
+
+#: added manually
+msgid "REJECTED"
+msgstr "Rejected"
