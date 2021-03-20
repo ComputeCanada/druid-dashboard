@@ -2,6 +2,17 @@
 # Git apparently always sets the working directory to the root of the
 # workspace, so using relative paths from there is fine.
 
+# --------------------------------------------------------------------------
+#                                                            configuration
+# --------------------------------------------------------------------------
+
+# this needs to be set when the seed data is changed as this will break
+# schema upgrade testing.  This tag must be applied to the commit of the
+# changes or that of the seed data, whichever is latest.  Obviously upgrades
+# prior to the baseline are assumed to have been properly tested.
+SCHEMA_BASELINE=20210309
+
+
 fail_to()
 {
   echo Unable to $@
@@ -63,20 +74,24 @@ then
   # create temporary directory for this stuff
   tmpdir=$(mktemp -d /tmp/$(basename $0).XXXXXX) || fail_to create temporary directory
 
-  # get schema versions from git
-  versions=$(git tag | awk -F- '$1 == "schema" { print $2 }' | sort)
+  # get schema versions from git after $SCHEMA_BASELINE (when seed data changed)
+  versions=$(git tag | awk -F- '$1 == "schema" && $2 > '$SCHEMA_BASELINE' { print $2 }' | sort)
+  if [ -z "$versions" ]
+  then
+    test_schema=0
+  else
+    # grab base schema versions and create databases with them
+    for version in $versions
+    do
+      git show schema-$version:manager/sql/schema.sql > $tmpdir/schema-$version.sql
+      git show schema-$version:manager/sql/schema.psql > $tmpdir/schema-$version.psql
+      git show schema-$version:tests/data.sql > $tmpdir/seed-$version.sql
+    done
 
-  # grab base schema versions and create databases with them
-  for version in $versions
-  do
-    git show schema-$version:manager/sql/schema.sql > $tmpdir/schema-$version.sql
-    git show schema-$version:manager/sql/schema.psql > $tmpdir/schema-$version.psql
-    git show schema-$version:tests/data.sql > $tmpdir/seed-$version.sql
-  done
-
-  # setup pytest stuff
-  export SCHEMA_BASEDIR=$tmpdir
-  export SCHEMA_VERSIONS=$(echo $versions | tr ' ' ',') 
+    # setup pytest stuff
+    export SCHEMA_BASEDIR=$tmpdir
+    export SCHEMA_VERSIONS=$(echo $versions | tr ' ' ',') 
+  fi
 fi
 
 cleanup()

@@ -24,3 +24,27 @@ This is not currently automated.
 Older versions of the schema may be temporarily retrieved using `git show
 schema-20201209:manager/sql/schema.sql`.  This may then be used to initialize
 a development database and test upgrades.
+
+## Changes to testing seed data
+
+If the test suite's seed data changes (`/tests/data.sql`), this will break
+upgrade testing, because the upgrade testing currently is based on taking the
+seed data from a particular tag and upgrading from there.  Since the seed
+data's schema will be upgraded but the seed data won't be updated to reflect
+the recent changes for the testing, the test suite based on the newer seed
+data will fail.
+
+(This could be worked around by including a file of updates to the seed data,
+but the test suite would need to be updated to handle this and as well it is a
+bunch of extra work that is probably not necessary.  For now I'll continue
+with the idea below.)
+
+When seed data is updated, a new "schema baseline" is established in the
+`tests/test-all` script.  This implements a limit on schema upgrade testing to
+that baseline and forward.  So if the baseline is set to 20210309 then only
+versions newer than that will be tested for upgrades.
+
+Obviously this requires previous versions' upgrades to be properly tested.
+
+Schema version tagging as described above should be applied to the latest
+commit of that with the schema updates and that with the updated seed data.
