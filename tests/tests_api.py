@@ -9,7 +9,7 @@ import json
 
 from manager.api import API_VERSION
 
-def api_get(client, resource):
+def api_get(client, resource, access=None, secret=None):
 
   # get current datestamp in RFC2822 format.  Without "localtime", will be
   # given a timezone of "-0000" which indicates, according to the RFC, that
@@ -21,9 +21,10 @@ def api_get(client, resource):
   # build request string to digest
   digestible = "GET {}\n{}".format(resource, timestamp)
 
-  # test api key
-  access = 'testapikey'
-  secret = 'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ=='
+  # test api key (since retrieving, use scheduler's key)
+  if access is None:
+    access = 'testapikey_s'
+    secret = 'T3h5mwEk7mrVwxdon+s9blWhVh8zHDd7PVoUoWJsTf5Qd2EUie6I4pdBuyRykw=='
 
   # create digest
   h = hmac.new(secret.encode(), digestmod='sha256')
@@ -46,8 +47,8 @@ def api_post(client, resource, data):
   # build request string to digest
   digestible = "POST {}\n{}".format(resource, timestamp)
 
-  # test api key
-  access = 'testapikey'
+  # test api key (since posting, use detector's key)
+  access = 'testapikey_d'
   secret = b'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ=='
 
   # create digest
@@ -73,7 +74,7 @@ def test_get_bursts(client):
   response = api_get(client, '/api/bursts')
   assert response.status_code == 200
   x = json.loads(response.data)
-  assert x is None
+  assert x is not None
 
 def test_get_burst(client):
 
@@ -83,14 +84,14 @@ def test_get_burst(client):
   print(x)
   assert x == {
     'account': 'def-ccc-aa',
-    'resource': 'c',
+    'resource': 'cpu',
     'claimant': None,
     'cluster': 'testcluster2',
     'epoch': 25,
     'id': 10,
     'jobrange': [17, 27],
     'pain': 2.5,
-    'state': 'p',
+    'state': 'unclaimed',
     'summary': None,
     'ticket_id': None,
     'ticket_no': None,
@@ -275,7 +276,6 @@ def test_post_burst(client):
 
 def test_post_bursts(client):
 
-  time.sleep(1)
   response = api_post(client, '/api/bursts', {
     'version': 1,
     'bursts': [
@@ -298,7 +298,11 @@ def test_post_bursts(client):
     ]})
   assert response.status_code == 201
 
+  # SQLite uses second-accuracy time so for consistency we do the same with
+  # Postgres.  In testing we need to introduce a 1s delay to force the
+  # following update to be of a different epoch than what we did above.
   time.sleep(1)
+
   response = api_post(client, '/api/bursts', {
     'version': 1,
     'bursts': [

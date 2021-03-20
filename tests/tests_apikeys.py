@@ -20,9 +20,21 @@ def test_get_apikeys_xhr(client):
      'component': 'Detector',
      'cluster': 'Test Cluster'
     },
-    {'access': 'testapikey',
+    {'access': 'testapikey_d',
      'component': 'Detector',
      'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey2_d',
+     'component': 'Detector',
+     'cluster': 'Test Cluster 2'
+    },
+    {'access': 'testapikey2_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster 2'
     }
   ], key=lambda x: x['access'])
 
@@ -50,9 +62,21 @@ def test_add_apikey_xhr(client):
      'component': 'Detector',
      'cluster': 'Test Cluster'
     },
-    {'access': 'testapikey',
+    {'access': 'testapikey_d',
      'component': 'Detector',
      'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey2_d',
+     'component': 'Detector',
+     'cluster': 'Test Cluster 2'
+    },
+    {'access': 'testapikey2_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster 2'
     }
   ], key=lambda x: x['access'])
 
@@ -73,8 +97,20 @@ def test_delete_apikey_xhr(client):
      'component': 'Detector',
      'cluster': 'Test Cluster'
     },
-    {'access': 'testapikey',
+    {'access': 'testapikey_d',
      'component': 'Detector',
      'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey2_d',
+     'component': 'Detector',
+     'cluster': 'Test Cluster 2'
+    },
+    {'access': 'testapikey2_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster 2'
     }
   ], key=lambda x: x['access'])
