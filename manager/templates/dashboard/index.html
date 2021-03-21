@@ -258,12 +258,12 @@ function updateTicket(ticket, status, jqXHR) {
   console.log('Ticket = ' + ticket.burst_id);
 }
 
-function createTicket(id, user) {
+function createTicket(id, account) {
   status_id = status("Creating ticket...")
   $.ajax({
     url: '/xhr/tickets/',
     method: 'POST',
-    data: { burst_id: id, user: user },
+    data: { burst_id: id, account: account },
     success: function(ticket, status, jqXHR) {
       status_clear(status_id);
       updateTicket(ticket, status, jqXHR);
@@ -453,8 +453,8 @@ function renderActionButtons(id, state_checked) {
   `;
 }
 
-function createTicketButton(id, user) {
-  return `<button type='button' class='btn btn-primary' onClick='createTicket(${id}, "${user}")' data-burst-id='${id}'>{{ _('Create') }}</button>`;
+function createTicketButton(id, account) {
+  return `<button type='button' class='btn btn-primary' onClick='createTicket(${id}, "${account}")' data-burst-id='${id}'>{{ _('Create') }}</button>`;
 }
 
 function renderTableData(bursts) {
@@ -466,10 +466,7 @@ function renderTableData(bursts) {
     burst_states[bursts[i].id] = bursts[i].state;
 
     var id = bursts[i].id
-    // TODO: this is a horrible hack and should be handled otherwise:
-    // remove "def-" from "def-dleske" to get account name.  Will not work for
-    // accounts such as "def-dleske-ab" 
-    var user = bursts[i].account.substr(4)
+    var account = bursts[i].account
 
     bycols[i] = [
       bursts[i].ticks,
@@ -479,7 +476,7 @@ function renderTableData(bursts) {
       bursts[i].pain.toFixed(2),
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
-      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || createTicketButton(id, user) }</span>`,
+      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || createTicketButton(id, account) }</span>`,
       renderActionButtons(id, state_checked)
     ];
   }
