@@ -162,13 +162,30 @@ def xhr_create_ticket():
 
   # get request data
   burst_id = request.form['burst_id']
-  user = request.form['user']
+  account = request.form['account']
+  submitters = request.form.get('submitters', [])
+
+  # lookup PI's username
+  ldap = get_ldap()
+  project = ldap.get_project(account)
+  if not project:
+    raise Exception("TODO: better handling of missing project")
+  pi = ldap.get_person_by_cci(project['ccResponsible'])
+
+  # lookup e-mails for the users
+  CCs = []
+  for user in submitters:
+    userrec = ldap.get_person(user)
+    if not userrec:
+      get_log().error("Burst record lists job submitter not found in LDAP: %s", user)
+    else:
+      CCs.append(userrec['ccPrimaryEmail'])
 
   # TODO: store template in database
   body = "We've noticed you've got a potential burst happening.  Yo."
 
   # create ticket via OTRS
-  deets = create_ticket('Potential for bursting', body, user, g.user['id'])
+  deets = create_ticket('Potential for bursting', body, g.user['id'], pi['uid'], CCs=CCs)
   if not deets:
     get_log().error("Could not create ticket")
     return jsonify({'error': 'dang'}), 500
