@@ -68,7 +68,7 @@ def ticket_url(ticket_id):
     ticket_id)
 
 
-def create_ticket(title, body, user, owner):
+def create_ticket(title, body, owner, client, CCs=None):
 
   try:
     queue = current_app.config['OTRS_QUEUE']
@@ -80,7 +80,7 @@ def create_ticket(title, body, user, owner):
   ticket = pyotrs.lib.Ticket.create_basic(
     Title=title,
     Queue=queue,
-    CustomerUser=user,
+    CustomerUser=client,
     State=u"new",
     Priority=u"3 normal")
   if not ticket:
@@ -91,12 +91,18 @@ def create_ticket(title, body, user, owner):
   ticket.fields['Owner'] = owner
   ticket.fields['Responsible'] = owner
 
-  # create article
-  article = pyotrs.lib.Article({
+  # create article definition
+  article_defn = {
     'Subject': title,
     'Body': body,
-    'ArticleType': 'email-external'
-  })
+    'ArticleType': 'email-external',
+  }
+  if CCs:
+    ccs_str = CCs.join(' ')
+    article_defn['Cc'] = ccs_str
+
+  # create article
+  article = pyotrs.lib.Article(article_defn)
   if not article:
     get_log().error("Could not create article object")
     return None
