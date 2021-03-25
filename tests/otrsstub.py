@@ -1,8 +1,28 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
-otrs = None
-
 class OtrsStub():
+
   def __init__(self):
-    pass
+
+    # net ticket ID
+    self._nextID = 1
+
+  def ticket_create(self, ticket, article):
+
+    # assign ticket number
+    ticket_id = self._nextID
+    self._nextID += 1
+
+    print("Ticket: {}".format(ticket))
+    print("Article: {}".format(article))
+
+    return {
+      'ticket_id': ticket_id,
+      'ticket_no': "0{}".format(ticket_id),
+      'ding dong': 'merrily on high',
+      'ticket_misc': {
+        'ticket': ticket.fields,
+        'article': article.fields
+      }
+    }
