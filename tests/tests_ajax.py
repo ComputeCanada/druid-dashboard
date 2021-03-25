@@ -42,13 +42,15 @@ def test_create_ticket_xhr(client):
 
   x = json.loads(response.data)
   print(x)
+
+  # pylint: disable=line-too-long
   assert x == {
     'burst_id': 1,
     'ticket_id': 1,
     'ticket_no': '01',
     'misc': {
       'ticket': {
-        'Title': 'welcome title_en',
+        'Title': 'NOTICE: Your computations may be eligible for prioritised execution',
         'Queue': 'Test',
         'State': 'new',
         'Priority': '3 normal',
@@ -57,8 +59,8 @@ def test_create_ticket_xhr(client):
         'Responsible': 'user1'
       },
       'article': {
-        'Subject': 'welcome title_en',
-        'Body': 'welcome_en',
+        'Subject': 'NOTICE: Your computations may be eligible for prioritised execution',
+        'Body': "Hello PI 1,\n\nOngoing analysis of queued jobs on TODO: TEST CLUSTER has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nBest regards,\nUser 1",
         'ArticleType': 'email-external',
         'ArticleSend': 1,
         'To': 'drew.leske+pi1@computecanada.ca'

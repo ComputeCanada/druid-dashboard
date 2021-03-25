@@ -2,7 +2,7 @@
 # pylint:
 #
 
-from flask import Blueprint, jsonify, request, g
+from flask import Blueprint, jsonify, request, g, session
 from flask_babel import _
 
 from manager.auth import login_required, admin_required
@@ -12,6 +12,7 @@ from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
 from manager.burst import get_bursts, update_burst_states, State, set_ticket
+from manager.template import Template
 from manager.exceptions import ImpossibleException
 
 
@@ -156,12 +157,6 @@ def xhr_update_bursts():
 #                                                          ROUTES - tickets
 # ---------------------------------------------------------------------------
 
-# TODO: get rid of this stub
-def template(name, language=None):
-  if language:
-    return name + "_" + language
-  return name
-
 @bp.route('/tickets/', methods=['POST'])
 @login_required
 def xhr_create_ticket():
@@ -204,21 +199,28 @@ def xhr_create_ticket():
       if l not in languages:
         languages.append(l)
 
+  # set up values for template substitutions
+  body_values = {
+    'PREFERRED_NAME': pi['givenName'],
+    'ANALYST': session['givenName'],
+    'CLUSTER': 'TODO: TEST CLUSTER'
+  }
+
   # build title and body from templates
   if len(languages) > 1:
     title = "{} / {}".format(
-      template("welcome title", languages[0]),
-      template("welcome title", languages[1])
+      Template("intro title", languages[0]).render(),
+      Template("intro title", languages[1]).render()
     )
     body = "{}\n{}\n{}\n{}".format(
-      template("other language follows", languages[1]),
-      template("welcome", languages[0]),
-      template("separator"),
-      template("welcome", languages[1])
+      Template("other language follows", languages[1]).render(),
+      Template("intro", languages[0]).render(values=body_values),
+      Template("separator").render(),
+      Template("intro", languages[1]).render(values=body_values)
     )
   else:
-    title = template("welcome title", languages[0])
-    body = template("welcome", languages[0])
+    title = Template("intro title", languages[0]).render()
+    body = Template("intro", languages[0]).render(values=body_values)
 
   # create ticket via OTRS
   ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['ccPrimaryEmail'], CCs=CCs)
