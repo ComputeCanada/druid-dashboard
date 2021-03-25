@@ -6,8 +6,39 @@
 # getting caught
 #from requests import HTTPError
 import pyotrs
-from flask import g, current_app
-from manager.log import get_log
+
+# TEMPORARY FOR TESTING
+# Set/unset this in order to load this module from Python CLI to test out JUST
+# the OTRS stuff.
+# pylint: disable=using-constant-test
+if True:
+  from flask import g, current_app
+  from manager.log import get_log
+else:
+  class G(dict):
+    def __init__(self, *args, **kwargs):
+      super().__init__(*args, **kwargs)
+      self.__dict__ = self
+  g = G()
+  current_app = G()
+  current_app.config = {
+    'OTRS_URL': 'https://support-dev2.computecanada.ca',
+    'OTRS_USERNAME': 'fraksvc',
+    'OTRS_PASSWORD': 'this is never the thing',
+    'OTRS_QUEUE': 'Test'
+  }
+
+  # pylint: disable=no-self-use
+  class Logger:
+    def error(self, msg, *args):
+      print("ERROR: " + msg % args)
+
+    def debug(self, msg, *args):
+      print("DEBUG: " + msg % args)
+
+  logger = Logger()
+  def get_log():
+    return logger
 
 
 def get_otrs():
@@ -68,7 +99,13 @@ def ticket_url(ticket_id):
     ticket_id)
 
 
-def create_ticket(title, body, owner, client, CCs=None):
+def create_ticket(title, body, owner, client, clientEmail, CCs=None):
+  """
+  Create ticket.
+
+  This function requires the "Znuny4OTRS-GIArticleSend" module be installed
+  on the target OTRS service for the initial e-mail to be sent out.
+  """
 
   try:
     queue = current_app.config['OTRS_QUEUE']
@@ -96,9 +133,11 @@ def create_ticket(title, body, owner, client, CCs=None):
     'Subject': title,
     'Body': body,
     'ArticleType': 'email-external',
+    'ArticleSend': 1,
+    'To': clientEmail
   }
   if CCs:
-    ccs_str = CCs.join(' ')
+    ccs_str = ' '.join(CCs)
     article_defn['Cc'] = ccs_str
 
   # create article
@@ -114,7 +153,10 @@ def create_ticket(title, body, owner, client, CCs=None):
     return None
   get_log().debug("Ticket created.  Details: %s", details)
 
+  # ticket_misc is used to pass test data back from test suite; set to empty
+  # string generally
   return {
-    'ticket_id': details['TicketID'],
-    'ticket_no': details['TicketNumber']
+    'ticket_id': details['ticket_id'],
+    'ticket_no': details['ticket_no'],
+    'misc': details.get('ticket_misc', '')
   }
