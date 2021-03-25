@@ -156,21 +156,40 @@ def xhr_update_bursts():
 #                                                          ROUTES - tickets
 # ---------------------------------------------------------------------------
 
+# TODO: get rid of this stub
+def template(name, language=None):
+  if language:
+    return name + "_" + language
+  return name
+
 @bp.route('/tickets/', methods=['POST'])
 @login_required
 def xhr_create_ticket():
 
   # get request data
-  burst_id = request.form['burst_id']
+  burst_id = int(request.form['burst_id'])
   account = request.form['account']
   submitters = request.form.get('submitters', [])
 
-  # lookup PI's username
+  # initialize
   ldap = get_ldap()
+
+  # look up project
   project = ldap.get_project(account)
   if not project:
-    raise Exception("TODO: better handling of missing project")
-  pi = ldap.get_person_by_cci(project['ccResponsible'])
+    error = "Could not find project {}".format(account)
+    get_log().error(error)
+    return jsonify({'error': error}), 500
+
+  # look up PI
+  pi = ldap.get_person_by_cci(project['ccResponsible'], ['ccPrimaryEmail'])
+  if not pi:
+    error = "Could not lookup PI {} for project {}".format(project['ccResponsible'], project)
+    get_log().error(error)
+    return jsonify({'error': error}), 500
+
+  # set initial language for ticket
+  languages = [ pi['preferredLanguage'] ]
 
   # lookup e-mails for the users
   CCs = []
@@ -178,28 +197,44 @@ def xhr_create_ticket():
     userrec = ldap.get_person(user)
     if not userrec:
       get_log().error("Burst record lists job submitter not found in LDAP: %s", user)
+      # TODO: flash user of error
     else:
       CCs.append(userrec['ccPrimaryEmail'])
+      l = userrec['ccPreferredLanguage']
+      if l not in languages:
+        languages.append(l)
 
-  # TODO: store template in database
-  body = "We've noticed you've got a potential burst happening.  Yo."
+  # build title and body from templates
+  if len(languages) > 1:
+    title = "{} / {}".format(
+      template("welcome title", languages[0]),
+      template("welcome title", languages[1])
+    )
+    body = "{}\n{}\n{}\n{}".format(
+      template("other language follows", languages[1]),
+      template("welcome", languages[0]),
+      template("separator"),
+      template("welcome", languages[1])
+    )
+  else:
+    title = template("welcome title", languages[0])
+    body = template("welcome", languages[0])
 
   # create ticket via OTRS
-  deets = create_ticket('Potential for bursting', body, g.user['id'], pi['uid'], CCs=CCs)
-  if not deets:
-    get_log().error("Could not create ticket")
-    return jsonify({'error': 'dang'}), 500
-  get_log().debug("Ticket created.  Deets: %s", deets)
+  ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['ccPrimaryEmail'], CCs=CCs)
+  if not ticket:
+    error = "Unable to create ticket"
+    get_log().error(error)
+    return jsonify({'error': error}), 500
+  get_log().debug("Ticket created.  Deets: %s", ticket)
 
   # register the ticket with the burst candidate
-  set_ticket(burst_id, deets['ticket_id'], deets['ticket_no'])
+  set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
 
-  return jsonify({
+  return jsonify(dict({
     'burst_id': burst_id,
-    'ticket_id': deets['ticket_id'],
-    'ticket_no': deets['ticket_no'],
-    'url': ticket_url(deets['ticket_id'])
-  })
+    'url': ticket_url(ticket['ticket_id'])
+  }, **ticket))
 
 # ---------------------------------------------------------------------------
 #                                          ROUTES - clusters and components
