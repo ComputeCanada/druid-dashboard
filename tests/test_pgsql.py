@@ -12,8 +12,9 @@ from tests_authentication import *
 from tests_bursts import *
 from tests_components import *
 from tests_dashboard import *
-from ldapstub import LdapStub
-from otrsstub import OtrsStub
+from tests_ajax import *
+from tests.ldapstub import LdapStub
+from tests.otrsstub import OtrsStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db
 
