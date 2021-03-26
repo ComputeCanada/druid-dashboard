@@ -11,7 +11,7 @@ from manager.ldap import get_ldap
 from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
-from manager.burst import get_bursts, update_burst_states, State, set_ticket
+from manager.burst import get_bursts, update_burst_states, State, set_ticket, Burst
 from manager.template import Template
 from manager.exceptions import ImpossibleException
 
@@ -166,6 +166,10 @@ def xhr_create_ticket():
   account = request.form['account']
   submitters = request.form.get('submitters', [])
 
+  # populate objects we'll need
+  burst = Burst(id=burst_id)
+  burst_info = burst.info
+
   # initialize
   ldap = get_ldap()
 
@@ -200,11 +204,10 @@ def xhr_create_ticket():
         languages.append(l)
 
   # set up values for template substitutions
-  body_values = {
-    'PREFERRED_NAME': pi['givenName'],
-    'ANALYST': session['givenName'],
-    'CLUSTER': 'TODO: TEST CLUSTER'
-  }
+  template_values = dict({
+    'piName': pi['givenName'],
+    'analyst': session['givenName'],
+  }, **burst_info)
 
   # build title and body from templates
   if len(languages) > 1:
@@ -214,13 +217,13 @@ def xhr_create_ticket():
     )
     body = "{}\n{}\n{}\n{}".format(
       Template("other language follows", languages[1]).render(),
-      Template("intro", languages[0]).render(values=body_values),
+      Template("intro", languages[0]).render(values=template_values),
       Template("separator").render(),
-      Template("intro", languages[1]).render(values=body_values)
+      Template("intro", languages[1]).render(values=template_values)
     )
   else:
     title = Template("intro title", languages[0]).render()
-    body = Template("intro", languages[0]).render(values=body_values)
+    body = Template("intro", languages[0]).render(values=template_values)
 
   # create ticket via OTRS
   ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['ccPrimaryEmail'], CCs=CCs)
