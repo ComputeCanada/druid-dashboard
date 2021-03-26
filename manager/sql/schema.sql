@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS components;
 DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
+DROP TABLE IF EXISTS templates;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
@@ -73,4 +74,15 @@ CREATE TABLE notifiers (
   name VARCHAR(32) PRIMARY KEY,
   type VARCHAR(16) NOT NULL,
   config TEXT
+);
+
+-- language is not "NOT NULL" because it is acceptable to have some templates
+-- which are not language-specific, such as a separator for use between
+-- versions in an e-mail.
+CREATE TABLE templates (
+  name VARCHAR(32),
+  language CHAR(2),
+  content TEXT,
+  PRIMARY KEY (name, language),
+  CHECK (language IN ('en', 'fr'))
 );

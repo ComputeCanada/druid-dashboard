@@ -31,3 +31,35 @@ INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('d
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-aaa-aa', 'testcluster2', 2.5, 15, 25, 25);
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-bbb-aa', 'testcluster2', 2.5, 16, 26, 25);
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-ccc-aa', 'testcluster2', 2.5, 17, 27, 25);
+
+-- template data
+INSERT INTO templates (name, language, content) VALUES (
+  'other language follows', 'en', '
+(La version française de ce message suit.)
+');
+INSERT INTO templates (name, language, content) VALUES (
+  'other language follows', 'fr', '
+(The English language version of this message follows.)
+');
+INSERT INTO templates (name, content) VALUES (
+  'separator', '
+--------------------------------------
+');
+INSERT INTO templates (name, language, content) VALUES (
+  'intro title', 'en', 'NOTICE: Your computations may be eligible for prioritised execution');
+INSERT INTO templates (name, language, content) VALUES (
+  'intro title', 'fr', 'AVIS: Vos calculs peuvent être éligibles pour une exécution prioritaire');
+INSERT INTO templates (name, language, content) VALUES (
+  'intro', 'en', 'Hello %PREFERRED_NAME%,
+
+Ongoing analysis of queued jobs on %CLUSTER% has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.
+
+Best regards,
+%ANALYST%');
+INSERT INTO templates (name, language, content) VALUES (
+  'intro', 'fr', 'Bonjour %PREFERRED_NAME%,
+
+Analyse en cours des travaux en attente sur %CLUSTER% a montré que votre projet comporte une quantité d''emplois bénéficier d''une escalade temporaire en priorité. S''il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.
+
+Meilleures salutations,
+%ANALYST%');

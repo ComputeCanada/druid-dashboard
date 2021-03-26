@@ -2,9 +2,10 @@
 # pylint:
 #
 import re
-#from manager.db import get_db
-#from manager.log import get_log
+from manager.db import get_db
+from manager.log import get_log
 
+# regular expression for substituting template variables
 _re = r'%(?P<var>\w+)%'
 _rec = re.compile(_re)
 
@@ -24,14 +25,31 @@ _stubs = {
     "fr": "Bonjour %PREFERRED_NAME%,\n\nAnalyse en cours des travaux en attente sur %CLUSTER% a montré que votre projet comporte une quantité d'emplois bénéficier d'une escalade temporaire en priorité. S'il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.\n\nMeilleures salutations,\n%ANALYST%"
   }
 }
+# ---------------------------------------------------------------------------
+#                                                               SQL queries
+# ---------------------------------------------------------------------------
+
+SQL_GET = '''
+  SELECT  content
+  FROM    templates
+  WHERE   name = ?
+  AND     language = ?
+'''
+
+# ---------------------------------------------------------------------------
+#                                                            Template class
+# ---------------------------------------------------------------------------
 
 class Template:
 
   def __init__(self, name, language=None):
-    if language:
-      self._content = _stubs[name][language]
-    else:
-      self._content = _stubs[name]
+    res = get_db().execute(SQL_GET, (name, language)).fetchone()
+    if not res:
+      get_log().error(
+        "Could not load requested template (name=%s, language=%s) from database",
+        name, language)
+      raise "TODO: Better exception: Could not find requested template"
+    self._content = res['content']
 
   def render(self, values=None):
     values = values or {}
