@@ -55,6 +55,6 @@ class Template:
     values = values or {}
     return re.sub(
       _rec,
-      lambda x: values.get(x['var'], "<<UNDEFINED('{}')>>".format(x['var'])),
+      lambda x: str(values.get(x['var'], "<<UNDEFINED('{}')>>".format(x['var']))),
       self._content
     )
