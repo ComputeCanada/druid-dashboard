@@ -7,6 +7,7 @@ from manager.db import get_db, DbEnum
 from manager.log import get_log
 from manager.exceptions import DatabaseException, BadCall
 from manager.component import Component
+from manager.cluster import Cluster
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -159,7 +160,7 @@ def _bursts_by_cluster_epoch(db_results):
 def get_cluster_bursts(cluster):
   db = get_db()
 
-  # get epoch from cluster's detector
+  # get cluster's detector
   detector = Component(cluster=cluster, service='detector')
 
   # get current bursts
@@ -202,7 +203,7 @@ def set_ticket(id, ticket_id, ticket_no):
   db.commit()
 
 # ---------------------------------------------------------------------------
-#                                                           component class
+#                                                               burst class
 # ---------------------------------------------------------------------------
 
 class Burst():
@@ -272,7 +273,7 @@ class Burst():
         self._pain = res['pain']
         self._jobrange = (res['firstjob'], res['lastjob'])
         self._state = State(res['state'])
-        self._summary = res['summary']
+        self._summary = json.loads(res['summary']) if res['summary'] else None
         self._epoch = res['epoch']
         self._ticks = res['ticks']
         self._claimant = res['claimant']
@@ -349,6 +350,16 @@ class Burst():
   @property
   def ticket_no(self):
     return self._ticket_no
+
+  @property
+  def info(self):
+    basic = {
+      'cluster': Cluster(self._cluster).name,
+      'pain': self._pain,
+    }
+    if self._summary:
+      return dict(basic, **self._summary)
+    return basic
 
   def serialize(self):
     return {
