@@ -14,31 +14,31 @@ _fake_tree = {
     'preferredLanguage': 'en',
     'cn': 'Test PI 1',
     'cci': 'tst-002',
-    'ccPrimaryEmail': 'drew.leske+pi1@computecanada.ca'
+    'ccPrimaryEmail': ['drew.leske+pi1@computecanada.ca']
   },
   'user1': {
     'cn': 'Test User 1',
     'givenName': 'User 1',
     'preferredLanguage': 'en',
-    'cci': 'tst-005',
-    'ccPrimaryEmail': 'drew.leske+user1@computecanada.ca',
+    'cci': 'tst-003',
+    'ccPrimaryEmail': ['drew.leske+user1@computecanada.ca'],
     'eduPersonEntitlement': ['frak.computecanada.ca/burst/analyst'],
   },
   'user2': {
     'cn': 'Test User 2',
     'givenName': 'User 2',
-    'cci': 'tst-003'
+    'cci': 'tst-004'
   },
   'user3': {
     'cn': 'Test User 3',
     'givenName': 'User 3',
     'preferredLanguage': 'fr',
     'cci': 'tst-006',
-    'ccPrimaryEmail': 'drew.leske+user3@computecanada.ca'
+    'ccPrimaryEmail': ['drew.leske+user3@computecanada.ca']
   },
   'ldapcanary': {
     'cn': 'Fake Canary',
-    'cci': 'tst-004'
+    'cci': 'tst-005'
   }
 }
 
