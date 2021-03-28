@@ -76,12 +76,19 @@ CREATE TABLE notifiers (
   config TEXT
 );
 
--- language is not "NOT NULL" because it is acceptable to have some templates
--- which are not language-specific, such as a separator for use between
--- versions in an e-mail.
+/* The language column allows an empty string as default because it is
+ * acceptable to have some templates which are not language-specific, such as
+ * a separator for use between versions in an e-mail.  Simply leaving as NULL
+ * is unworkable because Postgres does not allow for NULL values in
+ * multi-column keys.
+ *
+ * Ideally, the schema would prohibit creation of a template with both
+ * variants where a language was defined and where one was not, as a template
+ * should represent all languages or be language-agnostic.
+ */
 CREATE TABLE templates (
   name VARCHAR(32),
-  language CHAR(2) DEFAULT '',
+  language CHAR(2) NOT NULL DEFAULT '',
   content TEXT,
   PRIMARY KEY (name, language),
   CHECK (language IN ('', 'en', 'fr'))
