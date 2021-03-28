@@ -63,7 +63,7 @@ def test_update_bursts_xhr(client):
       "bursts": [
         {
           "account":"def-dleske-aa",
-          "claimant":'tst-005',
+          "claimant":'tst-003',
           "claimant_pretty":'User 1',
           "cluster":"testcluster",
           "resource":"cpu",
