@@ -21,7 +21,7 @@ INSERT INTO apikeys (access, secret, component, lastused) VALUES (
   'testapikey2_d', 'rammarammadingdong', 'testcluster2_detector', 20);
 INSERT INTO apikeys (access, secret, component, lastused) VALUES (
   'testapikey2_s', 'GEMr1Ksi7I9G9BXuAhY4IITgMcyAKmHzgjFZ2uBTUpQkT1n3xUda5v+4FQAaBA==', 'testcluster2_scheduler', 20);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-aaa-aa', 'testcluster', 1.0, 10, 20, 10);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch, summary) VALUES ('def-aaa-aa', 'testcluster', 1.0, 10, 20, 10, '{"num_jobs":1403}');
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-bbb-aa', 'testcluster', 1.0, 11, 21, 10);
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-aaa-aa', 'testcluster', 2.0, 10, 20, 20);
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, state, epoch) VALUES ('def-bbb-aa', 'testcluster', 2.0, 11, 21, 'a', 20);
@@ -50,16 +50,22 @@ INSERT INTO templates (name, language, content) VALUES (
 INSERT INTO templates (name, language, content) VALUES (
   'intro title', 'fr', 'AVIS: Vos calculs peuvent être éligibles pour une exécution prioritaire');
 INSERT INTO templates (name, language, content) VALUES (
-  'intro', 'en', 'Hello %PREFERRED_NAME%,
+  'intro', 'en', 'Hello %piName%,
 
-Ongoing analysis of queued jobs on %CLUSTER% has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.
+Ongoing analysis of queued jobs on %cluster% has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.
+
+Additional job info:
+  Current number of jobs: %num_jobs%
 
 Best regards,
-%ANALYST%');
+%analyst%');
 INSERT INTO templates (name, language, content) VALUES (
-  'intro', 'fr', 'Bonjour %PREFERRED_NAME%,
+  'intro', 'fr', 'Bonjour %piName%,
 
-Analyse en cours des travaux en attente sur %CLUSTER% a montré que votre projet comporte une quantité d''emplois bénéficier d''une escalade temporaire en priorité. S''il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.
+Analyse en cours des travaux en attente sur %cluster% a montré que votre projet comporte une quantité de tâches bénéficier d''une escalade temporaire en priorité. S''il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.
+
+Info additionel au tâches:
+  Comte de tâches au courant: %num_jobs%
 
 Meilleures salutations,
-%ANALYST%');
+%analyst%');
