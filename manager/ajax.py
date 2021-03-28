@@ -193,15 +193,19 @@ def xhr_create_ticket():
   # lookup e-mails for the users
   CCs = []
   for user in submitters:
-    userrec = ldap.get_person(user)
+    userrec = ldap.get_person(user, ['ccPrimaryEmail'])
     if not userrec:
       get_log().error("Burst record lists job submitter not found in LDAP: %s", user)
       # TODO: flash user of error
     else:
-      CCs.append(userrec['ccPrimaryEmail'])
-      l = userrec['preferredLanguage']
-      if l not in languages:
-        languages.append(l)
+      try:
+        CCs.append(userrec['ccPrimaryEmail'][0])
+      except KeyError:
+        get_log().error("Could not retrieve ccPrimaryEmail for user %s; continuing without", user)
+      else:
+        l = userrec['preferredLanguage']
+        if l not in languages:
+          languages.append(l)
 
   # set up values for template substitutions
   template_values = dict({
@@ -226,7 +230,7 @@ def xhr_create_ticket():
     body = Template("intro", languages[0]).render(values=template_values)
 
   # create ticket via OTRS
-  ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['ccPrimaryEmail'], CCs=CCs)
+  ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['ccPrimaryEmail'][0], CCs=CCs)
   if not ticket:
     error = "Unable to create ticket"
     get_log().error(error)
