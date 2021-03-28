@@ -21,6 +21,7 @@ _fake_tree = {
     'givenName': 'User 1',
     'preferredLanguage': 'en',
     'cci': 'tst-005',
+    'ccPrimaryEmail': 'drew.leske+user1@computecanada.ca',
     'eduPersonEntitlement': ['frak.computecanada.ca/burst/analyst'],
   },
   'user2': {
@@ -31,8 +32,9 @@ _fake_tree = {
   'user3': {
     'cn': 'Test User 3',
     'givenName': 'User 3',
-    'preferredLanguage': 'en',
+    'preferredLanguage': 'fr',
     'cci': 'tst-006',
+    'ccPrimaryEmail': 'drew.leske+user3@computecanada.ca'
   },
   'ldapcanary': {
     'cn': 'Fake Canary',
