@@ -34,11 +34,11 @@ INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('d
 
 -- template data
 INSERT INTO templates (name, language, content) VALUES (
-  'other language follows', 'en', '
+  'other language follows', 'fr', '
 (La version française de ce message suit.)
 ');
 INSERT INTO templates (name, language, content) VALUES (
-  'other language follows', 'fr', '
+  'other language follows', 'en', '
 (The English language version of this message follows.)
 ');
 INSERT INTO templates (name, content) VALUES (
