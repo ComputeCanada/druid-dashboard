@@ -14,9 +14,6 @@ class OtrsStub():
     ticket_id = self._nextID
     self._nextID += 1
 
-    print("Ticket: {}".format(ticket))
-    print("Article: {}".format(article))
-
     return {
       'ticket_id': ticket_id,
       'ticket_no': "0{}".format(ticket_id),
