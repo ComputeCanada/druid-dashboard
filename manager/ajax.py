@@ -164,7 +164,7 @@ def xhr_create_ticket():
   # get request data
   burst_id = int(request.form['burst_id'])
   account = request.form['account']
-  submitters = request.form.get('submitters', [])
+  submitters = request.form.getlist('submitters')
 
   # populate objects we'll need
   burst = Burst(id=burst_id)
@@ -199,7 +199,7 @@ def xhr_create_ticket():
       # TODO: flash user of error
     else:
       CCs.append(userrec['ccPrimaryEmail'])
-      l = userrec['ccPreferredLanguage']
+      l = userrec['preferredLanguage']
       if l not in languages:
         languages.append(l)
 
