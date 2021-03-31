@@ -459,20 +459,24 @@ function createTicketButton(id, account) {
 
 function renderTableData(bursts) {
 
+  var id, account, resource;
+  var state_checked;
+
   bycols = [];
   for (var i=0, ien=bursts.length; i<ien; i++) {
-    var state_checked = {}
+    state_checked = {}
     state_checked[bursts[i].state] = "checked='checked'";
     burst_states[bursts[i].id] = bursts[i].state;
 
-    var id = bursts[i].id
-    var account = bursts[i].account
+    id = bursts[i].id;
+    account = bursts[i].account;
+    resource = bursts[i].resource;
 
     bycols[i] = [
       bursts[i].ticks,
       bursts[i].account,
-      `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_cumu_plot.html">Cumulative</a>
-       <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${bursts[i].account}_insta_plot.html">Instant</a>`,
+      `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.html">Cumulative</a>
+       <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_insta_plot.html">Instant</a>`,
       bursts[i].pain.toFixed(2),
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
