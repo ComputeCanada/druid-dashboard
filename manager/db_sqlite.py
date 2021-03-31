@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
+from enum import Enum
 import re
 import sqlite3
 from manager.exceptions import DatabaseException
@@ -85,12 +86,19 @@ class ExtConnection(sqlite3.Connection):
       qparms = nextqparm(sql)
 
       # consume static tokens between query parameters
+      converted = []
       for p in parameters:
         newsql += next(qparms)
         if isinstance(p, (list, tuple)):
           newsql += ','.join(['?'] * len(p))
         else:
           newsql += '?'
+
+        # also check if this is a Enum
+        if issubclass(type(p), Enum):
+          converted.append(p.value)
+        else:
+          converted.append(p)
 
       # use up remaining string tokens
       if __debug__:
@@ -102,10 +110,10 @@ class ExtConnection(sqlite3.Connection):
             raise DatabaseException("SQLite: Should not have any more qparms in token parsing")
           gotone = True
         newsql += tok
-    else:
-      return sqlite3.Connection.execute(self, sql)
 
-    return sqlite3.Connection.execute(self, newsql, flatten(parameters))
+      return sqlite3.Connection.execute(self, newsql, flatten(converted))
+
+    return sqlite3.Connection.execute(self, sql)
 
 def open_db_sqlite(uri):
   """
