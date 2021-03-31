@@ -71,7 +71,7 @@ def _bursts_by_cluster():
             prettyname = person['givenName']
           burst['claimant_pretty'] = prettyname
 
-        # add ticket URL there's a ticket
+        # add ticket URL if there's a ticket
         if burstObj.ticket_id:
           burst['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
             ticket_url(burstObj.ticket_id), burstObj.ticket_no)
