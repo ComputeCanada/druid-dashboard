@@ -277,6 +277,10 @@ class DbEnum(Enum):
   def serialize(self):
     return self.name.lower()
 
+  # pylint: disable=raise-missing-from
   @classmethod
-  def get(cls, name):
-    return cls[name.upper()]
+  def get(cls, key):
+    try:
+      return cls[key.upper()]
+    except KeyError:
+      raise KeyError(key)
