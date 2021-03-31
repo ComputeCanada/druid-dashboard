@@ -10,7 +10,7 @@ from flask import (
 )
 from manager.log import get_log
 from manager.apikey import ApiKey
-from manager.burst import Burst, get_bursts, State
+from manager.burst import Burst, get_bursts, State, Resource
 from manager.component import Component
 from manager.event import report, BurstReportReceived
 
@@ -294,7 +294,7 @@ def api_post_bursts():
     # get the submitted data
     try:
       # pull the others
-      resource = burst['resource']
+      res_raw = burst['resource']
       account = burst['account']
       pain = burst['pain']
       summary = burst['summary']
@@ -309,13 +309,9 @@ def api_post_bursts():
       get_log().error(errmsg)
       abort(400, errmsg)
 
-    # convert resource to shorthand
+    # convert from JSON representations
     try:
-      # burst resource type
-      type = {
-        'cpu': 'c',
-        'gpu': 'g'
-      }[resource]
+      resource = Resource.get(res_raw)
     except KeyError as e:
       errmsg = "Invalid resource type: {}".format(e)
       get_log().error(errmsg)
@@ -325,7 +321,7 @@ def api_post_bursts():
     bursts.append(Burst(
       cluster=cluster,
       account=account,
-      resource=type,
+      resource=resource,
       pain=pain,
       jobrange=(firstjob, lastjob),
       summary=summary,
