@@ -99,6 +99,12 @@ def test_get_burst(client):
     'submitters': ['userQ']
   }
 
+def test_post_nothing(client):
+
+  response = api_post(client, '/api/bursts', {})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: API violation: must define both \'version\' and \'bursts\'"}\n'
+
 def test_post_burst_no_version(client):
 
   response = api_post(client, '/api/bursts', {
