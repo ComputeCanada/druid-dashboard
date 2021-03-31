@@ -2,7 +2,7 @@
 # pylint:
 #
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, session
 
 from manager.auth import admin_required
 
@@ -30,5 +30,8 @@ def admin():
   # TODO: load site configuration
   # TODO: decide whether to do the above and also use AJAX, or skip and just
   #       do AJAX
+
+  # remember to come back to admin view
+  session['admin_view'] = True
 
   return render_template('admin/index.html')

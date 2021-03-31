@@ -53,9 +53,9 @@
     {% endif %}
     {%- if session['admin'] %}
       {%- if session['admin_view'] %}
-  <li><a href="{{ url_for('index', mode='user') }}">{{ _('Switch to user view') }}</a></li>
+  <li><a href="{{ url_for('dashboard.user_view_redirect') }}">{{ _('Switch to user view') }}</a></li>
       {%- else %}
-  <li><a href="{{ url_for('index',  mode='admin') }}">{{ _('Switch to admin view') }}</a></li>
+  <li><a href="{{ url_for('admin.admin') }}">{{ _('Switch to admin view') }}</a></li>
       {%- endif %}
     {%- endif %}
   </ul>

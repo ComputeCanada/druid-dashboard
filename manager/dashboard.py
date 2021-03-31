@@ -39,18 +39,19 @@ notification_handler = {
 @login_required
 def index():
 
-  mode = request.args.get('mode')
-  if session.get('admin') and mode:
-    session['admin_view'] = {
-      'user': False,
-      'admin': True
-    }[mode]
-
   # redirect admin to admin dashboard if that's the view they want
   if session.get('admin_view'):
     return redirect(url_for('admin.admin'))
-
   return render_template('dashboard/index.html')
+
+# this is for getting at the user dashboard if you're an admin
+@bp.route('/user')
+@login_required
+def user_view_redirect():
+
+  if session.get('admin'):
+    session['admin_view'] = False
+  return redirect(url_for('dashboard.index'))
 
 @bp.route('/notifications')
 @login_required

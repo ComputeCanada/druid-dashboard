@@ -64,13 +64,13 @@ def test_admin_view_mode(client):
   WHEN  a correct admin credential identifier is provided and mode is set in query
   THEN  the client is redirected as appropriate for the mode
   """
-  response = client.get('/?mode=user', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
-  assert response.status_code == 200
-  assert b'Switch to admin view' in response.data
-
-  response = client.get('/?mode=admin', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  response = client.get('/user', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
   assert response.status_code == 302
-  assert b'You should be redirected automatically to target URL: <a href="/admin/">/admin/</a>' in response.data
+  assert b'You should be redirected automatically to target URL: <a href="/">/</a>' in response.data
+
+  response = client.get('/admin/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 200
+  assert b'Switch to user view' in response.data
 
 
 def test_failed_login_bad_user(client):
