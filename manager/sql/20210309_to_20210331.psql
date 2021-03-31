@@ -1,0 +1,13 @@
+ALTER TABLE bursts ADD COLUMN resource CHAR(1) NOT NULL DEFAULT 'c';
+ALTER TABLE bursts ADD CHECK (resource in ('c', 'g'));
+ALTER TABLE bursts ADD COLUMN submitters TEXT;
+
+CREATE TABLE templates (
+  name VARCHAR(32),
+  language CHAR(2) NOT NULL DEFAULT '',
+  content TEXT,
+  PRIMARY KEY (name, language),
+  CHECK (language IN ('', 'en', 'fr'))
+);
+
+INSERT INTO schemalog (version, applied) VALUES ('20210331', CURRENT_TIMESTAMP);

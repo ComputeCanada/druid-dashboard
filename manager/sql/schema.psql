@@ -11,7 +11,7 @@ CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210309', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210331', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
