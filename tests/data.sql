@@ -21,16 +21,16 @@ INSERT INTO apikeys (access, secret, component, lastused) VALUES (
   'testapikey2_d', 'rammarammadingdong', 'testcluster2_detector', 20);
 INSERT INTO apikeys (access, secret, component, lastused) VALUES (
   'testapikey2_s', 'GEMr1Ksi7I9G9BXuAhY4IITgMcyAKmHzgjFZ2uBTUpQkT1n3xUda5v+4FQAaBA==', 'testcluster2_scheduler', 20);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch, summary) VALUES ('def-aaa-aa', 'testcluster', 1.0, 10, 20, 10, '{"num_jobs":1403}');
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-bbb-aa', 'testcluster', 1.0, 11, 21, 10);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-aaa-aa', 'testcluster', 2.0, 10, 20, 20);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, state, epoch) VALUES ('def-bbb-aa', 'testcluster', 2.0, 11, 21, 'a', 20);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, state, epoch) VALUES ('def-ccc-aa', 'testcluster', 2.0, 12, 22, 'a', 20);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-aaa-aa', 'testcluster2', 1.5, 15, 25, 15);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-bbb-aa', 'testcluster2', 1.5, 16, 26, 15);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-aaa-aa', 'testcluster2', 2.5, 15, 25, 25);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-bbb-aa', 'testcluster2', 2.5, 16, 26, 25);
-INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, epoch) VALUES ('def-ccc-aa', 'testcluster2', 2.5, 17, 27, 25);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch, summary) VALUES ('def-aaa-aa', 'testcluster', 1.0, 10, 20, 'userQ', 10, '{"num_jobs":1403}');
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-bbb-aa', 'testcluster', 1.0, 11, 21, 'userQ', 10);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-aaa-aa', 'testcluster', 2.0, 10, 20, 'userQ', 20);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, state, epoch) VALUES ('def-bbb-aa', 'testcluster', 2.0, 11, 21, 'userQ', 'a', 20);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, state, epoch) VALUES ('def-ccc-aa', 'testcluster', 2.0, 12, 22, 'userQ', 'a', 20);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-aaa-aa', 'testcluster2', 1.5, 15, 25, 'userQ', 15);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-bbb-aa', 'testcluster2', 1.5, 16, 26, 'userQ', 15);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-aaa-aa', 'testcluster2', 2.5, 15, 25, 'userQ', 25);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-bbb-aa', 'testcluster2', 2.5, 16, 26, 'userQ', 25);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-ccc-aa', 'testcluster2', 2.5, 17, 27, 'userQ', 25);
 
 -- template data
 INSERT INTO templates (name, language, content) VALUES (

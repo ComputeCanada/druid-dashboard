@@ -224,6 +224,7 @@ def api_post_bursts():
           'pain':     number indicating pain ratio as defined by Detector,
           'firstjob': first job owned by account currently in the system,
           'lastjob':  last job owned by account currently in the system,
+          'submitters': array of user IDs of those submitting jobs,
           'summary':  JSON-encoded key-value information about burst context
                       which may be of use to analyst in evaluation
         },
@@ -298,6 +299,7 @@ def api_post_bursts():
       account = burst['account']
       pain = burst['pain']
       summary = burst['summary']
+      submitters = burst['submitters']
 
       # strip job array ID component, if present
       firstjob = just_job_id(burst['firstjob'])
@@ -323,6 +325,7 @@ def api_post_bursts():
       account=account,
       resource=resource,
       pain=pain,
+      submitters=submitters,
       jobrange=(firstjob, lastjob),
       summary=summary,
       epoch=epoch

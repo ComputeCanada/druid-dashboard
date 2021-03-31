@@ -70,8 +70,8 @@ SQL_UPDATE_STATE_CLAIMED = '''
 
 SQL_CREATE = '''
   INSERT INTO bursts
-              (cluster, account, resource, pain, firstjob, lastjob, summary, epoch)
-  VALUES      (?, ?, ?, ?, ?, ?, ?, ?)
+              (cluster, account, resource, pain, firstjob, lastjob, submitters, summary, epoch)
+  VALUES      (?, ?, ?, ?, ?, ?, ?, ?, ?)
 '''
 
 SQL_ACCEPT = '''
@@ -123,6 +123,7 @@ def _burst_array(db_results):
       resource=Resource(row['resource']),
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
+      submitters=row['submitters'].split(),
       state=State(row['state']),
       summary=row['summary'],
       epoch=row['epoch'],
@@ -147,6 +148,7 @@ def _bursts_by_cluster_epoch(db_results):
       resource=Resource(row['resource']),
       pain=row['pain'],
       jobrange=(row['firstjob'], row['lastjob']),
+      submitters=row['submitters'].split(),
       state=State(row['state']),
       summary=row['summary'],
       epoch=row['epoch'],
@@ -217,6 +219,7 @@ class Burst():
     _resource: resource type (type burst.Resource)
     _pain: pain
     _jobrange: tuple of first and last job IDs in burst
+    _submitters: submitters associated with the jobs
     _state: state of burst (type burst.State)
     _summary: summary information about burst and jobs (JSON)
     _epoch: epoch timestamp of last report
@@ -227,9 +230,9 @@ class Burst():
   """
 
   def __init__(self, id=None, cluster=None, account=None,
-      resource=Resource.CPU, pain=None, jobrange=None, state=State.UNCLAIMED,
-      summary=None, epoch=None, ticks=0, claimant=None, ticket_id=None,
-      ticket_no=None):
+      resource=Resource.CPU, pain=None, jobrange=None, submitters=None,
+      state=State.UNCLAIMED, summary=None, epoch=None, ticks=0, claimant=None,
+      ticket_id=None, ticket_no=None):
 
     self._id = id
     self._cluster = cluster
@@ -237,6 +240,7 @@ class Burst():
     self._resource = resource
     self._pain = pain
     self._jobrange = jobrange
+    self._submitters = submitters
     self._state = state
     self._summary = summary
     self._epoch = epoch
@@ -250,6 +254,7 @@ class Burst():
     # "pain is not None" etc because they are numbers
     if id and cluster and account and jobrange and summary and \
         pain is not None and epoch is not None:
+
       return
 
     # verify initialized correctly
@@ -267,11 +272,13 @@ class Burst():
       # lookup operation
       res = db.execute(SQL_GET, (id,)).fetchone()
       if res:
+        self._id = id
         self._cluster = res['cluster']
         self._account = res['account']
         self._resource = Resource(res['resource'])
         self._pain = res['pain']
         self._jobrange = (res['firstjob'], res['lastjob'])
+        self._submitters = res['submitters'].split()
         self._state = State(res['state'])
         self._summary = json.loads(res['summary']) if res['summary'] else None
         self._epoch = res['epoch']
@@ -319,8 +326,9 @@ class Burst():
 
         # create burst record
         try:
+          print("Creating new record with submitters: {}".format(submitters))
           db.execute(SQL_CREATE, (
-            cluster, account, resource, pain, jobrange[0], jobrange[1],
+            cluster, account, resource, pain, jobrange[0], jobrange[1], ' '.join(submitters),
             json.dumps(summary), epoch
             )
           )

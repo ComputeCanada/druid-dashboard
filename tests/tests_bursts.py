@@ -25,7 +25,7 @@ def test_get_bursts_xhr(client):
           "id":12,"jobrange":[1005,2015],"pain":1.2, "state":"unclaimed",
           "state_pretty":"Unclaimed","summary":"{}","ticks":1,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None}
+          "ticket_href":None,"submitters":["userQ"]}
       ],
     },
     "testcluster2": {
@@ -34,17 +34,17 @@ def test_get_bursts_xhr(client):
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"unclaimed",
           "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None},
+          "ticket_href":None,"submitters":["userQ"]},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"unclaimed",
           "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None},
+          "ticket_href":None,"submitters":["userQ"]},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"unclaimed",
           "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None}
+          "ticket_href":None,"submitters":["userQ"]}
       ],
       "epoch":25
     }
@@ -70,6 +70,7 @@ def test_update_bursts_xhr(client):
           "resource_pretty": "CPU",
           "id":12,
           "jobrange":[1005,2015],
+          "submitters":["userQ"],
           "pain":1.2,
           "state":"claimed",
           "state_pretty": "Claimed",
@@ -87,17 +88,17 @@ def test_update_bursts_xhr(client):
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"unclaimed",
           "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None},
+          "ticket_href":None,"submitters":["userQ"]},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"unclaimed",
           "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None},
+          "ticket_href":None,"submitters":["userQ"]},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"unclaimed",
           "state_pretty":"Unclaimed","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None}
+          "ticket_href":None,"submitters":["userQ"]}
       ],
       "epoch":25
     }

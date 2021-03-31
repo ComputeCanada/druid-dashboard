@@ -47,9 +47,12 @@ CREATE TABLE notifications (
   message TEXT NOT NULL
 );
 
--- state: 'p' = pending/unactioned, 'c' = claimed, 'a' = accepted, 'r' = rejected
--- resource: 'c' = CPU, 'g' = GPU
--- see burst.py::State, burst.py::Resource
+/*
+ * state: 'p' = pending/unactioned, 'c' = claimed, 'a' = accepted, 'r' = rejected
+ * resource: 'c' = CPU, 'g' = GPU
+ * see burst.py::State, burst.py::Resource
+ * submitters is an space-separated list of user IDs
+ */
 CREATE TABLE bursts (
   id INTEGER PRIMARY KEY,
   state CHAR(1) NOT NULL DEFAULT 'p',
@@ -59,6 +62,7 @@ CREATE TABLE bursts (
   pain REAL NOT NULL,
   firstjob INTEGER NOT NULL,
   lastjob INTEGER NOT NULL,
+  submitters TEXT NOT NULL,
   summary TEXT,
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 0,

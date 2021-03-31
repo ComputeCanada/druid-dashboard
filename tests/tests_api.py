@@ -95,7 +95,8 @@ def test_get_burst(client):
     'summary': None,
     'ticket_id': None,
     'ticket_no': None,
-    'ticks': 0
+    'ticks': 0,
+    'submitters': ['userQ']
   }
 
 def test_post_burst_no_version(client):
@@ -144,7 +145,8 @@ def test_post_incomplete_burst_no_account(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 400
@@ -160,7 +162,8 @@ def test_post_incomplete_burst_no_firstjob(client):
         'resource': 'cpu',
         'pain': 0.0,
         'lastjob': 2000,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 400
@@ -176,7 +179,8 @@ def test_post_incomplete_burst_no_lastjob(client):
         'resource': 'cpu',
         'pain': 0.0,
         'firstjob': 1000,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 400
@@ -192,7 +196,8 @@ def test_post_incomplete_burst_no_pain(client):
         'resource': 'cpu',
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 400
@@ -208,7 +213,8 @@ def test_post_incomplete_burst_no_resource(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 400
@@ -224,11 +230,29 @@ def test_post_incomplete_burst_no_summary(client):
         'resource': 'cpu',
         'pain': 0.0,
         'firstjob': 1000,
-        'lastjob': 2000
+        'lastjob': 2000,
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 400
   assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'summary\'"}\n'
+
+def test_post_incomplete_burst_no_submitters(client):
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske',
+        'resource': 'cpu',
+        'pain': 0.0,
+        'firstjob': 1000,
+        'lastjob': 2000,
+        'summary': {}
+      }
+    ]})
+  assert response.status_code == 400
+  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'submitters\'"}\n'
 
 def test_post_bad_burst_bad_resource(client):
 
@@ -241,7 +265,8 @@ def test_post_bad_burst_bad_resource(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 400
@@ -269,7 +294,8 @@ def test_post_burst(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 201
@@ -285,7 +311,8 @@ def test_post_bursts(client):
         'pain': 1.0,
         'firstjob': 1005,
         'lastjob': 2005,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       },
       {
         'account': 'def-bobaloo-aa',
@@ -293,7 +320,8 @@ def test_post_bursts(client):
         'pain': 1.5,
         'firstjob': 1015,
         'lastjob': 2015,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 201
@@ -312,7 +340,8 @@ def test_post_bursts(client):
         'pain': 1.2,
         'firstjob': 1020,
         'lastjob': 2015,
-        'summary': {}
+        'summary': {},
+        'submitters': ['userQ']
       }
     ]})
   assert response.status_code == 201
