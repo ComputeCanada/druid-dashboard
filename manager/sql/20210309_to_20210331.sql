@@ -7,18 +7,18 @@ CREATE TABLE burstsTMP (
   id INTEGER PRIMARY KEY,
   state CHAR(1) NOT NULL DEFAULT 'p',
   account VARCHAR(32) NOT NULL,
-  resource CHAR(1) NOT NULL DEFAULT 'c',
   cluster VARCHAR(16) NOT NULL,
   pain REAL NOT NULL,
   firstjob INTEGER NOT NULL,
   lastjob INTEGER NOT NULL,
-  submitters TEXT NOT NULL,
   summary TEXT,
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 0,
   claimant CHAR(7),
   ticket_id INTEGER,
   ticket_no VARCHAR(9),
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  submitters TEXT NOT NULL,
   CHECK (state in ('p', 'c', 'a', 'r')),
   CHECK (resource in ('c', 'g')),
   FOREIGN KEY (cluster) REFERENCES clusters(id)
@@ -26,8 +26,8 @@ CREATE TABLE burstsTMP (
 
 -- update the existing table to have a (n empty) column so there are enough
 -- values to copy over in the next step
-ALTER TABLE bursts ADD COLUMN submitters TEXT NOT NULL DEFAULT '';
 ALTER TABLE bursts ADD COLUMN resource CHAR(1) NOT NULL DEFAULT 'c';
+ALTER TABLE bursts ADD COLUMN submitters TEXT NOT NULL DEFAULT '';
 
 -- now copy everything over, get rid of the old, rename the new
 INSERT INTO burstsTMP SELECT * FROM bursts;
