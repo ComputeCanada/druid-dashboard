@@ -6,11 +6,13 @@
 #                                                            configuration
 # --------------------------------------------------------------------------
 
-# this needs to be set when the seed data is changed as this will break
-# schema upgrade testing.  This tag must be applied to the commit of the
-# changes or that of the seed data, whichever is latest.  Obviously upgrades
-# prior to the baseline are assumed to have been properly tested.
-SCHEMA_BASELINE=20210309
+# Schema baselining has been removed for now.  It's untenable.  Leaving in
+# here for now to be for sure for sure.
+# # this needs to be set when the seed data is changed as this will break
+# # schema upgrade testing.  This tag must be applied to the commit of the
+# # changes or that of the seed data, whichever is latest.  Obviously upgrades
+# # prior to the baseline are assumed to have been properly tested.
+# SCHEMA_BASELINE=20201209
 
 # --------------------------------------------------------------------------
 #                                                            functions
@@ -26,6 +28,24 @@ fail_to()
 #                                                         argument parsing
 # --------------------------------------------------------------------------
 
+usage()
+{
+  cat <<EOF
+Usage: $(basename $0) [options]
+Options:
+  --no-cleanup:   Do not clean up temporary directories
+  --schema:       Include schema upgrade testing
+  --no-sqlite:    Skip SQLite testing
+  --no-linting:   Skip lint testing
+  -x|--exitfirst: [pytest] Exit at first failed test
+  -v|--verbose:   [pytest] Show verbose information
+  -d|--debug:     [pytest] Show debug-level logging
+
+Postgres testing is performed by default if a Postgres container is running
+with the label 'postgres-beam'.
+EOF
+}
+
 # get arguments
 test_schema=0
 linting=1
@@ -33,9 +53,13 @@ exitfirst=0
 verbose=0
 debug=0
 sqlite=1
+cleanup=1
 while [ -n "$1" ]
 do
   case "$1" in
+    --no-cleanup)
+      cleanup=0
+      ;;
     --schema)
       test_schema=1
       ;;
@@ -54,9 +78,13 @@ do
     -x|--exitfirst)
       exitfirst=1
       ;;
+    -h|--help)
+      usage
+      exit
+      ;;
     *)
       echo "Unrecognized option: $1"
-      echo "$(basename $0) [--schema] [--no-sqlite] [--no-linting] [-x|--exitfirst] [-v|--verbose]"
+      usage
       exit 1
   esac
   shift
@@ -85,8 +113,10 @@ then
   # create temporary directory for this stuff
   tmpdir=$(mktemp -d /tmp/$(basename $0).XXXXXX) || fail_to create temporary directory
 
-  # get schema versions from git after $SCHEMA_BASELINE (when seed data changed)
-  versions=$(git tag | awk -F- '$1 == "schema" && $2 > '$SCHEMA_BASELINE' { print $2 }' | sort)
+  # Schema baselining is disabled; see "configuration" section
+  # # get schema versions from git after $SCHEMA_BASELINE (when seed data changed)
+  # versions=$(git tag | awk -F- '$1 == "schema" && $2 >= '$SCHEMA_BASELINE' { print $2 }' | sort)
+  versions=$(git tag | awk -F- '$1 == "schema" { print $2 }' | sort)
   if [ -z "$versions" ]
   then
     test_schema=0
@@ -102,17 +132,22 @@ then
     # setup pytest stuff
     export SCHEMA_BASEDIR=$tmpdir
     export SCHEMA_VERSIONS=$(echo $versions | tr ' ' ',') 
+    echo "Schema versions: $SCHEMA_VERSIONS"
+    echo "Schema basedir: $SCHEMA_BASEDIR"
   fi
 fi
 
-cleanup()
-{
-  if (( test_schema ))
-  then
-    rm -Rf $tmpdir
-  fi
-}
-trap cleanup EXIT
+if (( cleanup ))
+then
+  cleanup()
+  {
+    if (( test_schema ))
+    then
+      rm -Rf $tmpdir
+    fi
+  }
+  trap cleanup EXIT
+fi
 
 export PYTHONPATH=.:$PYTHONPATH
 
@@ -151,4 +186,6 @@ then
 fi
 
 # functional testing
+echo "SQLite testing: $sqlite_testing"
+echo "Postgres testing: $pgsql_testing"
 pytest $pytest_opts $sqlite_testing $pgsql_testing $ldap_testing || exit 1
