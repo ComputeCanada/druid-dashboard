@@ -1,6 +1,6 @@
 ALTER TABLE bursts ADD COLUMN resource CHAR(1) NOT NULL DEFAULT 'c';
 ALTER TABLE bursts ADD CHECK (resource in ('c', 'g'));
-ALTER TABLE bursts ADD COLUMN submitters TEXT;
+ALTER TABLE bursts ADD COLUMN submitters TEXT NOT NULL DEFAULT '';
 
 CREATE TABLE templates (
   name VARCHAR(32),
