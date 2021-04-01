@@ -17,6 +17,7 @@ from tests_dashboard import *
 from tests_upgrades import *
 from ldapstub import LdapStub
 from otrsstub import OtrsStub
+from conftest import find_seed_update_scripts
 from manager import create_app
 from manager.db import get_db, init_db, seed_db, upgrade_schema, SCHEMA_VERSION
 
@@ -93,10 +94,13 @@ def seeded_app(request):
     'OTRS_STUB': OtrsStub()
   })
 
+  # find updates to seed data which are applied to match updates to test suite
+  seed_updates = find_seed_update_scripts(app.root_path)
+
   with app.app_context():
     init_db(schema)
     seed_db(seed)
-    upgrade_schema()
+    upgrade_schema(seed_updates)
 
   yield app
 

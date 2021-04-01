@@ -124,7 +124,7 @@ def get_schema_version():
   return (vers, SCHEMA_VERSION)
 
 
-def upgrade_schema():
+def upgrade_schema(data_updates=None):
   (actual, expected) = get_schema_version()
   if actual == expected:
     # trivial: actual matches expected, no action needed
@@ -165,10 +165,10 @@ def upgrade_schema():
 
   # find path through upgrades from actual to expected
   have_upgrade_path = False
-  upgrade_path = []
+  upgrades = {}
   current = str(actual)
   while current in scriptdict:
-    upgrade_path.append(scriptdict[current][1])
+    upgrades[scriptdict[current][0]] = scriptdict[current][1]
     current = scriptdict[current][0]
     if current == expected:
       have_upgrade_path = True
@@ -179,17 +179,24 @@ def upgrade_schema():
     description = \
       'There is no upgrade path available from schema version {} (in the ' \
       'database) to {} (expected by the application).  Available upgrades: '\
-      '{}'.format(actual, expected, upgrade_path)
+      '{}'.format(actual, expected, upgrades)
     raise exceptions.ImpossibleSchemaUpgrade(description)
 
-  # run through upgrade scripts
+  # add in the data upgrade scripts, if any
+  if data_updates:
+    for (version, path) in data_updates.items():
+      upgrades[version] = path
+
+  # iterate through upgrade scripts
   actions = []
-  for upgrade in upgrade_path:
+  for version in sorted(upgrades):
+    upgrade = upgrades[version]
     with current_app.open_resource(upgrade) as f:
-      get_log().info("Upgrading DB: %s...", upgrade)
+      get_log().info("Upgrading DB: %s (version %s)", upgrade, version)
       db.executescript(f.read().decode('utf8'))
-      actions.append("Executed {}".format(upgrade))
-      db.commit()
+    actions.append("Executed {}".format(upgrade))
+
+    db.commit()
   get_log().info("Upgraded DB.")
 
   return (actual, expected, actions)

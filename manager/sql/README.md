@@ -27,24 +27,17 @@ a development database and test upgrades.
 
 ## Changes to testing seed data
 
-If the test suite's seed data changes (`/tests/data.sql`), this will break
-upgrade testing, because the upgrade testing currently is based on taking the
-seed data from a particular tag and upgrading from there.  Since the seed
-data's schema will be upgraded but the seed data won't be updated to reflect
-the recent changes for the testing, the test suite based on the newer seed
-data will fail.
+If the test suite's seed data changes (`/tests/data.sql`), an upgrade script
+needs to be created for that as well, or upgrade testing will break, because
+the upgrade testing is based on taking the seed data from a particular tag and
+upgrading the database schema from there; without starting with seed data the
+upgrade testing would only test updates to a blank database, which is not what
+the upgrade or its testing is meant to accomplish.
 
-(This could be worked around by including a file of updates to the seed data,
-but the test suite would need to be updated to handle this and as well it is a
-bunch of extra work that is probably not necessary.  For now I'll continue
-with the idea below.)
-
-When seed data is updated, a new "schema baseline" is established in the
-`tests/test-all` script.  This implements a limit on schema upgrade testing to
-that baseline and forward.  So if the baseline is set to 20210309 then only
-versions newer than that will be tested for upgrades.
-
-Obviously this requires previous versions' upgrades to be properly tested.
-
-Schema version tagging as described above should be applied to the latest
-commit of that with the schema updates and that with the updated seed data.
+Therefore, an upgrade script for the seed data must be created whenever the
+seed data changes.  These must follow the filename convention
+`/tests/data-YYYYMMDD.sql`.  These scripts are applied during upgrade
+scripting in order along with the schema upgrade scripts and it is important
+that data upgrade scripts are numbered so they are executed after the schema
+update for which they apply.  If a schema upgrade and data upgrade script are
+created on the same day, just name the data upgrade script for the next day.
