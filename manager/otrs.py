@@ -94,7 +94,7 @@ def close_otrs(e=None):
 
 
 def ticket_url(ticket_id):
-  return "{}/otrs/index.pl?TicketID={}".format(
+  return "{}/otrs/index.pl?Action=AgentTicketZoom&TicketID={}".format(
     current_app.config['OTRS_URL'],
     ticket_id)
 
@@ -138,6 +138,7 @@ def create_ticket(title, body, owner, client, clientEmail, CCs=None):
   }
   if CCs:
     ccs_str = ' '.join(CCs)
+    get_log().debug("Including CCs: %s", ccs_str)
     article_defn['Cc'] = ccs_str
 
   # create article
@@ -156,7 +157,7 @@ def create_ticket(title, body, owner, client, clientEmail, CCs=None):
   # ticket_misc is used to pass test data back from test suite; set to empty
   # string generally
   return {
-    'ticket_id': details['ticket_id'],
-    'ticket_no': details['ticket_no'],
+    'ticket_id': details['TicketID'],
+    'ticket_no': details['TicketNumber'],
     'misc': details.get('ticket_misc', '')
   }
