@@ -66,7 +66,7 @@ def test_create_ticket_xhr(client):
         'To': 'drew.leske+pi1@computecanada.ca'
       }
     },
-    'url': '/otrs/index.pl?TicketID=1'
+    'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=1'
   }
 
 def test_create_ticket_multiplesubmitters_xhr(client):
@@ -116,5 +116,5 @@ def test_create_ticket_multiplesubmitters_xhr(client):
         'Cc': 'drew.leske+user3@computecanada.ca drew.leske+user1@computecanada.ca'
       }
     },
-    'url': '/otrs/index.pl?TicketID=2'
+    'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=2'
   }
