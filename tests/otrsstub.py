@@ -15,8 +15,8 @@ class OtrsStub():
     self._nextID += 1
 
     return {
-      'ticket_id': ticket_id,
-      'ticket_no': "0{}".format(ticket_id),
+      'TicketID': ticket_id,
+      'TicketNumber': "0{}".format(ticket_id),
       'ding dong': 'merrily on high',
       'ticket_misc': {
         'ticket': ticket.fields,
