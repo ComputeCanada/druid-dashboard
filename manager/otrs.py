@@ -137,9 +137,10 @@ def create_ticket(title, body, owner, client, clientEmail, CCs=None):
     'To': clientEmail
   }
   if CCs:
-    ccs_str = ' '.join(CCs)
-    get_log().debug("Including CCs: %s", ccs_str)
-    article_defn['Cc'] = ccs_str
+    get_log().info("Note: using CCs not currently supported")
+    #ccs_str = ' '.join(CCs)
+    #get_log().debug("Including CCs: %s", ccs_str)
+    #article_defn['Cc'] = ccs_str
 
   # create article
   article = pyotrs.lib.Article(article_defn)
