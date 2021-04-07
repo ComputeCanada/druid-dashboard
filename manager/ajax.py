@@ -200,7 +200,7 @@ def xhr_create_ticket():
     pi_uid = pi['uid']
     pi_email = pi['ccPrimaryEmail'][0]
   except KeyError as e:
-    error = "Incomplete information for PI {} for account {}".format(project['ccResponsible'], project)
+    error = "Incomplete information for PI {} for account {}.  Info: {}".format(project['ccResponsible'], account, pi)
     get_log().error(error)
     return jsonify({'error': error}), 500
 
