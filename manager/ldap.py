@@ -60,13 +60,15 @@ def get_ldap():
       g.ldap = current_app.config['LDAP_STUB']
     else:
       try:
+        binddn = current_app.config['LDAP_BINDDN']
+        bindpw = current_app.config['LDAP_PASSWORD']
+        uri = current_app.config['LDAP_URI']
+        skip_tls = current_app.config['LDAP_SKIP_TLS']
+        get_log().debug(
+          "Opening LDAP connection with binddn=%s, uri=%s, skip_tls=%s, options=%s",
+          binddn, uri, skip_tls, options)
         ldapconn = ccldap.CCLdap(
-          current_app.config['LDAP_BINDDN'],
-          current_app.config['LDAP_PASSWORD'],
-          current_app.config['LDAP_URI'],
-          insecure_skip_tls=current_app.config['LDAP_SKIP_TLS'],
-          options=options
-        )
+          binddn, bindpw, uri, insecure_skip_tls=skip_tls, options=options)
       except ldap.INVALID_CREDENTIALS as e:
         get_log().critical('Could not connect to LDAP: invalid credentials')
         get_log().debug(e)
@@ -75,6 +77,8 @@ def get_ldap():
         get_log().critical('Could not connect to LDAP')
         get_log().debug(e)
         raise LdapException("Could not connect to LDAP server") from e
+
+      get_log().info("Opened connection to %s with bind DN %s", uri, binddn)
       g.ldap = ldapconn
   return g.ldap
 
