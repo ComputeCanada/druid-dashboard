@@ -82,6 +82,7 @@ Our records show that your account ''%account%'' has a quantity of resources wai
 If you would like to discuss this potential transient priority change to %account% you can respond to this message and we will follow up with more details.
 
 Best regards,
+
 %analyst%
 Compute Canada Support
 
@@ -96,13 +97,32 @@ INSERT INTO templates (name, language, content) VALUES (
 INSERT INTO templates (name, language, content) VALUES (
   'impossible', 'en', 'Hello %piName%,
 
-Hello %piName%,
-
 Our records show that your account ''%account%'' has a quantity of resources waiting in the job queue which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
 
 If you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.
 
 Best regards,
+
+%analyst%
+Compute Canada Support
+
+
+Additional job info:
+  Current jobs: %num_jobs%
+  Submitters:   %submitters%
+');
+
+INSERT INTO templates (name, language, content) VALUES (
+  'rac title', 'en', 'NOTICE: Your computations may be eligible for prioritised execution');
+INSERT INTO templates (name, language, content) VALUES (
+  'rac', 'en', 'Hello %piName%,
+
+Our records show that your account ''%account%'' has a quantity of resources waiting in the job queue which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that your account''s recent usage is already above the expected usage rate of the account type. If it is anticipated that the account should be able to sustain greater that it is currently experiencing we recommend that the workload be distributed across multiple Compute Canada systems or that you apply for increased resource access via the Resource Allocation Competition (RAC) in future call of the program.
+
+If you would like to discuss these potential options for increasing the sustained throughput of your projects at Compute Canada you can respond to this message and we will follow up with more details.
+
+Best regards,
+
 %analyst%
 Compute Canada Support
 
