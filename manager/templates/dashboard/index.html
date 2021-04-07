@@ -259,11 +259,19 @@ function updateTicket(ticket, status, jqXHR) {
 }
 
 function createTicket(id, account) {
+
+  // close modal
+  var myModal = bootstrap.Modal.getInstance(document.getElementById('ticketCreationModal'));
+  myModal.hide();
+
+  // get ticket type
+  var ticket_type = $('#outreach-type')[0].value;
+
   status_id = status("Creating ticket...")
   $.ajax({
     url: '/xhr/tickets/',
     method: 'POST',
-    data: { burst_id: id, account: account },
+    data: { burst_id: id, account: account, template: ticket_type },
     success: function(ticket, status, jqXHR) {
       status_clear(status_id);
       updateTicket(ticket, status, jqXHR);
@@ -454,7 +462,7 @@ function renderActionButtons(id, state_checked) {
 }
 
 function createTicketButton(id, account) {
-  return `<button type='button' class='btn btn-primary' onClick='createTicket(${id}, "${account}")' data-burst-id='${id}'>{{ _('Create') }}</button>`;
+  return `<button type='button' class='btn btn-primary' data-bs-toggle='modal' data-bs-target='#ticketCreationModal' data-burst-id='${id}' data-account-id='${account}'>Create</button>`;
 }
 
 function renderTableData(bursts) {
@@ -494,6 +502,22 @@ $(document).ready(function() {
 
   // hide submit-actions button
   $('#submit_actions').hide();
+
+  // initialize the create-ticket modal
+  var createTicketModal = document.getElementById('ticketCreationModal');
+  createTicketModal.addEventListener('show.bs.modal', function (event) {
+    // button that triggered the modal
+    var button = event.relatedTarget;
+
+    // extra information about button
+    var burst_id = button.getAttribute('data-burst-id');
+    var account_id = button.getAttribute('data-account-id');
+
+    // update modal
+    var modalForm = createTicketModal.querySelector('.modal-form');
+    modalForm.reset();
+    modalForm.action = `javascript:createTicket(${burst_id}, '${account_id}')`;
+  });
 });
   </script>
 {% endblock %}
@@ -521,5 +545,46 @@ $(document).ready(function() {
 
 <button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button>
 
-{% endblock %}
+{# --------------------------------------------------------------------------
+                                                      TICKET CREATION MODAL
+-------------------------------------------------------------------------- #}
 
+<div class='modal fade' id='ticketCreationModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <form class='modal-form'>
+        <div class='modal-header'>
+          <h5 class='modal-title' id='ticketCreationModalLabel'>Create ticket</h5>
+          <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+        </div>
+        <div class='modal-body'>
+          <p><strong>Note</strong>: Continuing with this operation will create a ticket and send outgoing e-mails to the PI associated with this account and the submitters of the jobs.</p>
+
+          <p>Select what sort of outreach you want to initiate:
+            <select class='form-select' id='outreach-type' required>
+              <option selected disabled>Choose outreach type</option>
+              <option value='candidate'>Burst candidate</option>
+              <option value='impossible'>Impossible jobs</option>
+              <option value='rac'>Apply for RAC</option>
+            </select>
+          </p>
+
+          <p>
+            <div class='form-check'>
+              <input class='form-check-input' type='checkbox' value='' id='agreeEmail' unchecked required>
+              <label class='form-check-label' for='agreeEmail'>
+                Agree to send e-mails
+              </label>
+            </div>
+          </p>
+        </div>
+        <div class='modal-footer'>
+          <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+          <button type='submit' class='btn btn-primary'>Create ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
