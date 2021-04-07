@@ -162,8 +162,15 @@ def xhr_update_bursts():
 def xhr_create_ticket():
 
   # get request data
-  burst_id = int(request.form['burst_id'])
-  account = request.form['account']
+  try:
+    burst_id = int(request.form['burst_id'])
+    account = request.form['account']
+    template = request.form['template']
+  except KeyError:
+    error = "Missing required request parameter"
+    get_log().error(error)
+    return jsonify({'error': error}), 400
+
   submitters = request.form.getlist('submitters')
 
   # populate objects we'll need
@@ -207,6 +214,9 @@ def xhr_create_ticket():
         if l not in languages:
           languages.append(l)
 
+  # determine templates to use
+  title_template = template + " title"
+
   # set up values for template substitutions
   template_values = dict({
     'piName': pi['givenName'],
@@ -216,18 +226,18 @@ def xhr_create_ticket():
   # build title and body from templates
   if len(languages) > 1:
     title = "{} / {}".format(
-      Template("intro title", languages[0]).render(),
-      Template("intro title", languages[1]).render()
+      Template(title_template, languages[0]).render(),
+      Template(title_template, languages[1]).render()
     )
     body = "{}\n{}\n{}\n{}".format(
       Template("other language follows", languages[1]).render(),
-      Template("intro", languages[0]).render(values=template_values),
+      Template(template, languages[0]).render(values=template_values),
       Template("separator").render(),
-      Template("intro", languages[1]).render(values=template_values)
+      Template(template, languages[1]).render(values=template_values)
     )
   else:
-    title = Template("intro title", languages[0]).render()
-    body = Template("intro", languages[0]).render(values=template_values)
+    title = Template(title_template, languages[0]).render()
+    body = Template(template, languages[0]).render(values=template_values)
 
   # create ticket via OTRS
   ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['ccPrimaryEmail'][0], CCs=CCs)
@@ -235,7 +245,8 @@ def xhr_create_ticket():
     error = "Unable to create ticket"
     get_log().error(error)
     return jsonify({'error': error}), 500
-  get_log().debug("Ticket created.  Deets: %s", ticket)
+  get_log().info("Ticket created for burst %d on account %s.  Details: %s",
+     burst_id, account, ticket)
 
   # register the ticket with the burst candidate
   set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])

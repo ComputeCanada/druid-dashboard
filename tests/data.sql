@@ -55,7 +55,8 @@ INSERT INTO templates (name, language, content) VALUES (
 Ongoing analysis of queued jobs on %cluster% has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.
 
 Additional job info:
-  Current number of jobs: %num_jobs%
+  Current jobs: %num_jobs%
+  Submitters:   %submitters%
 
 Best regards,
 %analyst%');
@@ -65,7 +66,48 @@ INSERT INTO templates (name, language, content) VALUES (
 Analyse en cours des travaux en attente sur %cluster% a montré que votre projet comporte une quantité de tâches bénéficier d''une escalade temporaire en priorité. S''il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.
 
 Info additionel au tâches:
-  Comte de tâches au courant: %num_jobs%
+  Tâches au courant:   %num_jobs%
+  Emetteurs de tâches: %submitters%
 
 Meilleures salutations,
 %analyst%');
+
+INSERT INTO templates (name, language, content) VALUES (
+  'candidate title', 'en', 'NOTICE: Your computations may be eligible for prioritised execution');
+INSERT INTO templates (name, language, content) VALUES (
+  'candidate', 'en', 'Hello %piName%,
+
+Our records show that your account ''%account%'' has a quantity of resources waiting in the job queue which could experience substantial wait time. Considering this pending work load along with the account''s recent usage history we may be able to provide a transient increase of priority to decrease these anticipated wait times.
+
+If you would like to discuss this potential transient priority change to %account% you can respond to this message and we will follow up with more details.
+
+Best regards,
+%analyst%
+Compute Canada Support
+
+
+Additional job info:
+  Current jobs: %num_jobs%
+  Submitters:   %submitters%
+');
+
+INSERT INTO templates (name, language, content) VALUES (
+  'impossible title', 'en', 'NOTICE: Your computations may be eligible for prioritised execution');
+INSERT INTO templates (name, language, content) VALUES (
+  'impossible', 'en', 'Hello %piName%,
+
+Hello %piName%,
+
+Our records show that your account ''%account%'' has a quantity of resources waiting in the job queue which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
+
+If you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.
+
+Best regards,
+%analyst%
+Compute Canada Support
+
+
+Additional job info:
+  Current jobs: %num_jobs%
+  Submitters:   %submitters%
+');

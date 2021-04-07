@@ -16,6 +16,19 @@ import json
 #                                                                OTRS TESTS
 # ---------------------------------------------------------------------------
 
+def test_create_ticket_bad_call_xhr(client):
+
+  # "log in"--normally user is logged in already when creating a ticket
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  assert response.status_code == 200
+
+  # post a create ticket request
+  response = client.post('/xhr/tickets/', data={
+    'burst_id': 1,
+    'account': 'def-pi1',
+  })
+  assert response.status_code == 400
+
 def test_create_ticket_xhr(client):
   """
   Use the OTRS Stub to ensure the ticket creation AJAX call sets up the
@@ -37,6 +50,7 @@ def test_create_ticket_xhr(client):
   response = client.post('/xhr/tickets/', data={
     'burst_id': 1,
     'account': 'def-pi1',
+    'template': 'intro'
   })
   assert response.status_code == 200
 
@@ -60,7 +74,7 @@ def test_create_ticket_xhr(client):
       },
       'article': {
         'Subject': 'NOTICE: Your computations may be eligible for prioritised execution',
-        'Body': 'Hello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current number of jobs: 1403\n\nBest regards,\nUser 1',
+        'Body': 'Hello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current jobs: 1403\n  Submitters:   userQ\n\nBest regards,\nUser 1',
         'ArticleType': 'email-external',
         'ArticleSend': 1,
         'To': 'drew.leske+pi1@computecanada.ca'
@@ -85,7 +99,8 @@ def test_create_ticket_multiplesubmitters_xhr(client):
   response = client.post('/xhr/tickets/', data={
     'burst_id': 1,
     'account': 'def-pi1',
-    'submitters': ['user3', 'user1']
+    'submitters': ['user3', 'user1'],
+    'template': 'intro'
   })
   assert response.status_code == 200
 
@@ -109,11 +124,10 @@ def test_create_ticket_multiplesubmitters_xhr(client):
       },
       'article': {
         'Subject': 'NOTICE: Your computations may be eligible for prioritised execution / AVIS: Vos calculs peuvent être éligibles pour une exécution prioritaire',
-        'Body': "\n(La version française de ce message suit.)\n\nHello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current number of jobs: 1403\n\nBest regards,\nUser 1\n\n--------------------------------------\n\nBonjour PI 1,\n\nAnalyse en cours des travaux en attente sur Test Cluster a montré que votre projet comporte une quantité de tâches bénéficier d'une escalade temporaire en priorité. S'il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.\n\nInfo additionel au tâches:\n  Comte de tâches au courant: 1403\n\nMeilleures salutations,\nUser 1",
+        'Body': "\n(La version française de ce message suit.)\n\nHello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current jobs: 1403\n  Submitters:   userQ\n\nBest regards,\nUser 1\n\n--------------------------------------\n\nBonjour PI 1,\n\nAnalyse en cours des travaux en attente sur Test Cluster a montré que votre projet comporte une quantité de tâches bénéficier d'une escalade temporaire en priorité. S'il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.\n\nInfo additionel au tâches:\n  Tâches au courant:   1403\n  Emetteurs de tâches: userQ\n\nMeilleures salutations,\nUser 1",
         'ArticleType': 'email-external',
         'ArticleSend': 1,
-        'To': 'drew.leske+pi1@computecanada.ca',
-        'Cc': 'drew.leske+user3@computecanada.ca drew.leske+user1@computecanada.ca'
+        'To': 'drew.leske+pi1@computecanada.ca'
       }
     },
     'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=2'
