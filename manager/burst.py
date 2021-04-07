@@ -362,8 +362,11 @@ class Burst():
   @property
   def info(self):
     basic = {
+      'account': self._account,
       'cluster': Cluster(self._cluster).name,
+      'resource': self._resource,
       'pain': self._pain,
+      'submitters': ', '.join(self._submitters)
     }
     if self._summary:
       return dict(basic, **self._summary)
