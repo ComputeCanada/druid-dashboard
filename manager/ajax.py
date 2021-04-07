@@ -13,7 +13,7 @@ from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
 from manager.burst import get_bursts, update_burst_states, State, set_ticket, Burst
 from manager.template import Template
-from manager.exceptions import ImpossibleException
+from manager.exceptions import ImpossibleException, ResourceNotFound
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
@@ -194,8 +194,15 @@ def xhr_create_ticket():
     get_log().error(error)
     return jsonify({'error': error}), 500
 
-  # set initial language for ticket
-  languages = [ pi['preferredLanguage'] ]
+  # extract PI information
+  try:
+    languages = [ pi['preferredLanguage'] ]
+    pi_uid = pi['uid']
+    pi_email = pi['ccPrimaryEmail'][0]
+  except KeyError as e:
+    error = "Incomplete information for PI {} for account {}".format(project['ccResponsible'], project)
+    get_log().error(error)
+    return jsonify({'error': error}), 500
 
   # lookup e-mails for the users
   CCs = []
@@ -224,23 +231,31 @@ def xhr_create_ticket():
   }, **burst_info)
 
   # build title and body from templates
-  if len(languages) > 1:
-    title = "{} / {}".format(
-      Template(title_template, languages[0]).render(),
-      Template(title_template, languages[1]).render()
-    )
-    body = "{}\n{}\n{}\n{}".format(
-      Template("other language follows", languages[1]).render(),
-      Template(template, languages[0]).render(values=template_values),
-      Template("separator").render(),
-      Template(template, languages[1]).render(values=template_values)
-    )
-  else:
-    title = Template(title_template, languages[0]).render()
-    body = Template(template, languages[0]).render(values=template_values)
+  try:
+    if len(languages) > 1:
+      title = "{} / {}".format(
+        Template(title_template, languages[0]).render(),
+        Template(title_template, languages[1]).render()
+      )
+      body = "{}\n{}\n{}\n{}".format(
+        Template("other language follows", languages[1]).render(),
+        Template(template, languages[0]).render(values=template_values),
+        Template("separator").render(),
+        Template(template, languages[1]).render(values=template_values)
+      )
+    else:
+      title = Template(title_template, languages[0]).render()
+      body = Template(template, languages[0]).render(values=template_values)
+  except ResourceNotFound as e:
+    error = "Could not find template: {}".format(e)
+    get_log().error(error)
+    return jsonify({'error': error}), 500
+
+  get_log().debug("About to create ticket with title '%s', PI %s, to e-mail %s",
+    title, pi_uid, pi_email)
 
   # create ticket via OTRS
-  ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['ccPrimaryEmail'][0], CCs=CCs)
+  ticket = create_ticket(title, body, g.user['id'], pi_uid, pi_email, CCs=CCs)
   if not ticket:
     error = "Unable to create ticket"
     get_log().error(error)
