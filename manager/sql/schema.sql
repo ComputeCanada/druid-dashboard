@@ -6,6 +6,9 @@ DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS notes;
+DROP TABLE IF EXISTS actions;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
@@ -96,4 +99,26 @@ CREATE TABLE templates (
   content TEXT,
   PRIMARY KEY (name, language),
   CHECK (language IN ('', 'en', 'fr'))
+);
+
+CREATE TABLE notes (
+  id INTEGER PRIMARY KEY,
+  burst_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  FOREIGN_KEY burst_id REFERENCES bursts(id)
+);
+
+CREATE TABLE actions (
+  id INTEGER PRIMARY KEY,
+  burst_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  old_state CHAR(1),
+  new_state CHAR(1),
+  FOREIGN_KEY burst_id REFERENCES bursts(id),
+  CHECK (old_state in ('p', 'c', 'a', 'r')),
+  CHECK (new_state in ('p', 'c', 'a', 'r'))
 );

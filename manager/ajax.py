@@ -14,7 +14,9 @@ from manager.component import get_components, add_component, delete_component
 from manager.burst import get_bursts, update_burst_states, State, set_ticket, Burst
 from manager.template import Template
 from manager.exceptions import ImpossibleException, ResourceNotFound
-
+from manager.note import Note
+from manager.action import Action
+from manager.event import get_burst_events
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
@@ -318,6 +320,83 @@ def xhr_delete_component(id):
 
   return jsonify({'status': 'OK'}), 200
 
+
+# ---------------------------------------------------------------------------
+#                                                           ROUTES - events
+# ---------------------------------------------------------------------------
+
+
+@bp.route('/notes/', methods=['POST'])
+@login_required
+def xhr_create_note():
+
+  get_log().debug("Creating note")
+
+  # pull necessary parts from request
+  try:
+    burstID = request.form['burstID']
+    analyst = request.form['analyst']
+    text = request.form['text']
+  except KeyError as e:
+    error = "Missing required request parameter"
+    get_log().error(error)
+    return jsonify({'error': error}), 400
+
+  # optional, possibly only for testing
+  timestamp = request.form.get('timestamp', None)
+
+  # create note
+  try:
+    Note(burstID=burstID, analyst=analyst, text=text, timestamp=timestamp)
+  except Exception as e:
+    get_log().error("Exception in creating note: %s", e)
+    return jsonify({'error': str(e)}), 500
+  return jsonify({'status': 'OK'}), 200
+
+@bp.route('/actions/', methods=['POST'])
+@login_required
+def xhr_create_action():
+
+  get_log().debug("Creating action")
+
+  # pull necessary parts from request
+  try:
+    burstID = request.form['burstID']
+    analyst = request.form['analyst']
+    text = request.form['text']
+    old_state = State.get(request.form['old_state'])
+    new_state = State.get(request.form['new_state'])
+  except KeyError as e:
+    error = "Missing required request parameter"
+    get_log().error(error)
+    return jsonify({'error': error}), 400
+
+  # optional, possibly only for testing
+  timestamp = request.form.get('timestamp', None)
+
+  # create action
+  try:
+    Action(burstID=burstID, analyst=analyst, text=text, timestamp=timestamp,
+      old_state=old_state, new_state=new_state)
+  except Exception as e:
+    get_log().error("Exception in creating action: %s", e)
+    return jsonify({'error': str(e)}), 500
+  return jsonify({'status': 'OK'}), 200
+
+@bp.route('/events/', methods=['GET'])
+@login_required
+def xhr_get_events():
+
+  try:
+    burstID = request.args['burstID']
+  except KeyError:
+    error = "Missing required request parameter"
+    get_log().error(error)
+    return jsonify({'error': error}), 400
+
+  get_log().debug("Retrieving events for burst %d", burstID)
+  events = get_burst_events(burstID)
+  return jsonify(events), 200
 
 # ---------------------------------------------------------------------------
 #                                               ROUTES - site configuration
