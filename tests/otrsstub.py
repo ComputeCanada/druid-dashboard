@@ -10,6 +10,8 @@ class OtrsStub():
 
   def ticket_create(self, ticket, article):
 
+    print("HEY CREATING A TICKET HEAH")
+
     # assign ticket number
     ticket_id = self._nextID
     self._nextID += 1
