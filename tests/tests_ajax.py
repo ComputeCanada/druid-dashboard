@@ -242,11 +242,13 @@ def test_get_events(client):
   print(x)
   assert x == [
     {
+      'type': 'Note',
       'burstID': 10,
       'analyst': 'xav-105',
       'text': 'First note'
     },
     {
+      'type': 'Action',
       'burstID': 10,
       'analyst': 'xav-105',
       'text': 'First action',
@@ -254,11 +256,13 @@ def test_get_events(client):
       'new_state': 'claimed'
     },
     {
+      'type': 'Note',
       'burstID': 10,
       'analyst': 'xav-105',
       'text': 'Between first and second note'
     },
     {
+      'type': 'Action',
       'burstID': 10,
       'analyst': 'xav-105',
       'text': 'Second action',
@@ -266,6 +270,7 @@ def test_get_events(client):
       'new_state': 'rejected'
     },
     {
+      'type': 'Note',
       'burstID': 10,
       'analyst': 'xav-105',
       'text': 'Second note'
