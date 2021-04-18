@@ -68,9 +68,3 @@ class Note(BurstEvent):
 
       self._text = text
       super().__init__(id, burstID, analyst, timestamp)
-
-  def serialize(self):
-    return {
-      key.lstrip('_'): val
-      for (key, val) in self.__dict__.items()
-    }

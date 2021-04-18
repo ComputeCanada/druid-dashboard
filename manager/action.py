@@ -76,9 +76,3 @@ class Action(BurstEvent):
       self._old_state = old_state
       self._new_state = new_state
       super().__init__(id, burstID, analyst, timestamp)
-
-  def serialize(self):
-    return {
-      key.lstrip('_'): val
-      for (key, val) in self.__dict__.items()
-    }

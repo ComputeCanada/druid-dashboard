@@ -36,6 +36,14 @@ class Event():
   def timestamp(self):
     return self._timestamp
 
+  def serialize(self):
+    d = {
+      key.lstrip('_'): val
+      for (key, val) in self.__dict__.items()
+    }
+    d['type'] = self.__class__.__name__
+    return d
+
 class BurstReportReceived(Event):
 
   def __init__(self, message):
