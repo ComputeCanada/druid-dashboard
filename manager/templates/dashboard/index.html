@@ -67,7 +67,10 @@ function makeTableBlank(cluster) {
             <table id='bursts_table_${cluster}' class='' style='width: 100%'>
               <thead>
                 <tr>
-                  <th class='number'         >Occ</th>
+                  <th class='number'         ><img
+                          src='static/icons/ticks.svg' height='18' width='20'
+                          alt='Times reported' title='Times reported'
+                          /></th>
                   <th                        >{{ _('Account') }}</th>
                   <th class='nosearch nosort'>{{ _('Usage') }}</th>
                   <th class='number'         >{{ _('Pain') }}</th>
@@ -483,7 +486,8 @@ function renderTableData(bursts) {
     bycols[i] = [
       bursts[i].ticks,
       bursts[i].account,
-      `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.html">Cumulative</a>
+      `<a target="beamplot"
+href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.html">Cumulative</a><br/>
        <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_insta_plot.html">Instant</a>`,
       bursts[i].pain.toFixed(2),
       jsonToTable(bursts[i].summary),
