@@ -2,6 +2,13 @@
 
 A web application for managing bursts.
 
+## Requirements
+
+Python 3.8.
+* Walrus operator (`:=` occuring in assignment expressions, allowing such as
+  `if state := updates.get('state', None):`, for example)
+* libraries imported from `requirements.txt`
+
 ## Architecture
 
 This is implemented as a Flask app using LDAP and a database backend.
