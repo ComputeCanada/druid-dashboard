@@ -1,5 +1,5 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position,import-outside-toplevel
 #
 from .notifier import get_notifiers
 
@@ -78,7 +78,7 @@ class BurstUpdate(BurstEvent):
 
 # import subclasses
 from . import note
-from . import action
+from . import actions
 
 # this is where events are stored
 events = {}
@@ -102,9 +102,9 @@ def get_burst_events(burstID):
   notes = note.get_by_burst(burstID)
 
   # get all actions with burst_id == burstID
-  actions = action.get_by_burst(burstID)
+  updates = actions.get_by_burst(burstID)
 
   # sort combined events by timestamp
-  events = sorted(notes + actions, key=lambda x : x.timestamp)
+  events = sorted(notes + updates, key=lambda x : x.timestamp)
 
   return events
