@@ -11,11 +11,9 @@ from manager.ldap import get_ldap
 from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
-from manager.burst import get_bursts, update_burst_states, State, set_ticket, Burst
+from manager.burst import get_bursts, update_bursts, set_ticket, Burst
 from manager.template import Template
-from manager.exceptions import ImpossibleException, ResourceNotFound
-from manager.note import Note
-from manager.action import Action
+from manager.exceptions import ImpossibleException, ResourceNotFound, BadCall, AppException
 from manager.event import get_burst_events
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
@@ -63,9 +61,9 @@ def _bursts_by_cluster():
         burst = burstObj.serialize()
 
         # add claimant's name
-        if burstObj.state == State.CLAIMED:
-          cci = burst['claimant']
-          person = ldap.get_person_by_cci(burst['claimant'])
+        cci = burst['claimant']
+        if cci:
+          person = ldap.get_person_by_cci(cci)
           if not person:
             get_log().error("Could not find name for cci '%s'", burst['claimant'])
             prettyname = cci
@@ -129,7 +127,7 @@ def xhr_delete_apikey(access):
   try:
     delete_apikey(access)
   except Exception as e:
-    get_log.error("Exception in deleting API key: %s", e)
+    get_log().error("Exception in deleting API key: %s", e)
 
     # I cannot figure out how to respond in such a way that indicates error, except
     # not to respond at all.  Have not tried using 4xx HTTP response status because
@@ -152,8 +150,25 @@ def xhr_get_bursts():
 @login_required
 def xhr_update_bursts():
   data = request.get_json()
-  update_burst_states(data)
+
+  try:
+    update_bursts(data, user=g.user['cci'])
+  except BadCall as e:
+    get_log().info("Client error: %s", e)
+    return jsonify({'error': str(e)}), 400
+  except AppException as e:
+    get_log().error(e)
+    return jsonify({'error': str(e)}), 500
+
   return jsonify(_bursts_by_cluster())
+
+@bp.route('/bursts/<int:id>/events/', methods=['GET'])
+@login_required
+def xhr_get_burst_events(id):
+
+  get_log().debug("Retrieving events for burst %d", id)
+  events = get_burst_events(id)
+  return jsonify(events), 200
 
 # ---------------------------------------------------------------------------
 #                                                          ROUTES - tickets
@@ -319,84 +334,6 @@ def xhr_delete_component(id):
     return None
 
   return jsonify({'status': 'OK'}), 200
-
-
-# ---------------------------------------------------------------------------
-#                                                           ROUTES - events
-# ---------------------------------------------------------------------------
-
-
-@bp.route('/notes/', methods=['POST'])
-@login_required
-def xhr_create_note():
-
-  get_log().debug("Creating note")
-
-  # pull necessary parts from request
-  try:
-    burstID = request.form['burstID']
-    analyst = request.form['analyst']
-    text = request.form['text']
-  except KeyError as e:
-    error = "Missing required request parameter"
-    get_log().error(error)
-    return jsonify({'error': error}), 400
-
-  # optional, possibly only for testing
-  timestamp = request.form.get('timestamp', None)
-
-  # create note
-  try:
-    Note(burstID=burstID, analyst=analyst, text=text, timestamp=timestamp)
-  except Exception as e:
-    get_log().error("Exception in creating note: %s", e)
-    return jsonify({'error': str(e)}), 500
-  return jsonify({'status': 'OK'}), 200
-
-@bp.route('/actions/', methods=['POST'])
-@login_required
-def xhr_create_action():
-
-  get_log().debug("Creating action")
-
-  # pull necessary parts from request
-  try:
-    burstID = request.form['burstID']
-    analyst = request.form['analyst']
-    text = request.form['text']
-    old_state = State.get(request.form['old_state'])
-    new_state = State.get(request.form['new_state'])
-  except KeyError as e:
-    error = "Missing required request parameter"
-    get_log().error(error)
-    return jsonify({'error': error}), 400
-
-  # optional, possibly only for testing
-  timestamp = request.form.get('timestamp', None)
-
-  # create action
-  try:
-    Action(burstID=burstID, analyst=analyst, text=text, timestamp=timestamp,
-      old_state=old_state, new_state=new_state)
-  except Exception as e:
-    get_log().error("Exception in creating action: %s", e)
-    return jsonify({'error': str(e)}), 500
-  return jsonify({'status': 'OK'}), 200
-
-@bp.route('/events/', methods=['GET'])
-@login_required
-def xhr_get_events():
-
-  try:
-    burstID = request.args['burstID']
-  except KeyError:
-    error = "Missing required request parameter"
-    get_log().error(error)
-    return jsonify({'error': error}), 400
-
-  get_log().debug("Retrieving events for burst %d", burstID)
-  events = get_burst_events(burstID)
-  return jsonify(events), 200
 
 # ---------------------------------------------------------------------------
 #                                               ROUTES - site configuration
