@@ -3,7 +3,8 @@ DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
 DROP TABLE IF EXISTS notes;
-DROP TABLE IF EXISTS actions;
+DROP TABLE IF EXISTS updates_state;
+DROP TABLE IF EXISTS updates_claimant;
 DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
@@ -50,7 +51,7 @@ CREATE TABLE notifications (
 );
 
 /*
- * state: 'p' = pending/unactioned, 'c' = claimed, 'a' = accepted, 'r' = rejected
+ * state: 'p' = pending/unactioned, 'a' = accepted, 'r' = rejected
  * resource: 'c' = CPU, 'g' = GPU
  * see burst.py::State, burst.py::Resource
  * submitters is an space-separated list of user IDs
@@ -71,7 +72,7 @@ CREATE TABLE bursts (
   claimant CHAR(7),
   ticket_id INTEGER,
   ticket_no VARCHAR(9),
-  CHECK (state in ('p', 'c', 'a', 'r')),
+  CHECK (state in ('p', 'a', 'r')),
   CHECK (resource in ('c', 'g')),
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
@@ -109,8 +110,8 @@ CREATE TABLE notes (
   FOREIGN KEY (burst_id) REFERENCES bursts(id)
 );
 
-CREATE TABLE actions (
-  id SERIAL PRIMARY KEY,
+CREATE TABLE updates_state (
+  id INTEGER PRIMARY KEY,
   burst_id INTEGER NOT NULL,
   analyst CHAR(7),
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -118,6 +119,17 @@ CREATE TABLE actions (
   old_state CHAR(1),
   new_state CHAR(1),
   FOREIGN KEY (burst_id) REFERENCES bursts(id),
-  CHECK (old_state in ('p', 'c', 'a', 'r')),
-  CHECK (new_state in ('p', 'c', 'a', 'r'))
+  CHECK (old_state in ('p', 'a', 'r')),
+  CHECK (new_state in ('p', 'a', 'r'))
+);
+
+CREATE TABLE updates_claimant (
+  id INTEGER PRIMARY KEY,
+  burst_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  claimant_was CHAR(7),
+  claimant_now CHAR(7),
+  FOREIGN KEY (burst_id) REFERENCES bursts(id)
 );
