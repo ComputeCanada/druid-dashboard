@@ -111,7 +111,7 @@ CREATE TABLE notes (
 );
 
 CREATE TABLE updates_state (
-  id INTEGER PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   burst_id INTEGER NOT NULL,
   analyst CHAR(7),
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -124,7 +124,7 @@ CREATE TABLE updates_state (
 );
 
 CREATE TABLE updates_claimant (
-  id INTEGER PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   burst_id INTEGER NOT NULL,
   analyst CHAR(7),
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
