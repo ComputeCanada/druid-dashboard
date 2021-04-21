@@ -1,11 +1,10 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint: disable=W0621
+# pylint: disable=W0621,raise-missing-from,import-outside-toplevel
 #
 import json
-from flask import g
 from manager.db import get_db, DbEnum
 from manager.log import get_log
-from manager.exceptions import DatabaseException, BadCall
+from manager.exceptions import DatabaseException, BadCall, AppException
 from manager.component import Component
 from manager.cluster import Cluster
 
@@ -17,8 +16,7 @@ from manager.cluster import Cluster
 # display label
 # NOTE: if updating this, ensure schema matches
 class State(DbEnum):
-  UNCLAIMED = 'p'
-  CLAIMED   = 'c'
+  PENDING = 'p'
   ACCEPTED  = 'a'
   REJECTED  = 'r'
 
@@ -62,9 +60,9 @@ SQL_UPDATE_STATE = '''
   WHERE   id = ?
 '''
 
-SQL_UPDATE_STATE_CLAIMED = '''
+SQL_UPDATE_CLAIMANT = '''
   UPDATE  bursts
-  SET     state = ?, claimant = ?
+  SET     claimant = ?
   WHERE   id = ?
 '''
 
@@ -183,18 +181,73 @@ def get_bursts(cluster=None):
     return get_cluster_bursts(cluster)
   return get_current_bursts()
 
-def update_burst_states(updates):
+def update_bursts(updates, user):
+  """
+  Update burst information such as state or claimant.
+
+  Args:
+    updates (list of dict): list of dicts where each dict contains a burst ID
+      and a new value for state and/or claimant.
+  """
+  from manager.actions import StateUpdate, ClaimantUpdate
+  from manager.note import Note
+
   db = get_db()
-  for (id, state) in updates.items():
-    s = State.get(state)
-    if s == State.CLAIMED:
-      res = db.execute(SQL_UPDATE_STATE_CLAIMED, (s.value, g.user['cci'], id))
-    elif s == State.UNCLAIMED:
-      res = db.execute(SQL_UPDATE_STATE_CLAIMED, (s.value, None, id))
-    else:
+  for update in updates:
+
+    # get update parameters
+    try:
+      id = update['id']
+      text = update['note']
+    except KeyError as e:
+      raise BadCall("Burst update missing required field: {}".format(e))
+    timestamp = update.get('timestamp', None)
+
+    # update state if applicable
+    if state := update.get('state', None):
+
+      s = State.get(state)
+
+      # update history
+      try:
+        StateUpdate(burstID=id, analyst=user, text=text, timestamp=timestamp,
+          state=s.value)
+      except KeyError as e:
+        error = "Missing required update parameter: {}".format(e)
+        raise BadCall(error)
+      except Exception as e:
+        get_log().error("Exception in creating state update event log: %s", e)
+        raise AppException(e)
+
+      # update state
       res = db.execute(SQL_UPDATE_STATE, (s.value, id))
-    if not res:
-      raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
+      if not res:
+        raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
+
+    # update claimant if applicable
+    elif claimant := update.get('claimant', None):
+
+      # update history
+      try:
+        ClaimantUpdate(burstID=id, analyst=user, text=text,
+          timestamp=timestamp, claimant=claimant)
+      except Exception as e:
+        get_log().error("Exception in creating claimant update event log: %s", e)
+        raise AppException(e)
+
+      # update claimant
+      res = db.execute(SQL_UPDATE_CLAIMANT, (claimant, id))
+      if not res:
+        raise DatabaseException("Could not update claimant for Burst ID {} to {}".format(id, claimant))
+
+    # otherwise, since we already have the text, this must be just a note
+    else:
+      try:
+        Note(burstID=id, analyst=user, text=text, timestamp=timestamp)
+      except Exception as e:
+        get_log().error("Exception in creating note: %s", e)
+        raise AppException(e)
+
   db.commit()
 
 def set_ticket(id, ticket_id, ticket_no):
@@ -231,7 +284,7 @@ class Burst():
 
   def __init__(self, id=None, cluster=None, account=None,
       resource=Resource.CPU, pain=None, jobrange=None, submitters=None,
-      state=State.UNCLAIMED, summary=None, epoch=None, ticks=0, claimant=None,
+      state=State.PENDING, summary=None, epoch=None, ticks=0, claimant=None,
       ticket_id=None, ticket_no=None):
 
     self._id = id
@@ -358,6 +411,10 @@ class Burst():
   @property
   def ticket_no(self):
     return self._ticket_no
+
+  @property
+  def claimant(self):
+    return self._claimant
 
   @property
   def info(self):
