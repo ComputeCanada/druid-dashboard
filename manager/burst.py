@@ -217,7 +217,7 @@ def update_bursts(updates, user):
         raise BadCall(error)
       except Exception as e:
         get_log().error("Exception in creating state update event log: %s", e)
-        raise AppException(e)
+        raise AppException(str(e))
 
       # update state
       res = db.execute(SQL_UPDATE_STATE, (s.value, id))
@@ -233,7 +233,7 @@ def update_bursts(updates, user):
           timestamp=timestamp, claimant=claimant)
       except Exception as e:
         get_log().error("Exception in creating claimant update event log: %s", e)
-        raise AppException(e)
+        raise AppException(str(e))
 
       # update claimant
       res = db.execute(SQL_UPDATE_CLAIMANT, (claimant, id))
@@ -246,7 +246,7 @@ def update_bursts(updates, user):
         Note(burstID=id, analyst=user, text=text, timestamp=timestamp)
       except Exception as e:
         get_log().error("Exception in creating note: %s", e)
-        raise AppException(e)
+        raise AppException(str(e))
 
   db.commit()
 
