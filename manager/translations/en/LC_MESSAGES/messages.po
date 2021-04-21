@@ -116,12 +116,8 @@ msgid "GPU"
 msgstr ""
 
 #: added manually
-msgid "UNCLAIMED"
-msgstr "Unclaimed"
-
-#: added manually
-msgid "CLAIMED"
-msgstr "Claimed"
+msgid "PENDING"
+msgstr "Pending"
 
 #: added manually
 msgid "ACCEPTED"
