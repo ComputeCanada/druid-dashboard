@@ -57,24 +57,24 @@ def test_update_bursts_xhr(client):
       'id':12,
       'note': 'Hey how are ya',
       'state': 'rejected',
-      'timestamp':'2019-03-31 10:31 a.m.'
+      'timestamp':'2019-03-31 10:31 AM'
     },
     {
       'id':12,
       'note': 'Reverting to pending',
       'state': 'pending',
-      'timestamp':'2019-03-31 10:37 a.m.'
+      'timestamp':'2019-03-31 10:37 AM'
     },
     {
       'id': 12,
       'note': 'This is not the way',
       'claimant': 'tst-003',
-      'timestamp':'2019-03-31 10:35 a.m.'
+      'timestamp':'2019-03-31 10:35 AM'
     },
     {
       'id': 12,
       'note': 'I just dinnae aboot this guy',
-      'timestamp':'2019-03-31 10:32 a.m.'
+      'timestamp':'2019-03-31 10:32 AM'
     },
   ]
   response = client.patch('/xhr/bursts/', json=data, environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
@@ -140,17 +140,19 @@ def test_get_events(client):
 
   # get events
   response = client.get('/xhr/bursts/12/events/')
-
   assert response.status_code == 200
   x = json.loads(response.data)
+
+  # we don't really need to delete IDs but we do need to delete timestamps
+  # because SQLite and Postgres report them differently
   del x[0]['id']
-  #del x[0]['timestamp']
+  del x[0]['timestamp']
   del x[1]['id']
-  #del x[1]['timestamp']
+  del x[1]['timestamp']
   del x[2]['id']
-  #del x[2]['timestamp']
+  del x[2]['timestamp']
   del x[3]['id']
-  #del x[3]['timestamp']
+  del x[3]['timestamp']
   print(x)
   assert x == [
     {
@@ -160,14 +162,12 @@ def test_get_events(client):
       'old_state': 'pending',
       'new_state': 'rejected',
       'text': 'Hey how are ya',
-      'timestamp':'2019-03-31 10:31 a.m.'
     },
     {
       'burstID': 12,
       'type': 'Note',
       'analyst': 'tst-003',
       'text': 'I just dinnae aboot this guy',
-      'timestamp':'2019-03-31 10:32 a.m.'
     },
     {
       'burstID': 12,
@@ -176,7 +176,6 @@ def test_get_events(client):
       'text': 'This is not the way',
       'claimant_was': None,
       'claimant_now': 'tst-003',
-      'timestamp':'2019-03-31 10:35 a.m.'
     },
     {
       'burstID':12,
@@ -185,6 +184,5 @@ def test_get_events(client):
       'text': 'Reverting to pending',
       'old_state': 'rejected',
       'new_state': 'pending',
-      'timestamp':'2019-03-31 10:37 a.m.'
     },
   ]
