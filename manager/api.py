@@ -161,9 +161,9 @@ def summarize_burst_report(cluster, bursts):
   # counts
   newbs = 0
   existing = 0
+  claimed = 0
   by_state = {
-    State.UNCLAIMED: 0,
-    State.CLAIMED: 0,
+    State.PENDING: 0,
     State.ACCEPTED: 0,
     State.REJECTED: 0
   }
@@ -174,14 +174,16 @@ def summarize_burst_report(cluster, bursts):
     else:
       newbs += 1
 
+    if burst.claimant:
+      claimed += 1
+
     by_state[burst.state] += 1
 
   return "A new burst report came in from {} with {} new burst record(s)" \
-    " and {} existing.  In total there are {} claimed, {} accepted," \
-    " {} rejected and {} unclaimed.".format(
-      cluster, newbs, existing, by_state[State.CLAIMED],
-      by_state[State.ACCEPTED], by_state[State.REJECTED],
-      by_state[State.UNCLAIMED]
+    " and {} existing.  In total there are {} pending, {} accepted," \
+    " {} rejected.  {} have been claimed.".format(
+      cluster, newbs, existing, by_state[State.PENDING],
+      by_state[State.ACCEPTED], by_state[State.REJECTED], claimed
     )
 
 # ---------------------------------------------------------------------------
