@@ -91,7 +91,7 @@ def test_get_burst(client):
     'id': 10,
     'jobrange': [17, 27],
     'pain': 2.5,
-    'state': 'unclaimed',
+    'state': 'pending',
     'summary': None,
     'ticket_id': None,
     'ticket_no': None,
