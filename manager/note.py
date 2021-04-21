@@ -1,8 +1,9 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=raise-missing-from
 #
 from .db import get_db
 from .event import BurstEvent
+from .exceptions import DatabaseException
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -31,9 +32,10 @@ SQL_BY_BURST = '''
 # ---------------------------------------------------------------------------
 
 def get_by_burst(burstID):
-  res = get_db().execute(SQL_BY_BURST, (burstID,)).fetchall()
-  if not res:
-    raise Exception('TODO: proper exception (Could not retrieve objects)')
+  try:
+    res = get_db().execute(SQL_BY_BURST, (burstID,)).fetchall()
+  except Exception as e:
+    raise DatabaseException(e)
 
   return [
     Note(r['id'], r['burst_id'], r['analyst'], r['timestamp'], r['note'])
