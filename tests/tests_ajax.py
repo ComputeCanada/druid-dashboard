@@ -64,7 +64,7 @@ def test_create_ticket_xhr(client):
     'ticket_no': '01',
     'misc': {
       'ticket': {
-        'Title': 'NOTICE: Your computations may be eligible for prioritised execution',
+        'Title': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution',
         'Queue': 'Test',
         'State': 'new',
         'Priority': '3 normal',
@@ -73,7 +73,7 @@ def test_create_ticket_xhr(client):
         'Responsible': 'user1'
       },
       'article': {
-        'Subject': 'NOTICE: Your computations may be eligible for prioritised execution',
+        'Subject': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution',
         'Body': 'Hello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current jobs: 1403\n  Submitters:   userQ\n\nBest regards,\nUser 1',
         'ArticleType': 'email-external',
         'ArticleSend': 1,
@@ -114,7 +114,7 @@ def test_create_ticket_multiplesubmitters_xhr(client):
     'ticket_no': '02',
     'misc': {
       'ticket': {
-        'Title': 'NOTICE: Your computations may be eligible for prioritised execution / AVIS: Vos calculs peuvent être éligibles pour une exécution prioritaire',
+        'Title': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution / AVIS: Vos calculs à Test Cluster peuvent être éligibles pour une exécution prioritaire',
         'Queue': 'Test',
         'State': 'new',
         'Priority': '3 normal',
@@ -123,7 +123,7 @@ def test_create_ticket_multiplesubmitters_xhr(client):
         'Responsible': 'user1'
       },
       'article': {
-        'Subject': 'NOTICE: Your computations may be eligible for prioritised execution / AVIS: Vos calculs peuvent être éligibles pour une exécution prioritaire',
+        'Subject': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution / AVIS: Vos calculs à Test Cluster peuvent être éligibles pour une exécution prioritaire',
         'Body': "\n(La version française de ce message suit.)\n\nHello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current jobs: 1403\n  Submitters:   userQ\n\nBest regards,\nUser 1\n\n--------------------------------------\n\nBonjour PI 1,\n\nAnalyse en cours des travaux en attente sur Test Cluster a montré que votre projet comporte une quantité de tâches bénéficier d'une escalade temporaire en priorité. S'il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.\n\nInfo additionel au tâches:\n  Tâches au courant:   1403\n  Emetteurs de tâches: userQ\n\nMeilleures salutations,\nUser 1",
         'ArticleType': 'email-external',
         'ArticleSend': 1,

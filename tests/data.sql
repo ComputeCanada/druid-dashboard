@@ -46,9 +46,9 @@ INSERT INTO templates (name, content) VALUES (
 --------------------------------------
 ');
 INSERT INTO templates (name, language, content) VALUES (
-  'intro title', 'en', 'NOTICE: Your computations may be eligible for prioritised execution');
+  'intro title', 'en', 'NOTICE: Your computations on %cluster% may be eligible for prioritised execution');
 INSERT INTO templates (name, language, content) VALUES (
-  'intro title', 'fr', 'AVIS: Vos calculs peuvent être éligibles pour une exécution prioritaire');
+  'intro title', 'fr', 'AVIS: Vos calculs à %cluster% peuvent être éligibles pour une exécution prioritaire');
 INSERT INTO templates (name, language, content) VALUES (
   'intro', 'en', 'Hello %piName%,
 
