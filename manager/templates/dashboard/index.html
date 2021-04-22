@@ -76,6 +76,7 @@ function makeTableBlank(cluster) {
                   <th class='number'         >{{ _('Pain') }}</th>
                   <th class='nosort'         >{{ _('Summary') }}</th>
                   <th                        >{{ _('State') }}</th>
+                  <th                        >{{ _('Analyst') }}</th>
                   <th                        >{{ _('Ticket') }}</th>
                   <th class='nosearch nosort'>{{ _('Action') }}</th>
                 </tr>
@@ -287,6 +288,36 @@ function createTicket(id, account) {
   });
 }
 
+function claim(id, account) {
+
+  // set up update request.  'claimant' is ignored, but needs to be present
+  var updates = [
+    {
+      'id': id,
+      'claimant': 'set'
+    }
+  ]
+  
+  // make request
+  $.ajax({
+    url: '/xhr/bursts/',
+    method: 'PATCH',
+    data: JSON.stringify(updates),
+    contentType: 'application/json',
+    success: function(reports, status, jqXHR) {
+      status_clear(status_id);
+      refreshBursts(reports, status, jqXHR);
+    },
+    error: function() {
+      status_clear(status_id);
+      //TODO: should be status('error', ...)
+      flash_error("submit_actions() AJAX error");
+    }
+  });
+  
+
+}
+
 // find first row in a table
 function find_first_row(tbody_id) {
   var el = document.getElementById(tbody_id);
@@ -439,6 +470,44 @@ function jsonToTable(json) {
 
 }
 
+function renderActionMenu(burst) {
+  var items = '';
+  if (!burst.claimant) {
+    items += `
+        <li><button class='dropdown-item' type='button'
+              data-bs-toggle='modal' data-bs-target='#claimTicketModal'
+              data-burst-id='${burst.id}' data-account-id='${burst.account}'
+            >Claim</button></li>`;
+  }
+  if (!burst.ticket_href) {
+    items += `
+        <li><button class='dropdown-item' type='button'
+              data-bs-toggle='modal' data-bs-target='#ticketCreationModal'
+              data-burst-id='${burst.id}' data-account-id='${burst.account}'
+            >Create ticket</button></li>`;
+  }
+  items += `
+        <li><a class='dropdown-item' href='#'>Make note</a></li>
+        <li><a class='dropdown-item' href='#'>Reject</a></li>
+        <li><a class='dropdown-item' href='#'>Accept</a></li>`;
+
+  return `
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+    <li><a class="dropdown-item" href="#">Action</a></li>
+    <li><a class="dropdown-item" href="#">Another action</a></li>
+    <li><a class="dropdown-item" href="#">Something else here</a></li>
+  </ul>
+</div>
+
+    <div class='dropdown'>
+      <button class='btn btn-secondary dropdown-toggle' type='button' id='actionMenuButton_${burst.id}' data-bs-toggle='dropdown'>
+        {{ _("Action") }}
+      </button>
+      <ul class='dropdown-menu'>${ items }
+      </ul>
+    </div>`;
+}
+
 function renderActionButtons(id, state_checked) {
   return `
     <label class='switch' title='{{ _("Unclaim") }}'>
@@ -464,10 +533,6 @@ function renderActionButtons(id, state_checked) {
   `;
 }
 
-function createTicketButton(id, account) {
-  return `<button type='button' class='btn btn-primary' data-bs-toggle='modal' data-bs-target='#ticketCreationModal' data-burst-id='${id}' data-account-id='${account}'>Create</button>`;
-}
-
 function renderTableData(bursts) {
 
   var id, account, resource;
@@ -483,6 +548,7 @@ function renderTableData(bursts) {
     account = bursts[i].account;
     resource = bursts[i].resource;
 
+    console.log(renderActionMenu(bursts[i]));
     bycols[i] = [
       bursts[i].ticks,
       bursts[i].account,
@@ -492,8 +558,9 @@ href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.ht
       bursts[i].pain.toFixed(2),
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
-      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || createTicketButton(id, account) }</span>`,
-      renderActionButtons(id, state_checked)
+      bursts[i].claimant_pretty || "None",
+      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || "None" }</span>`,
+      renderActionMenu(bursts[i]),
     ];
   }
   return bycols;
@@ -508,6 +575,11 @@ $(document).ready(function() {
   $('#submit_actions').hide();
 
   // initialize the create-ticket modal
+  // TODO:
+  // TODO: This is going to be repeated for every action and so can be made
+  // TODO: reusable.  Create map of modal names to configuration (modal
+  // TODO: element id, ...).
+  // TODO:
   var createTicketModal = document.getElementById('ticketCreationModal');
   createTicketModal.addEventListener('show.bs.modal', function (event) {
     // button that triggered the modal
