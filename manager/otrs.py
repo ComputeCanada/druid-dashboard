@@ -1,11 +1,12 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=raise-missing-from
 #
 
 # TODO: use this instead of Exception in get_otrs()--but wasn't
 # getting caught
 #from requests import HTTPError
 import pyotrs
+from .exceptions import BadConfig
 
 # TEMPORARY FOR TESTING
 # Set/unset this in order to load this module from Python CLI to test out JUST
@@ -25,11 +26,14 @@ else:
     'OTRS_URL': 'https://support-dev2.computecanada.ca',
     'OTRS_USERNAME': 'fraksvc',
     'OTRS_PASSWORD': 'this is never the thing',
-    'OTRS_QUEUE': 'Test'
+    'OTRS_QUEUE': 'Staff::FRAK'
   }
 
   # pylint: disable=no-self-use
   class Logger:
+    def info(self, msg, *args):
+      print("INFO: " + msg % args)
+
     def error(self, msg, *args):
       print("ERROR: " + msg % args)
 
@@ -107,18 +111,21 @@ def create_ticket(title, body, owner, client, clientEmail, CCs=None):
   on the target OTRS service for the initial e-mail to be sent out.
   """
 
+  # get OTRS configuration
   try:
     queue = current_app.config['OTRS_QUEUE']
+    state = current_app.config['OTRS_TICKET_STATE']
   except KeyError:
     # TODO: this should throw exception--default should be defined if nothing configured
-    get_log().error("OTRS configuration missing")
+    get_log().fatal("OTRS configuration missing")
+    raise BadConfig("Missing OTRS configuration")
 
   # create ticket object
   ticket = pyotrs.lib.Ticket.create_basic(
     Title=title,
     Queue=queue,
     CustomerUser=client,
-    State=u"new",
+    State=state,
     Priority=u"3 normal")
   if not ticket:
     get_log().error("Could not create ticket object")

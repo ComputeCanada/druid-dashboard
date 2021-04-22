@@ -41,3 +41,19 @@ uri = postgresql://user:secret@localhost:5432/beam_dev
 #server = logger.example.org
 #port = 514
 #protocol = tcp
+
+## OTRS section.
+[otrs]
+
+## Base URL for OTRS instance.  Probably https://${FQDN}
+url = 
+
+## username and password for authentication
+username =
+password = 
+
+## queue to use.  Default is "Test"
+#queue = Test
+
+## initial ticket state for new tickets.  Defaults to "new"
+#ticket_state = new

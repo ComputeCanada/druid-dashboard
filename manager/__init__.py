@@ -56,7 +56,8 @@ defaults = {
   'OTRS_URL': '',
   'OTRS_USERNAME': '',
   'OTRS_PASSWORD': '',
-  'OTRS_QUEUE': 'Test'
+  'OTRS_QUEUE': 'Test',
+  'OTRS_TICKET_STATE': 'new'
 }
 
 # optional that may appear in environment or configuration
