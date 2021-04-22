@@ -251,8 +251,8 @@ def xhr_create_ticket():
   try:
     if len(languages) > 1:
       title = "{} / {}".format(
-        Template(title_template, languages[0]).render(),
-        Template(title_template, languages[1]).render()
+        Template(title_template, languages[0]).render(values=template_values),
+        Template(title_template, languages[1]).render(values=template_values)
       )
       body = "{}\n{}\n{}\n{}".format(
         Template("other language follows", languages[1]).render(),
@@ -261,7 +261,7 @@ def xhr_create_ticket():
         Template(template, languages[1]).render(values=template_values)
       )
     else:
-      title = Template(title_template, languages[0]).render()
+      title = Template(title_template, languages[0]).render(values=template_values)
       body = Template(template, languages[0]).render(values=template_values)
   except ResourceNotFound as e:
     error = "Could not find template: {}".format(e)
