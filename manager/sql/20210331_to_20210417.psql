@@ -1,0 +1,41 @@
+-- update the existing table to have not use 'c' state (update to 'p')
+UPDATE bursts SET state='p' WHERE state='c';
+
+-- replace constraint checking for p, c, a, r with one checking p, a, r
+ALTER TABLE bursts DROP CONSTRAINT bursts_state_check;
+ALTER TABLE bursts ADD CHECK (state IN ('p', 'a', 'r'));
+
+CREATE TABLE notes (
+  id SERIAL PRIMARY KEY,
+  burst_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  FOREIGN KEY (burst_id) REFERENCES bursts(id)
+);
+
+CREATE TABLE updates_state (
+  id SERIAL PRIMARY KEY,
+  burst_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  old_state CHAR(1),
+  new_state CHAR(1),
+  FOREIGN KEY (burst_id) REFERENCES bursts(id),
+  CHECK (old_state in ('p', 'a', 'r')),
+  CHECK (new_state in ('p', 'a', 'r'))
+);
+
+CREATE TABLE updates_claimant (
+  id SERIAL PRIMARY KEY,
+  burst_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  claimant_was CHAR(7),
+  claimant_now CHAR(7),
+  FOREIGN KEY (burst_id) REFERENCES bursts(id)
+);
+
+INSERT INTO schemalog (version, applied) VALUES ('20210417', CURRENT_TIMESTAMP);
