@@ -4,6 +4,7 @@
 
 from flask import Blueprint, jsonify, request, g, session
 from flask_babel import _
+from werkzeug.exceptions import BadRequest
 
 from manager.auth import login_required, admin_required
 from manager.log import get_log
@@ -149,7 +150,13 @@ def xhr_get_bursts():
 @bp.route('/bursts/', methods=['PATCH'])
 @login_required
 def xhr_update_bursts():
-  data = request.get_json()
+
+  # parse request
+  try:
+    data = request.get_json()
+  except BadRequest as e:
+    get_log().error("Could not parse request data: %s", e)
+    return jsonify({'error': str(e)}), 400
 
   try:
     update_bursts(data, user=g.user['cci'])
@@ -159,8 +166,15 @@ def xhr_update_bursts():
   except AppException as e:
     get_log().error(e)
     return jsonify({'error': str(e)}), 500
+  except Exception as e:
+    get_log().error(e)
+    return jsonify({'error': str(e)}), 500
 
-  return jsonify(_bursts_by_cluster())
+  try:
+    return jsonify(_bursts_by_cluster())
+  except Exception as e:
+    get_log().error(e)
+    return jsonify({'error': str(e)}), 500
 
 @bp.route('/bursts/<int:id>/events/', methods=['GET'])
 @login_required
