@@ -95,7 +95,7 @@ def seeded_app(request):
   })
 
   # find updates to seed data which are applied to match updates to test suite
-  seed_updates = find_seed_update_scripts(app.root_path)
+  seed_updates = find_seed_update_scripts(app.root_path, version)
 
   with app.app_context():
     init_db(schema)

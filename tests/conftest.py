@@ -21,7 +21,7 @@ def runner(app):
 
 
 # pylint: disable=unused-variable,superfluous-parens
-def find_seed_update_scripts(basedir):
+def find_seed_update_scripts(basedir, targetver):
 
   # dict of version (datestamp) to file
   versions = {}
@@ -35,6 +35,8 @@ def find_seed_update_scripts(basedir):
     for file in files:
       m = regex.match(file)
       if m:
-        versions[m[1]] = '{}/{}'.format(testsdir, file)
+        version = m[1]
+        if int(version) > int(targetver):
+          versions[m[1]] = '{}/{}'.format(testsdir, file)
 
   return (versions if versions else None)
