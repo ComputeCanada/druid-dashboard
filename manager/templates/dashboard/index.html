@@ -288,13 +288,44 @@ function createTicket(id, account) {
   });
 }
 
+function createNote(id, account) {
+
+  // close modal
+  var myModal = bootstrap.Modal.getInstance(document.getElementById('noteCreationModal'));
+  myModal.hide();
+
+  // set up update request
+  var updates = [
+    {
+      'id': id,
+      'note': $('#noteCreationModalNote')[0].value
+    }
+  ];
+
+  status_id = status("Recording note...")
+  $.ajax({
+    url: '/xhr/bursts/',
+    method: 'PATCH',
+    data: JSON.stringify(updates),
+    contentType: 'application/json',
+    success: function(reports, status, jqXHR) {
+      status_clear(status_id);
+    },
+    error: function() {
+      status_clear(status_id);
+      //TODO: should be status('error', ...)
+      flash_error("createNote() AJAX error")
+    }
+  });
+}
+
 function claim(id, account) {
 
   // set up update request.  'claimant' is ignored, but needs to be present
   var updates = [
     {
       'id': id,
-      'claimant': 'set'
+      'claimant': whoami
     }
   ]
   
@@ -487,18 +518,14 @@ function renderActionMenu(burst) {
             >Create ticket</button></li>`;
   }
   items += `
-        <li><a class='dropdown-item' href='#'>Make note</a></li>
+        <li><button class='dropdown-item' type='button'
+              data-bs-toggle='modal' data-bs-target='#noteCreationModal'
+              data-burst-id='${burst.id}' data-account-id='${burst.account}'
+            >Make note</a></li>
         <li><a class='dropdown-item' href='#'>Reject</a></li>
         <li><a class='dropdown-item' href='#'>Accept</a></li>`;
 
   return `
-  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-    <li><a class="dropdown-item" href="#">Action</a></li>
-    <li><a class="dropdown-item" href="#">Another action</a></li>
-    <li><a class="dropdown-item" href="#">Something else here</a></li>
-  </ul>
-</div>
-
     <div class='dropdown'>
       <button class='btn btn-secondary dropdown-toggle' type='button' id='actionMenuButton_${burst.id}' data-bs-toggle='dropdown'>
         {{ _("Action") }}
@@ -548,7 +575,6 @@ function renderTableData(bursts) {
     account = bursts[i].account;
     resource = bursts[i].resource;
 
-    console.log(renderActionMenu(bursts[i]));
     bycols[i] = [
       bursts[i].ticks,
       bursts[i].account,
@@ -593,6 +619,21 @@ $(document).ready(function() {
     var modalForm = createTicketModal.querySelector('.modal-form');
     modalForm.reset();
     modalForm.action = `javascript:createTicket(${burst_id}, '${account_id}')`;
+  });
+
+  var createNoteModal = document.getElementById('noteCreationModal');
+  createNoteModal.addEventListener('show.bs.modal', function (event) {
+    // button that triggered the modal
+    var button = event.relatedTarget;
+
+    // extra information about button
+    var burst_id = button.getAttribute('data-burst-id');
+    var account_id = button.getAttribute('data-account-id');
+
+    // update modal
+    var modalForm = createNoteModal.querySelector('.modal-form');
+    modalForm.reset();
+    modalForm.action = `javascript:createNote(${burst_id}, '${account_id}')`;
   });
 });
   </script>
@@ -657,6 +698,36 @@ $(document).ready(function() {
         <div class='modal-footer'>
           <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
           <button type='submit' class='btn btn-primary'>Create ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# --------------------------------------------------------------------------
+                                                        NOTE CREATION MODAL
+-------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='noteCreationModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <form class='modal-form'>
+        <div class='modal-header'>
+          <h5 class='modal-title' id='noteCreationModalLabel'>Make note</h5>
+          <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+        </div>
+        <div class='modal-body'>
+          <p>This note will become part of the burst candidate history.</p>
+          <p>
+            <div class='form-group'>
+              <label for='note'>Text</label>
+              <textarea class='form-control' type='text' id='noteCreationModalNote' required rows='3'></textarea>
+            </div>
+          </p>
+        </div>
+        <div class='modal-footer'>
+          <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+          <button type='submit' class='btn btn-primary'>Make note</button>
         </div>
       </form>
     </div>
