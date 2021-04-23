@@ -186,3 +186,29 @@ def test_get_events(client):
       'new_state': 'pending',
     },
   ]
+
+def test_update_bursts_xhr_no_timestamps(client):
+  data = [
+    {
+      'id':12,
+      'note': 'Stupid note',
+      'state': 'rejected',
+    },
+    {
+      'id':12,
+      'note': 'Reverting to pending again',
+      'state': 'pending',
+    },
+    {
+      'id': 12,
+      'note': 'This is not the way of the leaf',
+      'claimant': 'tst-003',
+    },
+    {
+      'id': 12,
+      'note': 'I just do not ascertain this chap',
+    },
+  ]
+  response = client.patch('/xhr/bursts/', json=data, environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  print(response.data)
+  assert response.status_code == 200

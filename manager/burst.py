@@ -192,6 +192,11 @@ def update_bursts(updates, user):
   from manager.actions import StateUpdate, ClaimantUpdate
   from manager.note import Note
 
+  get_log().debug("In update_bursts()")
+  if not updates:
+    get_log().error("update_bursts() called with no updates")
+    return
+
   db = get_db()
   for update in updates:
 
@@ -242,6 +247,7 @@ def update_bursts(updates, user):
 
     # otherwise, since we already have the text, this must be just a note
     else:
+
       try:
         Note(burstID=id, analyst=user, text=text, timestamp=timestamp)
       except Exception as e:
