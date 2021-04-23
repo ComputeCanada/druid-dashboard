@@ -11,6 +11,12 @@ from .exceptions import DatabaseException
 
 SQL_CREATE = '''
   INSERT INTO notes
+              (burst_id, analyst, note)
+  VALUES      (?, ?, ?)
+'''
+
+SQL_CREATE_WITH_TIMESTAMP = '''
+  INSERT INTO notes
               (burst_id, analyst, note, timestamp)
   VALUES      (?, ?, ?, ?)
 '''
@@ -63,7 +69,11 @@ class Note(BurstEvent):
       # if id is not defined, create new
       if id is None:
         db = get_db()
-        res = db.execute(SQL_CREATE, (burstID, analyst, text, timestamp))
+        if timestamp:
+          res = db.execute(SQL_CREATE_WITH_TIMESTAMP, (
+            burstID, analyst, text, timestamp))
+        else:
+          res = db.execute(SQL_CREATE, (burstID, analyst, text))
         if not res:
           raise Exception('TODO: proper exception (Could not create new object)')
         db.commit()
