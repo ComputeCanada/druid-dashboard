@@ -319,16 +319,23 @@ function createNote(id, account) {
   });
 }
 
-function claim(id, account) {
+function claimBurst(id, account) {
 
-  // set up update request.  'claimant' is ignored, but needs to be present
+  // close modal
+  var myModal = bootstrap.Modal.getInstance(document.getElementById('claimBurstModal'));
+  myModal.hide();
+
+  // set up update request.  'claimant' is set to blank string so it's filled
+  // in with logged-in user on server side
   var updates = [
     {
       'id': id,
-      'claimant': whoami
+      'claimant': '',
+      'note': $('#claimBurstModalNote')[0].value
     }
   ]
-  
+
+  status_id = status("Claiming...")
   // make request
   $.ajax({
     url: '/xhr/bursts/',
@@ -345,8 +352,76 @@ function claim(id, account) {
       flash_error("submit_actions() AJAX error");
     }
   });
-  
+}
 
+function rejectBurst(id, account) {
+
+  // close modal
+  var myModal = bootstrap.Modal.getInstance(document.getElementById('rejectBurstModal'));
+  myModal.hide();
+
+  // set up update request.  'claimant' is set to blank string so it's filled
+  // in with logged-in user on server side
+  var updates = [
+    {
+      'id': id,
+      'state': 'rejected',
+      'note': $('#rejectBurstModalNote')[0].value
+    }
+  ]
+
+  status_id = status("Rejecting...")
+  // make request
+  $.ajax({
+    url: '/xhr/bursts/',
+    method: 'PATCH',
+    data: JSON.stringify(updates),
+    contentType: 'application/json',
+    success: function(reports, status, jqXHR) {
+      status_clear(status_id);
+      refreshBursts(reports, status, jqXHR);
+    },
+    error: function() {
+      status_clear(status_id);
+      //TODO: should be status('error', ...)
+      flash_error("submit_actions() AJAX error");
+    }
+  });
+}
+
+function acceptBurst(id, account) {
+
+  // close modal
+  var myModal = bootstrap.Modal.getInstance(document.getElementById('acceptBurstModal'));
+  myModal.hide();
+
+  // set up update request.  'claimant' is set to blank string so it's filled
+  // in with logged-in user on server side
+  var updates = [
+    {
+      'id': id,
+      'state': 'accepted',
+      'note': $('#acceptBurstModalNote')[0].value
+    }
+  ]
+
+  status_id = status("Accepting...")
+  // make request
+  $.ajax({
+    url: '/xhr/bursts/',
+    method: 'PATCH',
+    data: JSON.stringify(updates),
+    contentType: 'application/json',
+    success: function(reports, status, jqXHR) {
+      status_clear(status_id);
+      refreshBursts(reports, status, jqXHR);
+    },
+    error: function() {
+      status_clear(status_id);
+      //TODO: should be status('error', ...)
+      flash_error("submit_actions() AJAX error");
+    }
+  });
 }
 
 // find first row in a table
@@ -506,7 +581,7 @@ function renderActionMenu(burst) {
   if (!burst.claimant) {
     items += `
         <li><button class='dropdown-item' type='button'
-              data-bs-toggle='modal' data-bs-target='#claimTicketModal'
+              data-bs-toggle='modal' data-bs-target='#claimBurstModal'
               data-burst-id='${burst.id}' data-account-id='${burst.account}'
             >Claim</button></li>`;
   }
@@ -521,9 +596,18 @@ function renderActionMenu(burst) {
         <li><button class='dropdown-item' type='button'
               data-bs-toggle='modal' data-bs-target='#noteCreationModal'
               data-burst-id='${burst.id}' data-account-id='${burst.account}'
-            >Make note</a></li>
-        <li><a class='dropdown-item' href='#'>Reject</a></li>
-        <li><a class='dropdown-item' href='#'>Accept</a></li>`;
+            >Make note</button></li>`;
+  if (burst.state == 'pending') {
+    items += `
+        <li><button class='dropdown-item' type='button'
+            data-bs-toggle='modal' data-bs-target='#rejectBurstModal'
+            data-burst-id='${burst.id}' data-account-id='${burst.account}'
+            >Reject</button></li>
+        <li><button class='dropdown-item' type='button'
+            data-bs-toggle='modal' data-bs-target='#acceptBurstModal'
+            data-burst-id='${burst.id}' data-account-id='${burst.account}'
+            >Accept</button></li>`;
+  }
 
   return `
     <div class='dropdown'>
@@ -584,8 +668,8 @@ href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.ht
       bursts[i].pain.toFixed(2),
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
-      bursts[i].claimant_pretty || "None",
-      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || "None" }</span>`,
+      bursts[i].claimant_pretty || "-",
+      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || "-" }</span>`,
       renderActionMenu(bursts[i]),
     ];
   }
@@ -634,6 +718,51 @@ $(document).ready(function() {
     var modalForm = createNoteModal.querySelector('.modal-form');
     modalForm.reset();
     modalForm.action = `javascript:createNote(${burst_id}, '${account_id}')`;
+  });
+
+  var claimBurstModal = document.getElementById('claimBurstModal');
+  claimBurstModal.addEventListener('show.bs.modal', function (event) {
+    // button that triggered the modal
+    var button = event.relatedTarget;
+
+    // extra information about button
+    var burst_id = button.getAttribute('data-burst-id');
+    var account_id = button.getAttribute('data-account-id');
+
+    // update modal
+    var modalForm = claimBurstModal.querySelector('.modal-form');
+    modalForm.reset();
+    modalForm.action = `javascript:claimBurst(${burst_id}, '${account_id}')`;
+  });
+
+  var rejectBurstModal = document.getElementById('rejectBurstModal');
+  rejectBurstModal.addEventListener('show.bs.modal', function (event) {
+    // button that triggered the modal
+    var button = event.relatedTarget;
+
+    // extra information about button
+    var burst_id = button.getAttribute('data-burst-id');
+    var account_id = button.getAttribute('data-account-id');
+
+    // update modal
+    var modalForm = rejectBurstModal.querySelector('.modal-form');
+    modalForm.reset();
+    modalForm.action = `javascript:rejectBurst(${burst_id}, '${account_id}')`;
+  });
+
+  var acceptBurstModal = document.getElementById('acceptBurstModal');
+  acceptBurstModal.addEventListener('show.bs.modal', function (event) {
+    // button that triggered the modal
+    var button = event.relatedTarget;
+
+    // extra information about button
+    var burst_id = button.getAttribute('data-burst-id');
+    var account_id = button.getAttribute('data-account-id');
+
+    // update modal
+    var modalForm = acceptBurstModal.querySelector('.modal-form');
+    modalForm.reset();
+    modalForm.action = `javascript:acceptBurst(${burst_id}, '${account_id}')`;
   });
 });
   </script>
@@ -728,6 +857,99 @@ $(document).ready(function() {
         <div class='modal-footer'>
           <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
           <button type='submit' class='btn btn-primary'>Make note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# --------------------------------------------------------------------------
+                                                          CLAIM BURST MODAL
+-------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='claimBurstModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <form class='modal-form'>
+        <div class='modal-header'>
+          <h5 class='modal-title' id='claimBurstModalLabel'>Claim burst candidate</h5>
+          <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+        </div>
+        <div class='modal-body'>
+          <p>By claiming this burst you indicate you will follow up with the
+analysis of this job set and with the research group, as necessary.</p>
+          <p>
+            <div class='form-group'>
+              <label for='note'>Note (optional)</label>
+              <textarea class='form-control' type='text' id='claimBurstModalNote'></textarea>
+            </div>
+          </p>
+        </div>
+        <div class='modal-footer'>
+          <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+          <button type='submit' class='btn btn-primary'>Claim</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# --------------------------------------------------------------------------
+                                                          REJECT MODAL
+-------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='rejectBurstModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <form class='modal-form'>
+        <div class='modal-header'>
+          <h5 class='modal-title' id='rejectBurstModalLabel'>Claim burst candidate</h5>
+          <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+        </div>
+        <div class='modal-body'>
+          <p>By rejecting this burst candidate you are indicating it's not of
+interest for bursting.</p>
+          <p>
+            <div class='form-group'>
+              <label for='note'>Note</label>
+              <textarea class='form-control' type='text' id='rejectBurstModalNote' required></textarea>
+            </div>
+          </p>
+        </div>
+        <div class='modal-footer'>
+          <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+          <button type='submit' class='btn btn-primary'>Claim</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# --------------------------------------------------------------------------
+                                                          ACCEPT MODAL
+-------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='acceptBurstModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <form class='modal-form'>
+        <div class='modal-header'>
+          <h5 class='modal-title' id='acceptBurstModalLabel'>Claim burst candidate</h5>
+          <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+        </div>
+        <div class='modal-body'>
+          <p>By accepting this burst candidate you are confirming this account
+is eligible for elevated access to resources.</p>
+          <p>
+            <div class='form-group'>
+              <label for='note'>Note</label>
+              <textarea class='form-control' type='text' id='acceptBurstModalNote' required></textarea>
+            </div>
+          </p>
+        </div>
+        <div class='modal-footer'>
+          <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+          <button type='submit' class='btn btn-primary'>Claim</button>
         </div>
       </form>
     </div>
