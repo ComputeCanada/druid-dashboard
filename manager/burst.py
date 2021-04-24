@@ -230,7 +230,12 @@ def update_bursts(updates, user):
         raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
 
     # update claimant if applicable
-    elif claimant := update.get('claimant', None):
+    elif 'claimant' in update:
+
+      # if claimant is empty string, use user instead
+      claimant = update['claimant'] or user
+
+      get_log().debug("Updating burst %d with claimant %s", id, claimant)
 
       # update history
       try:
