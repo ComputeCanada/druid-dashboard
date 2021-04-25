@@ -42,6 +42,22 @@ function epoch_to_local_time(epoch) {
   return(d.toLocaleString());
 }
 
+function timestamp_to_local_time(timestamp) {
+  var d = new Date(timestamp);
+  return(d.toLocaleString());
+}
+
+/**
+ * Extract numerical ID from DOM ID such as "burst_234".
+ *
+ * @param id {String} ID string of format "text_number"
+ * @returns {Integer} the number part, as a number.
+ */
+function numerical_part(id) {
+  var re = /^[a-zA-Z]*_([0-9]+)$/
+  return Number(id.match(re)[1]);
+}
+
 /* --------------------------------------------------------------------------
                                                        bootstrap helpers
 -------------------------------------------------------------------------- */
