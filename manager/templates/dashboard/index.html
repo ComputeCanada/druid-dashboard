@@ -64,7 +64,7 @@ function requestBursts() {
 
 function makeTableBlank(cluster) {
   return `
-            <table id='bursts_table_${cluster}' class='' style='width: 100%'>
+            <table id='bursts_table_${cluster}' class='bursts' style='width: 100%'>
               <thead>
                 <tr>
                   <th class='number'         ><img
@@ -137,24 +137,25 @@ function displayBursts(reports, status, jqXHR) {
       accordionParent.appendChild(accordion);
 
       // create the table
-      $(`#bursts_table_${cluster}`).dataTable({
-        "autoWidth": false,
-        "data": renderTableData(reports[cluster]['bursts']),
-        "columnDefs": [
-          { searchable: false, targets: 'nosearch' },
-          { orderable: false, targets: 'nosort' },
-          { className: 'number', targets: 'number' }
-        ],
-        order: ordering
-        }
-      );
+      populateBurstTable(cluster, reports[cluster], ordering);
 
+      // set up ordering update handler
       $(`#bursts_table_${cluster}`).on('order.dt', function(event) {
         var order = $(event.target).DataTable().order();
         Cookies.set("ordering", JSON.stringify(order));
       });
 
     }
+
+    // set up event handler for clicking on table row to take to burst details
+    $('.bursts').on('click', 'tbody tr', function(event) {
+      // check that currentTarget.id is properly defined; it won't be for
+      // summary table.  There is probably a better way to do this.  TODO
+      if (event.currentTarget.id !== '') {
+        burstID = numerical_part(event.currentTarget.id);
+        showBurstHistory(burstID);
+      }
+    });
 
     // determine which cluster should be expanded by default
     var expand_cluster = Cookies.get("default-cluster");
@@ -216,20 +217,36 @@ function refreshBursts(reports, status, jqXHR) {
           </div>`);
 
       // create the table
-      $(`#bursts_table_${cluster}`).dataTable({
-        "autoWidth": false,
-        "data": renderTableData(reports[cluster]['bursts']),
-        "columnDefs": [
-          { searchable: false, targets: 'nosearch' },
-          { orderable: false, targets: 'nosort' },
-          { className: 'number', targets: 'number' }
-        ],
-        order: ordering
-        }
-      );
-
+      populateBurstTable(cluster, reports[cluster], ordering);
     }
   }
+}
+
+function populateBurstTable(cluster, report, ordering) {
+  $(`#bursts_table_${cluster}`).dataTable({
+    "autoWidth": false,
+    "data": renderTableData(report['bursts']),
+    "columnDefs": [
+      { searchable: false, targets: 'nosearch' },
+      { orderable: false, targets: 'nosort' },
+      { className: 'number', targets: 'number' },
+      { visible: false, targets: [9] }
+    ],
+    columns: [
+      { "name": "ticks" },
+      { "name": "account" },
+      { "name": "usage" },
+      { "name": "pain" },
+      { "name": "summary" },
+      { "name": "state" },
+      { "name": "analyst" },
+      { "name": "ticket" },
+      { "name": "action" },
+      { "name": "id" },
+    ],
+    order: ordering,
+    rowId: function(row) { return "burst_" + row[9] }
+  });
 }
 
 function updateSelection(id, new_state) {
@@ -349,7 +366,7 @@ function claimBurst(id, account) {
     error: function() {
       status_clear(status_id);
       //TODO: should be status('error', ...)
-      flash_error("submit_actions() AJAX error");
+      flash_error("claimBurst() AJAX error");
     }
   });
 }
@@ -384,7 +401,7 @@ function rejectBurst(id, account) {
     error: function() {
       status_clear(status_id);
       //TODO: should be status('error', ...)
-      flash_error("submit_actions() AJAX error");
+      flash_error("rejectBurst() AJAX error");
     }
   });
 }
@@ -419,7 +436,7 @@ function acceptBurst(id, account) {
     error: function() {
       status_clear(status_id);
       //TODO: should be status('error', ...)
-      flash_error("submit_actions() AJAX error");
+      flash_error("acceptBurst() AJAX error");
     }
   });
 }
@@ -435,6 +452,80 @@ function find_first_row(tbody_id) {
   }
   return null;
 }
+
+
+function eventsToHtml(events) {
+  var html = '';
+  var title;
+  var details;
+
+  if (events.length == 0) {
+    return "<p>No events recorded for this burst candidate.</p>";
+  }
+
+  for (var i=0, ien=events.length; i<ien; i++) {
+    details = '';
+    event = events[i];
+    switch (event.type) {
+      case "Note":
+        title = 'Note';
+        break;
+      case "ClaimantUpdate":
+        title = 'Claimant update';
+        details = `From ${event.claimant_was} to ${event.claimant_now}`;
+        break;
+      case "StateUpdate":
+        title = 'State update';
+        details = `From ${event.old_state} to ${event.new_state}`;
+        break;
+      default:
+        title = `Unknown type of event (${event.type})`;
+        details = '<dl>';
+        for (key in event) {
+          details += `<dt>${key}</dt><dd>${event[key]}</dd>`;
+        }
+        details += '</dl>';
+        break;
+    }
+    html += `<h6>${title} by ${event.analyst}, ${timestamp_to_local_time(event.timestamp)}</h6>`;
+    if (details) {
+      html += `<p>${details}</p>`;
+    }
+    if (event.text) {
+      html += `<p><pre>${event.text}</pre></p>`;
+    }
+  }
+  return html;
+}
+
+
+function showBurstHistory(burstID) {
+  // show status
+  status_id = status("Retrieving events...");
+
+  $.ajax({
+    url: `/xhr/bursts/${burstID}/events/`,
+    method: 'GET',
+    success: function(events, status, jqXHR) {
+      status_clear(status_id);
+
+      // set history content
+      var modalBodyEl = document.getElementById('historyModalBody');
+      modalBodyEl.innerHTML = eventsToHtml(events);
+
+      // show modal
+      var modalEl = document.getElementById('historyModal');
+      var modal = bootstrap.Modal.getInstance(modalEl);
+      modal.show();
+    },
+    error: function() {
+      status_clear(status_id);
+      //TODO: should be status('error', ...)
+      flash_error("showBurstHistory() AJAX error");
+    }
+  });
+}
+
 
 // iterate through burts
 function* burstActionIterator() {
@@ -570,7 +661,13 @@ function jsonToTable(json) {
   var summary = JSON.parse(json);
   var summaryHTML = '';
   for (key in summary) {
-    summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
+    if (key == "old_pain") {
+      value = summary[key].toFixed(2);
+    }
+    else {
+      value = summary[key];
+    }
+    summaryHTML += `<tr><th>${key}</th><td>${value}</td></tr>`;
   }
   return `<table class='not-table'>${summaryHTML}</table>`;
 
@@ -619,31 +716,6 @@ function renderActionMenu(burst) {
     </div>`;
 }
 
-function renderActionButtons(id, state_checked) {
-  return `
-    <label class='switch' title='{{ _("Unclaim") }}'>
-      <input type='radio' name='moderation_${id}' class='grey'  id='defer_${ id }'  ${ state_checked["p"] } onClick='updateSelection(${ id }, "unclaimed")'>
-        <span class='toggle'>&#x1f97a;</span>
-      </input>
-    </label>
-    <label class='switch' title='{{ _("Claim this burst candidate for followup") }}'>
-      <input type='radio' name='moderation_${id}' class='grey'  id='claim_${ id }'  ${ state_checked["c"] } onClick='updateSelection(${ id }, "claimed")'>
-        <span class='toggle'>&#x1f914;</span>
-      </input>
-    </label>
-    <label class='switch' title='{{ _("Promote this account for bursting") }}'>
-      <input type='radio' name='moderation_${id}' class='green' id='accept_${ id }' ${ state_checked["a"] } onClick='updateSelection(${ id }, "accepted")'>
-        <span class='toggle'>&#x1f600;</span>
-      </input>
-    </label>
-    <label class='switch' title='{{ _("Do not promote this account for bursting") }}'>
-      <input type='radio' name='moderation_${id}' class='red'   id='reject_${ id }' ${ state_checked["r"] } onClick='updateSelection(${ id }, "rejected")'>
-        <span class='toggle'>&#x1f625;</span>
-      </input>
-    </label>
-  `;
-}
-
 function renderTableData(bursts) {
 
   var id, account, resource;
@@ -671,8 +743,10 @@ href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.ht
       bursts[i].claimant_pretty || "-",
       `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || "-" }</span>`,
       renderActionMenu(bursts[i]),
+      id
     ];
   }
+
   return bycols;
 }
 
@@ -764,6 +838,10 @@ $(document).ready(function() {
     modalForm.reset();
     modalForm.action = `javascript:acceptBurst(${burst_id}, '${account_id}')`;
   });
+
+  var historyModalEl = document.getElementById('historyModal');
+  var historyModal = new bootstrap.Modal(historyModalEl);
+  historyModal.hide();
 });
   </script>
 {% endblock %}
@@ -952,6 +1030,26 @@ is eligible for elevated access to resources.</p>
           <button type='submit' class='btn btn-primary'>Claim</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+{# --------------------------------------------------------------------------
+                                                              HISTORY MODAL
+-------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='historyModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='historyModalLabel'>Burst candidate history</h5>
+        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+      </div>
+      <div class='modal-body' id='historyModalBody'>
+      </div>
+      <div class='modal-footer'>
+        <button type='button' class='btn btn-primary' data-bs-dismiss='modal'>Mkay</button>
+      </div>
     </div>
   </div>
 </div>
