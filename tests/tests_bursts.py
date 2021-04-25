@@ -187,6 +187,24 @@ def test_get_events(client):
     },
   ]
 
+def test_get_no_events(client):
+  """
+  Get events related to a burst when there are no events.
+  """
+  # log in
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  assert response.status_code == 200
+
+  # get events
+  response = client.get('/xhr/bursts/1/events/')
+  assert response.status_code == 200
+  x = json.loads(response.data)
+
+  # we don't really need to delete IDs but we do need to delete timestamps
+  # because SQLite and Postgres report them differently
+  print(x)
+  assert x == []
+
 def test_update_bursts_xhr_no_timestamps(client):
   data = [
     {

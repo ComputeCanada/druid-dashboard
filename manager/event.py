@@ -99,10 +99,10 @@ def report(event):
 def get_burst_events(burstID):
 
   # get all notes with burst_id == burstID
-  notes = note.get_by_burst(burstID)
+  notes = note.get_by_burst(burstID) or []
 
   # get all actions with burst_id == burstID
-  updates = actions.get_by_burst(burstID)
+  updates = actions.get_by_burst(burstID) or []
 
   # sort combined events by timestamp
   events = sorted(notes + updates, key=lambda x : x.timestamp)

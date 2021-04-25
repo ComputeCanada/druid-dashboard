@@ -43,6 +43,9 @@ def get_by_burst(burstID):
   except Exception as e:
     raise DatabaseException(e)
 
+  if not res:
+    return None
+
   return [
     Note(r['id'], r['burst_id'], r['analyst'], r['timestamp'], r['note'])
     for r in res

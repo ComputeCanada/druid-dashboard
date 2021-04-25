@@ -63,28 +63,39 @@ SQL_CLAIMANT_UPDATES_BY_BURST = '''
 # ---------------------------------------------------------------------------
 
 def get_by_burst(burstID):
+
+  state_updates = None
+  claimant_updates = None
+
   try:
     res = get_db().execute(SQL_STATE_UPDATES_BY_BURST, (burstID,)).fetchall()
   except Exception as e:
     raise DatabaseException(e)
-  state_updates = [
-    StateUpdate(r['id'], r['burst_id'], r['analyst'], r['timestamp'], r['note'],
-      State(r['new_state']), State(r['old_state']))
-    for r in res
-  ]
+  if res:
+    state_updates = [
+      StateUpdate(r['id'], r['burst_id'], r['analyst'], r['timestamp'], r['note'],
+        State(r['new_state']), State(r['old_state']))
+      for r in res
+    ]
 
   try:
     res = get_db().execute(SQL_CLAIMANT_UPDATES_BY_BURST, (burstID,)).fetchall()
   except Exception as e:
     raise DatabaseException(e)
 
-  claimant_updates = [
-    ClaimantUpdate(r['id'], r['burst_id'], r['analyst'], r['timestamp'], r['note'],
-      r['claimant_now'], r['claimant_was'])
-    for r in res
-  ]
+  if res:
+    claimant_updates = [
+      ClaimantUpdate(r['id'], r['burst_id'], r['analyst'], r['timestamp'], r['note'],
+        r['claimant_now'], r['claimant_was'])
+      for r in res
+    ]
 
-  return state_updates + claimant_updates
+  if state_updates and claimant_updates:
+    return state_updates + claimant_updates
+  elif state_updates:
+    return state_updates
+  else:
+    return claimant_updates
 
 # ---------------------------------------------------------------------------
 #                                                         StateUpdate class
