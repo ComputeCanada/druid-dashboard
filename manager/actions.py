@@ -92,10 +92,9 @@ def get_by_burst(burstID):
 
   if state_updates and claimant_updates:
     return state_updates + claimant_updates
-  elif state_updates:
+  if state_updates:
     return state_updates
-  else:
-    return claimant_updates
+  return claimant_updates
 
 # ---------------------------------------------------------------------------
 #                                                         StateUpdate class
