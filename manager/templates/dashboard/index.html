@@ -147,6 +147,11 @@ function displayBursts(reports, status, jqXHR) {
 
     }
 
+    {# ---------------------------------------------------------------------
+      This doesn't work well.  When clicking on the action button, the menu
+      is displayed but then the event propagates here and the event history
+      displays, which isn't what we want.
+
     // set up event handler for clicking on table row to take to burst details
     $('.bursts').on('click', 'tbody tr', function(event) {
       // check that currentTarget.id is properly defined; it won't be for
@@ -156,6 +161,8 @@ function displayBursts(reports, status, jqXHR) {
         showBurstHistory(burstID);
       }
     });
+
+    ------------------------------------------------------------------------ #}
 
     // determine which cluster should be expanded by default
     var expand_cluster = Cookies.get("default-cluster");
@@ -287,6 +294,7 @@ function createTicket(id, account) {
 
   // get ticket type
   var ticket_type = $('#outreach-type')[0].value;
+  console.log(`Ticket type: ${ticket_type}`);
 
   status_id = status("Creating ticket...")
   $.ajax({
@@ -674,7 +682,11 @@ function jsonToTable(json) {
 }
 
 function renderActionMenu(burst) {
-  var items = '';
+  var items = `
+        <li><button class='dropdown-item' type='button'
+              data-bs-toggle='modal' data-bs-target='#historyModal'
+              data-burst-id='${burst.id}' data-account-id='${burst.account}'
+            >History</button></li>`;
   if (!burst.claimant) {
     items += `
         <li><button class='dropdown-item' type='button'
@@ -839,9 +851,22 @@ $(document).ready(function() {
     modalForm.action = `javascript:acceptBurst(${burst_id}, '${account_id}')`;
   });
 
-  var historyModalEl = document.getElementById('historyModal');
-  var historyModal = new bootstrap.Modal(historyModalEl);
-  historyModal.hide();
+  var historyModal = document.getElementById('historyModal');
+  historyModal.addEventListener('show.bs.modal', function (event) {
+    // button that triggered the modal
+    var button = event.relatedTarget;
+
+    // extra information about button
+    var burst_id = button.getAttribute('data-burst-id');
+
+    // clear body
+    var modalBodyEl = document.getElementById('historyModalBody');
+    modalBodyEl.innerHTML = "<p><i>Loading history...</i></p>";
+
+    // update modal
+    showBurstHistory(burst_id);
+  });
+
 });
   </script>
 {% endblock %}
