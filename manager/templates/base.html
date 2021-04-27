@@ -30,8 +30,11 @@
   <script src="https://stuff.frak.c3.ca/js.cookie.min.js"></script>
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
   <link rel='stylesheet' href="{{ url_for('static', filename='style.css') }}">
+  {% if config['ENV'] == 'development' %}
+  <link rel='stylesheet' href="{{ url_for('static', filename='development.css') }}">
+  {% endif %}
 
-  <title>{{ _('Burst Enablement') }} - {% block title %}{% endblock %}</title>
+  <title>{{ "DEVELOPMENT - " if config['ENV'] == 'development' }}{{ _('Burst Enablement') }} - {% block title %}{% endblock %}</title>
   {% block extra %}{% endblock %}
   <script>
     // are we an admin?
@@ -44,7 +47,7 @@
 {% block dialog %}{% endblock %}
 {% block confirm %}{% endblock %}
 <nav>
-  <h1><a href="{{ url_for('index') }}">{{ _('Burst Enablement') }} - {{ self.title() }}</a></h1>
+  <h1><a href="{{ url_for('index') }}">{{ "DEVELOPMENT - " if config['ENV'] == 'development' }}{{ _('Burst Enablement') }} - {{ self.title() }}</a></h1>
 
   <ul>
     {%- if session['givenName'] %}
