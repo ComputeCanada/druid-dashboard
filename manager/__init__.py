@@ -48,7 +48,7 @@ babel = Babel()
 # the environment
 defaults = {
   'APPLICATION_TITLE': _("Burst Enablement"),
-  'APPLICATION_CSS': '',
+  'APPLICATION_CSS_OVERRIDE': '',
   'APPLICATION_TAG': 'beam',
   'SECRET_KEY': 'dev',
   'LDAP_URI': 'ldap://localhost',
@@ -72,7 +72,7 @@ optionals = [
 def inject_custom_vars():
   return dict(
     title=current_app.config['APPLICATION_TITLE'],
-    css=current_app.config['APPLICATION_CSS']
+    css_override=current_app.config['APPLICATION_CSS_OVERRIDE']
   )
 
 def determine_config(default_config_file, default_config, test_config=None):
