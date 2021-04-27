@@ -97,11 +97,11 @@ function displayBursts(reports, status, jqXHR) {
   // used to track clusters
   var clusters = [];
 
+  // get main accordion container
+  var accordionParent = document.getElementById('bursts_accordion');
+
   // burst reports are organized by cluster
   if (Object.keys(reports).length > 0) {
-
-    // get main accordion container
-    var accordionParent = document.getElementById('bursts_accordion');
 
     // get ordering
     var orderingJSON = Cookies.get("ordering");
@@ -186,9 +186,7 @@ function displayBursts(reports, status, jqXHR) {
       Cookies.set("default-cluster", defaultCluster);
     });
   } else {
-    r = document.createElement("tr");
-    r.innerHTML = "<td></td><td colspan=7>{{ _('There are currently no bursts defined.') }}</td>";
-    tbody.appendChild(r);
+    accordionParent.innerHTML = "<p>{{ _('There are currently no bursts defined.') }}</p>";
   }
 
   $('#submit_actions').html("Update");
@@ -283,7 +281,6 @@ function updateTicket(ticket, status, jqXHR) {
   var el_id = `#ticket_${ticket.burst_id}`;
   var href = `<a href='${ticket.url}' target='_ticket'>${ticket.ticket_no}</a>`;
   $(el_id).html(href);
-  console.log('Ticket = ' + ticket.burst_id);
 }
 
 function createTicket(id, account) {
@@ -294,7 +291,6 @@ function createTicket(id, account) {
 
   // get ticket type
   var ticket_type = $('#outreach-type')[0].value;
-  console.log(`Ticket type: ${ticket_type}`);
 
   status_id = status("Creating ticket...")
   $.ajax({
