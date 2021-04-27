@@ -5,8 +5,8 @@ import os
 import logging
 import configparser
 from json import JSONEncoder
-from flask import Flask, request, session
-from flask_babel import Babel
+from flask import Flask, request, session, current_app
+from flask_babel import Babel, _
 
 # utilities
 from . import log
@@ -47,6 +47,8 @@ babel = Babel()
 # static defaults - even empty ones need to exist so that app knows to check
 # the environment
 defaults = {
+  'APPLICATION_TITLE': _("Burst Enablement"),
+  'APPLICATION_CSS': '',
   'APPLICATION_TAG': 'beam',
   'SECRET_KEY': 'dev',
   'LDAP_URI': 'ldap://localhost',
@@ -66,6 +68,12 @@ optionals = [
   'SYSLOG_PORT',
   'SYSLOG_PROTOCOL'
 ]
+
+def inject_custom_vars():
+  return dict(
+    title=current_app.config['APPLICATION_TITLE'],
+    css=current_app.config['APPLICATION_CSS']
+  )
 
 def determine_config(default_config_file, default_config, test_config=None):
   """
@@ -210,6 +218,9 @@ def create_app(test_config=None):
   if (not app.config.get('TESTING', False)
       and app.config.get('CATCH_ALL_EXCEPTIONS', True)):
     app.register_error_handler(Exception, errors.generic_exception)
+
+  # register custom context processor to add custom variables
+  app.context_processor(inject_custom_vars)
 
   return app
 
