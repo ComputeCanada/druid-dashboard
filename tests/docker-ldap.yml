@@ -11,6 +11,10 @@ volumes:
 services:
   postgres:
     image: postgres
+    volumes:
+      - type: bind
+        source: ../instance/pg
+        target: /var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: supersecretpassword
     ports:
