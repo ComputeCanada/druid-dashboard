@@ -138,6 +138,26 @@ build_test:
   before_script:
     - IMAGENAME=$TEST_IMAGE
 
+build_wsgi:
+  stage: build
+  only:
+    - wsgi
+  extends:
+    - .code
+    - .presentation
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - IMAGENAME="${CI_REGISTRY_IMAGE}:wsgi"
+    - echo "Building image to tag '$IMAGENAME' with build info '$BUILDINFO'"
+    - sed -i 's/Built with Flask/wsgi '$BUILDINFO'/' manager/templates/base.html
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/deployment/Dockerfile.uwsgi --destination $SHA_IMAGE --destination $IMAGENAME
+  dependencies:
+    - syntax
+
 build_dev:
   extends:
     - .code

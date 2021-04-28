@@ -1,0 +1,4 @@
+#!/bin/sh
+
+FLASK_APP=manager
+flask init-db

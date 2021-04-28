@@ -1,0 +1,40 @@
+FROM alpine:latest
+MAINTAINER Drew Leske <drew.leske@computecanada.ca>
+
+ENV WERKZEUG_DEBUG_PIN 'off'
+ENV FLASK_ENV=production
+
+# default is to use local database
+ENV BEAM_DATABASE_URI=file:////home/beam/db/development.sqlite
+
+# install base OS stuff
+RUN adduser -s /sbin/nologin -D -h /home/beam beam
+RUN apk --update add python3 postgresql-dev build-base python3-dev openldap-dev py3-pip gcc
+
+# install Flask
+COPY requirements.txt /tmp/
+RUN pip3 install --upgrade -r /tmp/requirements.txt
+
+# necessary for uwsgi
+RUN apk --update add linux-headers libuuid
+RUN pip3 install uwsgi
+
+# clean up
+RUN apk del build-base python3-dev gmp-dev openldap-dev gcc linux-headers && \
+  rm -rf /root/.cache/pip/* && \
+  rm -rf /var/cache/apk/* && \
+  rm -rf /tmp/*
+
+# install application
+WORKDIR /home/beam
+COPY ccldap/ ccldap/
+COPY manager/ manager/
+COPY deployment/wsgi.py wsgi.py
+COPY deployment/init-db init-db
+RUN pybabel compile -d manager/translations
+
+ENV PATH=$PATH:/home/beam
+EXPOSE 5000
+USER beam
+
+CMD uwsgi --http :5000 -w wsgi:app
