@@ -35,7 +35,7 @@ default:
       - "manager/sql/*.psql"
       - requirements.txt
       - "tests/**/*"
-      - deployment/Dockerfile
+      - "deployment/*"
 
 .presentation:
   only:
