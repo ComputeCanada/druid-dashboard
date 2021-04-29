@@ -37,4 +37,4 @@ ENV PATH=$PATH:/home/beam
 EXPOSE 5000
 USER beam
 
-CMD uwsgi --http :5000 -w wsgi:app
+CMD uwsgi --http :5000 -w wsgi:app --enable-threads --master --single-interpreter
