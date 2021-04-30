@@ -1,0 +1,51 @@
+# yamllint
+#
+# TAG should be defined by caller.  Used to ensure testing containers have
+# unique but known names.
+version: '3'
+
+volumes:
+  pip:
+    driver: local
+
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - type: bind
+        source: ../instance/pg
+        target: /var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: supersecretpassword
+    ports:
+      - "5432:5432"
+    container_name: postgres-$TAG
+    healthcheck:
+      test: pg_isready -h localhost -p 5432 -U postgres -d postgres
+  ldap:
+    image: git.computecanada.ca:4567/dleske/ldap-ctnr
+    ports:
+      - "389:389"
+    container_name: ldap-$TAG
+    healthcheck:
+      test: nc -z localhost 389
+      interval: 5s
+      retries: 12
+  beam:
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile.uwsgi
+    ports:
+      - "5000:5000"
+    environment:
+      BEAM_APPLICATION_TITLE: '[DEVELOPMENT] Burst Enablement'
+      BEAM_APPLICATION_CSS_OVERRIDE: html {background:orange}
+      #BEAM_LDAP_BINDDN: uid=fraksvc,ou=People,dc=computecanada,dc=ca
+      BEAM_LDAP_URI: ldap://ldap
+      BEAM_LDAP_SKIP_TLS: "true"
+      BEAM_LDAP_TLS_REQCERT: allow
+      BEAM_DATABASE_URI: postgresql://postgres:supersecretpassword@postgres:5432/beam_dev
+    container_name: beam-$TAG
+    depends_on:
+      - postgres
+      - ldap
