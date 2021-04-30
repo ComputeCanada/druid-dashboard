@@ -17,7 +17,7 @@ RUN pip3 install --upgrade -r /tmp/requirements.txt
 
 # necessary for uwsgi
 RUN apk --update add linux-headers libuuid
-RUN pip3 install uwsgi
+RUN pip3 install uwsgi uwsgitop
 
 # clean up
 RUN apk del build-base python3-dev gmp-dev openldap-dev gcc linux-headers && \
@@ -34,7 +34,9 @@ COPY deployment/init-db init-db
 RUN pybabel compile -d manager/translations
 
 ENV PATH=$PATH:/home/beam
-EXPOSE 5000
+ENV WORKERS=4
+ENV PORT=5000
+EXPOSE $PORT
 USER beam
 
-CMD uwsgi --http :5000 -w wsgi:app --enable-threads --master --single-interpreter
+CMD uwsgi --http :$PORT -w wsgi:app --enable-threads --master --single-interpreter --processes $WORKERS --stats :1717
