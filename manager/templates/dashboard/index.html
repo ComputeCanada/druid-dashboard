@@ -590,6 +590,12 @@ function flash_error(summary, message) {
   error_div.style.display = "block";
 }
 
+{# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DISABLING NOTIFICATIONS MECHANISM.
+ *
+ * Currently unused and it creates zombie threads (?) that are not cleaned up,
+ * causing an effective DOS.
+ *
 // NOTIFICATIONS
 // This mechanism adapted from
 // https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API
@@ -660,6 +666,7 @@ if (!('Notification' in window)) {
     });
   }
 }
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * #}
 
 function jsonToTable(json) {
   var summary = JSON.parse(json);
