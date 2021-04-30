@@ -101,7 +101,7 @@ function makeToast(type, message, options) {
       break;
   }
 
-  $(parentSelector).append(`
+  $(parentSelector).prepend(`
     <div class="toast ${extraClasses}" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="toast-header">
         <strong class="me-auto">${title}</strong>
@@ -113,6 +113,6 @@ function makeToast(type, message, options) {
       </div>
     </div>
   `);
-  var toast = $('#toast-container').children().toArray()[0];
+  var toast = $(parentSelector).children().toArray()[0];
   return new bootstrap.Toast(toast, options);
 }
