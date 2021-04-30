@@ -35,6 +35,12 @@ function status(msg) {
 }
 
 function status_clear(id) {
+  /* I would expect toasts[id].dispose() to replace the next three lines but
+   * instead it always throws an exception that _element is NULL, which is
+   * what removing the DOM element manually presumably does.
+   */
+  var parent = document.getElementById('toast-container');
+  parent.removeChild(toasts[id]._element);
   toasts[id].hide();
   delete toasts[id];
 }
