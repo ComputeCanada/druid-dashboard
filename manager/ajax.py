@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
+import html
 
 from flask import Blueprint, jsonify, request, g, session
 from flask_babel import _
@@ -157,6 +158,16 @@ def xhr_update_bursts():
   except BadRequest as e:
     get_log().error("Could not parse request data: %s", e)
     return jsonify({'error': str(e)}), 400
+
+  # sanitize any strings
+  for item in data:
+    for (key, val) in item.items():
+      if isinstance(val, str):
+        sanitized = html.escape(val)
+        if val != sanitized:
+          item[key] = sanitized
+          get_log().info("Client tried to send in HTML for key %s: '%s'",
+            key, sanitized)
 
   try:
     update_bursts(data, user=g.user['cci'])

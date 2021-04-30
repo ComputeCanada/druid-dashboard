@@ -61,7 +61,7 @@ def test_update_bursts_xhr(client):
     },
     {
       'id':12,
-      'note': 'Reverting to pending',
+      'note': 'Reverting to <b>pending</b>',
       'state': 'pending',
       'timestamp':'2019-03-31 10:37 AM'
     },
@@ -181,7 +181,7 @@ def test_get_events(client):
       'burstID':12,
       'type': 'StateUpdate',
       'analyst': 'tst-003',
-      'text': 'Reverting to pending',
+      'text': 'Reverting to &lt;b&gt;pending&lt;/b&gt;',
       'old_state': 'rejected',
       'new_state': 'pending',
     },
