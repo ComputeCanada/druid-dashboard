@@ -2,6 +2,7 @@
 # pylint: disable=wrong-import-position,import-outside-toplevel
 #
 from .notifier import get_notifiers
+from .ldap import get_ldap
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -59,6 +60,8 @@ class BurstEvent(Event):
   def __init__(self, id=None, burstID=None, analyst=None, timestamp=None):
     self._burstID = burstID
     self._analyst = analyst
+    if analyst:
+      self._analyst_pretty = get_ldap().get_person_by_cci(analyst)['givenName']
     super().__init__(id, timestamp)
 
 

@@ -482,7 +482,7 @@ function eventsToHtml(events) {
         break;
       case "ClaimantUpdate":
         title = 'Claimant update';
-        details = `From ${event.claimant_was} to ${event.claimant_now}`;
+        details = `From ${event.claimant_was_pretty} to ${event.claimant_now_pretty}`;
         break;
       case "StateUpdate":
         title = 'State update';
@@ -497,7 +497,7 @@ function eventsToHtml(events) {
         details += '</dl>';
         break;
     }
-    html += `<h6>${title} by ${event.analyst}, ${timestamp_to_local_time(event.timestamp)}</h6>`;
+    html += `<h6>${title} by ${event.analyst_pretty}, ${timestamp_to_local_time(event.timestamp)}</h6>`;
     if (details) {
       html += `<p>${details}</p>`;
     }

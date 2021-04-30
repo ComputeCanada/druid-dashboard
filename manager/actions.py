@@ -2,6 +2,7 @@
 # pylint: disable=raise-missing-from
 #
 from .db import get_db
+from .ldap import get_ldap
 from .burst import State
 from .event import BurstEvent
 from .exceptions import DatabaseException
@@ -171,3 +172,8 @@ class ClaimantUpdate(BurstEvent):
       self._claimant_was = claimant_was
       self._claimant_now = claimant
       super().__init__(id, burstID, analyst, timestamp)
+
+    if self._claimant_was:
+      self._claimant_was_pretty = get_ldap().get_person_by_cci(self._claimant_was)['givenName']
+    if self._claimant_now:
+      self._claimant_now_pretty = get_ldap().get_person_by_cci(self._claimant_now)['givenName']
