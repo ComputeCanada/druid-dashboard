@@ -465,7 +465,7 @@ function eventsToHtml(events) {
       html += `<p>${details}</p>`;
     }
     if (event.text) {
-      html += `<p><pre>${event.text}</pre></p>`;
+      html += `<p>${event.text.split('\n\n').join("</p><p>")}</p>`;
     }
   }
   return html;
