@@ -14,9 +14,6 @@
 
 {% block scriptage %}
   <script>
-// this is used for finding the burst actions on submit
-var burst_states;
-var burst_updates;
 
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
@@ -95,10 +92,6 @@ function makeTableBlank(cluster) {
 
 
 function displayBursts(reports, status, jqXHR) {
-
-  // reset burst IDs array
-  burst_states = {};
-  burst_updates = {};
 
   // used to track clusters
   var clusters = [];
@@ -194,16 +187,9 @@ function displayBursts(reports, status, jqXHR) {
   } else {
     accordionParent.innerHTML = "<p>{{ _('There are currently no bursts defined.') }}</p>";
   }
-
-  $('#submit_actions').html("Update");
-  $('#submit_actions').prop("disabled", true);
 }
 
 function refreshBursts(reports, status, jqXHR) {
-
-  // reset burst IDs array
-  burst_states = {};
-  burst_updates = {};
 
   // burst reports are organized by cluster
   if (Object.keys(reports).length == 0) {
@@ -258,29 +244,6 @@ function populateBurstTable(cluster, report, ordering) {
     order: ordering,
     rowId: function(row) { return "burst_" + row[9] }
   });
-}
-
-function updateSelection(id, new_state) {
-  if (new_state == burst_states[id]) {
-    delete burst_updates[id];
-  }
-  else {
-    burst_updates[id] = new_state;
-  }
-
-  // determine update button label
-  var burst_update_count = Object.keys(burst_updates).length;
-  if (burst_update_count == 0) {
-    label = "{{ _('Update') }}";
-    $('#submit_actions').prop("disabled", true);
-    $('#submit_actions').hide();
-  }
-  else {
-    var label = "{{ _('Update') }}" + ` (${burst_update_count})`;
-    $('#submit_actions').html(label);
-    $('#submit_actions').prop("disabled", false);
-    $('#submit_actions').show();
-  }
 }
 
 function updateTicket(ticket, status, jqXHR) {
@@ -551,37 +514,6 @@ function* burstActionIterator() {
 }
 
 
-// Submit actions
-function submit_actions() {
-  // submit updates if there are any
-  if (Object.keys(burst_updates).length > 0) {
-    // clear update button
-    $('#submit_actions').html("Update");
-    $('#submit_actions').prop("disabled", true);
-    $('#submit_actions').hide();
-
-    // show status
-    status_id = status("Submitting updates...");
-
-    // make request
-    $.ajax({
-      url: '/xhr/bursts/',
-      method: 'PATCH',
-      data: JSON.stringify(burst_updates),
-      contentType: 'application/json',
-      success: function(reports, status, jqXHR) {
-        status_clear(status_id);
-        refreshBursts(reports, status, jqXHR);
-      },
-      error: function() {
-        status_clear(status_id);
-        //TODO: should be status('error', ...)
-        flash_error("submit_actions() AJAX error");
-      }
-    });
-  }
-}
-
 function flash_error(summary, message) {
   error_div = document.getElementById('error');
   error_div.innerHtml = "";
@@ -691,40 +623,43 @@ function jsonToTable(json) {
 }
 
 function renderActionMenu(burst) {
-  var items = `
+
+  function makeButton(burstID, account, target, label) {
+    return `
         <li><button class='dropdown-item' type='button'
-              data-bs-toggle='modal' data-bs-target='#historyModal'
-              data-burst-id='${burst.id}' data-account-id='${burst.account}'
-            >History</button></li>`;
+              data-bs-toggle='modal' data-bs-target='${target}'
+              data-burst-id='${burstID}' data-account-id='${account}'
+            >${label}</button></li>`;
+  }
+
+  // "History" menu item
+  var items = makeButton(burst.id, burst.account, '#historyModal', 'History');
+
+  // "Claim" menu item
+  // only available if no claimant
   if (!burst.claimant) {
-    items += `
-        <li><button class='dropdown-item' type='button'
-              data-bs-toggle='modal' data-bs-target='#claimBurstModal'
-              data-burst-id='${burst.id}' data-account-id='${burst.account}'
-            >Claim</button></li>`;
+    items += makeButton(burst.id, burst.account, '#claimBurstModal', 'Claim');
   }
+
+  // "Create ticket" menu item
+  // only available if no ticket already associated
   if (!burst.ticket_href) {
-    items += `
-        <li><button class='dropdown-item' type='button'
-              data-bs-toggle='modal' data-bs-target='#ticketCreationModal'
-              data-burst-id='${burst.id}' data-account-id='${burst.account}'
-            >Create ticket</button></li>`;
+    items += makeButton(burst.id, burst.account, '#ticketCreationModal', 'Create ticket');
   }
-  items += `
-        <li><button class='dropdown-item' type='button'
-              data-bs-toggle='modal' data-bs-target='#noteCreationModal'
-              data-burst-id='${burst.id}' data-account-id='${burst.account}'
-            >Make note</button></li>`;
+
+  // "Make note" menu item
+  items += makeButton(burst.id, burst.account, '#noteCreationModal', 'Make note');
+
+  // "Reject" menu item
+  // only available if state is pending
   if (burst.state == 'pending') {
-    items += `
-        <li><button class='dropdown-item' type='button'
-            data-bs-toggle='modal' data-bs-target='#rejectBurstModal'
-            data-burst-id='${burst.id}' data-account-id='${burst.account}'
-            >Reject</button></li>
-        <li><button class='dropdown-item' type='button'
-            data-bs-toggle='modal' data-bs-target='#acceptBurstModal'
-            data-burst-id='${burst.id}' data-account-id='${burst.account}'
-            >Accept</button></li>`;
+    items += makeButton(burst.id, burst.account, '#rejectBurstModal', 'Reject');
+  }
+
+  // "Accept" menu item
+  // only available if state is pending and there is an associated ticket
+  if (burst.state == 'pending' && burst.ticket_id) {
+    items += makeButton(burst.id, burst.account, '#acceptBurstModal', 'Accept');
   }
 
   return `
@@ -740,13 +675,9 @@ function renderActionMenu(burst) {
 function renderTableData(bursts) {
 
   var id, account, resource;
-  var state_checked;
 
   bycols = [];
   for (var i=0, ien=bursts.length; i<ien; i++) {
-    state_checked = {}
-    state_checked[bursts[i].state] = "checked='checked'";
-    burst_states[bursts[i].id] = bursts[i].state;
 
     id = bursts[i].id;
     account = bursts[i].account;
@@ -775,9 +706,6 @@ $(document).ready(function() {
 
   // load bursts
   requestBursts();
-
-  // hide submit-actions button
-  $('#submit_actions').hide();
 
   // initialize the create-ticket modal
   // TODO:
@@ -900,8 +828,6 @@ $(document).ready(function() {
 
 <div class='accordion' id='bursts_accordion'>
 </div>
-
-<button id='submit_actions' value='Submit' onclick='submit_actions()'>{{ _('Update') }}</button>
 
 {# --------------------------------------------------------------------------
                                                       TICKET CREATION MODAL
