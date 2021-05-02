@@ -85,14 +85,17 @@ SQL_REJECT = '''
 '''
 
 SQL_GET_CURRENT_BURSTS = '''
-  SELECT  B.*
-  FROM    bursts B
-  JOIN    (
-            SELECT    cluster, MAX(epoch) AS epoch
-            FROM      bursts
-            GROUP BY  cluster
-          ) J
-  ON      B.cluster = J.cluster AND B.epoch = J.epoch
+  SELECT    B.*, COUNT(N.id) AS notes
+  FROM      bursts B
+  JOIN      (
+              SELECT    cluster, MAX(epoch) AS epoch
+              FROM      bursts
+              GROUP BY  cluster
+            ) J
+  ON        B.cluster = J.cluster AND B.epoch = J.epoch
+  LEFT JOIN notes N
+  ON        (B.id = N.burst_id)
+  GROUP BY  B.id
 '''
 
 SQL_GET_CLUSTER_BURSTS = '''
@@ -153,7 +156,10 @@ def _bursts_by_cluster_epoch(db_results):
       ticks=row['ticks'],
       claimant=row['claimant'],
       ticket_id=row['ticket_id'],
-      ticket_no=row['ticket_no']
+      ticket_no=row['ticket_no'],
+      other=dict({
+        'notes': row['notes']
+      })
     ))
   return map
 
@@ -296,7 +302,7 @@ class Burst():
   def __init__(self, id=None, cluster=None, account=None,
       resource=Resource.CPU, pain=None, jobrange=None, submitters=None,
       state=State.PENDING, summary=None, epoch=None, ticks=0, claimant=None,
-      ticket_id=None, ticket_no=None):
+      ticket_id=None, ticket_no=None, other=None):
 
     self._id = id
     self._cluster = cluster
@@ -312,6 +318,7 @@ class Burst():
     self._claimant = claimant
     self._ticket_id = ticket_id
     self._ticket_no = ticket_no
+    self._other = other
 
     # handle instantiation by factory
     # pylint: disable=too-many-boolean-expressions
@@ -426,6 +433,12 @@ class Burst():
   @property
   def claimant(self):
     return self._claimant
+
+  @property
+  def notes(self):
+    if self._other and 'notes' in self._other:
+      return self._other['notes']
+    return None
 
   @property
   def info(self):

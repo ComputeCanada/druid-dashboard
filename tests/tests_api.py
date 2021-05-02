@@ -96,7 +96,8 @@ def test_get_burst(client):
     'ticket_id': None,
     'ticket_no': None,
     'ticks': 0,
-    'submitters': ['userQ']
+    'submitters': ['userQ'],
+    'other': None
   }
 
 def test_post_nothing(client):

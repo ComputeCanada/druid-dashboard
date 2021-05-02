@@ -81,6 +81,7 @@ function makeTableBlank(cluster) {
                   <th                        >{{ _('State') }}</th>
                   <th                        >{{ _('Analyst') }}</th>
                   <th                        >{{ _('Ticket') }}</th>
+                  <th class='number'         >{{ _('Notes') }}</th>
                   <th class='nosearch nosort'>{{ _('Action') }}</th>
                 </tr>
               </thead>
@@ -227,7 +228,7 @@ function populateBurstTable(cluster, report, ordering) {
       { searchable: false, targets: 'nosearch' },
       { orderable: false, targets: 'nosort' },
       { className: 'number', targets: 'number' },
-      { visible: false, targets: [9] }
+      { visible: false, targets: [10] }
     ],
     columns: [
       { "name": "ticks" },
@@ -238,11 +239,12 @@ function populateBurstTable(cluster, report, ordering) {
       { "name": "state" },
       { "name": "analyst" },
       { "name": "ticket" },
+      { "name": "notes" },
       { "name": "action" },
       { "name": "id" },
     ],
     order: ordering,
-    rowId: function(row) { return "burst_" + row[9] }
+    rowId: function(row) { return "burst_" + row[10] }
   });
 }
 
@@ -694,6 +696,7 @@ href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.ht
       bursts[i].state_pretty,
       bursts[i].claimant_pretty || "-",
       `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || "-" }</span>`,
+      bursts[i].other['notes'],
       renderActionMenu(bursts[i]),
       id
     ];

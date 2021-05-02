@@ -25,7 +25,7 @@ def test_get_bursts_xhr(client):
           "id":12,"jobrange":[1005,2015],"pain":1.2, "state":"pending",
           "state_pretty":"Pending","summary":"{}","ticks":1,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"]}
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}}
       ],
     },
     "testcluster2": {
@@ -34,17 +34,17 @@ def test_get_bursts_xhr(client):
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"]},
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"]},
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"]}
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}}
       ],
       "epoch":25
     }
@@ -104,7 +104,8 @@ def test_update_bursts_xhr(client):
           "ticket_id": None,
           "ticket_no": None,
           "ticket_href":None,
-          "ticks": 1
+          "ticks": 1,
+          'other': {'notes': 1}
         }
       ],
     },
@@ -114,17 +115,17 @@ def test_update_bursts_xhr(client):
           "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"]},
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"]},
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
           "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"]}
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}}
       ],
       "epoch":25
     }
