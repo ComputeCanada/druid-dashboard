@@ -49,7 +49,7 @@ babel = Babel()
 defaults = {
   'APPLICATION_TITLE': _("Burst Enablement"),
   'APPLICATION_CSS_OVERRIDE': '',
-  'APPLICATION_TAG': 'beam',
+  'APPLICATION_TAG': 'beam-dev',
   'SECRET_KEY': 'dev',
   'LDAP_URI': 'ldap://localhost',
   'LDAP_BINDDN': '',
