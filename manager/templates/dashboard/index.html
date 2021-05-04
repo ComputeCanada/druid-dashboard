@@ -147,23 +147,6 @@ function displayBursts(reports, status, jqXHR) {
 
     }
 
-    {# ---------------------------------------------------------------------
-      This doesn't work well.  When clicking on the action button, the menu
-      is displayed but then the event propagates here and the event history
-      displays, which isn't what we want.
-
-    // set up event handler for clicking on table row to take to burst details
-    $('.bursts').on('click', 'tbody tr', function(event) {
-      // check that currentTarget.id is properly defined; it won't be for
-      // summary table.  There is probably a better way to do this.  TODO
-      if (event.currentTarget.id !== '') {
-        burstID = numerical_part(event.currentTarget.id);
-        showBurstHistory(burstID);
-      }
-    });
-
-    ------------------------------------------------------------------------ #}
-
     // determine which cluster should be expanded by default
     var expand_cluster = Cookies.get("default-cluster");
     if (!expand_cluster || clusters.indexOf(expand_cluster) == -1) {
@@ -450,7 +433,12 @@ function eventsToHtml(events) {
         break;
       case "ClaimantUpdate":
         title = 'Claimant update';
-        details = `From ${event.claimant_was_pretty} to ${event.claimant_now_pretty}`;
+        if (!event.claimant_was_pretty) {
+          details = `Claimed by ${event.claimant_now_pretty}`;
+        }
+        else {
+          details = `Stolen by ${event.claimant_now_pretty} from ${event.claimant_was_pretty}`;
+        }
         break;
       case "StateUpdate":
         title = 'State update';
