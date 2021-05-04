@@ -239,7 +239,10 @@ def update_bursts(updates, user):
     elif 'claimant' in update:
 
       # if claimant is empty string, use user instead
-      claimant = update['claimant'] or user
+      if update['claimant'] == '':
+        claimant = user
+      else:
+        claimant = update['claimant']
 
       get_log().debug("Updating burst %d with claimant %s", id, claimant)
 
