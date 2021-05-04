@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.3 (2021-05-03) Improve UI
+
+Added:
+* Burst candidate actions Steal, Release
+* Configurable application tag
+* Notes count in dashboard
+* Input sanitization
+
+Updated:
+* Improved notes formatting (replacing successive line breaks with paragraph
+  markers; no longer styles as preformatted
+* Fix ordering and cleanup of toasts (on-dash notifications)
+* Frontend (Javascript) code simplications
+
+
 ## v0.2 (2021-04-29) Improve container deployment
 
 Added:
