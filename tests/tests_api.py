@@ -1,5 +1,5 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=line-too-long
 #
 import time
 from email.utils import formatdate
@@ -307,7 +307,7 @@ def test_post_burst(client):
     ]})
   assert response.status_code == 201
 
-def test_post_bursts(client):
+def test_post_bursts(client, notifier):
 
   response = api_post(client, '/api/bursts', {
     'version': 1,
@@ -333,6 +333,11 @@ def test_post_bursts(client):
     ]})
   assert response.status_code == 201
 
+  assert notifier.notifications == [
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 1 new burst record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    "beam-dev: BurstReportReceived: A new burst report came in from testcluster with 2 new burst record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
+
   # SQLite uses second-accuracy time so for consistency we do the same with
   # Postgres.  In testing we need to introduce a 1s delay to force the
   # following update to be of a different epoch than what we did above.
@@ -353,6 +358,12 @@ def test_post_bursts(client):
     ]})
   assert response.status_code == 201
 
+  assert notifier.notifications == [
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 1 new burst record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 2 new burst record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.']
+
   # now login and retrieve burst candidates as manager would
   response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
   assert response.status_code == 302
@@ -371,3 +382,63 @@ def test_post_bursts(client):
       # we should _not_ see the "bobaloo" account because it was in the
       # previous epoch and so no longer current
       assert burst['account'] != 'def-bobaloo-aa'
+
+def test_post_bursts_with_other_updates(client, notifier):
+  """
+  Tests that state and claimant information in notification is correct.
+  """
+
+  data = [
+    {
+      'id': 12,
+      'note': 'Hey how are ya',
+      'state': 'rejected',
+      'timestamp':'2019-03-31 10:31 AM'
+    },
+    {
+      'id': 12,
+      'note': 'This is not the way',
+      'claimant': 'tst-003',
+      'timestamp':'2019-03-31 10:35 AM'
+    }
+  ]
+
+  response = client.patch('/xhr/bursts/', json=data, environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  print(response.data)
+  assert response.status_code == 200
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske-aa',
+        'resource': 'cpu',
+        'pain': 1.0,
+        'firstjob': 1005,
+        'lastjob': 3000,
+        'summary': {},
+        'submitters': ['userQ']
+      },
+      {
+        'account': 'def-bobaloo-aa',
+        'resource': 'cpu',
+        'pain': 1.5,
+        'firstjob': 1015,
+        'lastjob': 2015,
+        'summary': {},
+        'submitters': ['userQ']
+      }
+    ]})
+  assert response.status_code == 201
+
+  print(notifier.notifications)
+  assert notifier.notifications[0] == \
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+  assert notifier.notifications[1] == \
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 1 new burst record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+  assert notifier.notifications[2] == \
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 2 new burst record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+  assert notifier.notifications[3] == \
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+  assert notifier.notifications[4] == \
+    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 2 existing.  In total there are 1 pending, 0 accepted, 1 rejected.  1 have been claimed.'
