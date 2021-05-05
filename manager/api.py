@@ -177,7 +177,7 @@ def summarize_burst_report(cluster, bursts):
     if burst.claimant:
       claimed += 1
 
-    by_state[burst.state] += 1
+    by_state[State(burst.state)] += 1
 
   return "A new burst report came in from {} with {} new burst record(s)" \
     " and {} existing.  In total there are {} pending, {} accepted," \
