@@ -373,6 +373,12 @@ class Burst():
       if res:
         # found existing burst
         self._id = res['id']
+        self._state = res['state']
+        self._claimant = res['claimant']
+        self._ticket_id = res['ticket_id']
+        self._ticket_no = res['ticket_no']
+
+        # update as necessary
         self._jobrange = [res['firstjob'], jobrange[1]]
         self._ticks = res['ticks'] + 1
         get_log().debug("Ticks updated from %d to %d", res['ticks'], self._ticks)
@@ -393,6 +399,7 @@ class Burst():
           db.execute(SQL_UPDATE_EXISTING, (pain, jobrange[1], json.dumps(summary), epoch, self._ticks, self._id))
         except Exception as e:
           raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
+
       else:
         # this is a new burst
         trying_to = "create burst for {}".format(account)
