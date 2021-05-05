@@ -30,8 +30,10 @@ SQL_GET_NOTIFIER = """
 
 # this is where notifiers are stored
 notifiers = {}
+notifiers_inited = None
 
 def register_notifier(type, cls):
+  print("In register_notifiers()")
   notifiers[type] = cls
 
 def list_notifiers():
@@ -39,14 +41,23 @@ def list_notifiers():
   return db.execute(SQL_LIST_NOTIFIERS).fetchall()
 
 def get_notifiers():
-  db = get_db()
-  res = db.execute(SQL_GET_NOTIFIERS).fetchall()
-  if not res:
-    return None
-  return [
-    notifiers[row['type']](row['name'], json.loads(row['config']))
-    for row in res
-  ]
+  # TODO: why can't I use g.notifiers for this?
+  # pylint: disable=global-statement
+  global notifiers_inited
+  if not notifiers_inited:
+    db = get_db()
+    res = db.execute(SQL_GET_NOTIFIERS).fetchall()
+    if not res:
+      return None
+    notifiers_inited = [
+      notifiers[row['type']](row['name'], json.loads(row['config']))
+      for row in res
+    ]
+  return notifiers_inited
+
+def clear_notifiers():
+  for notifier in get_notifiers():
+    notifier.clear()
 
 # ---------------------------------------------------------------------------
 #                                                            Notifier class
@@ -62,6 +73,9 @@ class Notifier():
   def _config(self, config):
 
     raise NotImplementedError
+
+  def clear(self):
+    pass
 
   def notify(self, message):
 
