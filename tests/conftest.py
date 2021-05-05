@@ -4,6 +4,7 @@
 import os
 import re
 import pytest
+from manager.notifier import Notifier, register_notifier, get_notifiers
 
 @pytest.fixture(scope='class')
 def client(seeded_app):
@@ -40,3 +41,32 @@ def find_seed_update_scripts(basedir, targetver):
           versions[m[1]] = '{}/{}'.format(testsdir, file)
 
   return (versions if versions else None)
+
+# ---------------------------------------------------------------------------
+#                                                          notifier fixture
+# ---------------------------------------------------------------------------
+
+class TestNotifier(Notifier):
+
+  def _config(self, config):
+    self._notifications = []
+    self._config = config
+
+  def notify(self, message):
+    self._notifications.append(message)
+
+  @property
+  def notifications(self):
+    return self._notifications
+
+  def clear(self):
+    self._notifications = []
+
+register_notifier('test', TestNotifier)
+
+@pytest.fixture
+def notifier(seeded_app):
+  with seeded_app.app_context():
+    # TODO: maybe get_notifiers() should return map of type or name to
+    # notifier object
+    return get_notifiers()[0]

@@ -197,3 +197,5 @@ Info additionel au tâches:
   Tâches au courant:   %num_jobs%
   Emetteurs de tâches: %submitters%
 ');
+
+INSERT INTO notifiers (name, type, config) VALUES ('Test Notifier', 'test', '{}');
