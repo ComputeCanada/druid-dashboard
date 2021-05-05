@@ -18,6 +18,7 @@ from tests.ldapstub import LdapStub
 from tests.otrsstub import OtrsStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db
+from manager.notifier import clear_notifiers
 
 # common test params; this was more useful when both SQLite and Postgres
 # were handled in the same test setup module
@@ -47,6 +48,7 @@ def seeded_app(request):
     init_db()
     seed_db(request.param['seed'])
     get_db().commit()
+    clear_notifiers()
 
   yield app
 
