@@ -16,16 +16,24 @@ def test_get_bursts_xhr(client):
   interpreted = json.loads(response.data.decode('utf-8'))
   assert interpreted['testcluster']['bursts'][0]['epoch'] == interpreted['testcluster']['epoch']
   del interpreted['testcluster']['bursts'][0]['epoch']
+  del interpreted['testcluster']['bursts'][1]['epoch']
   del interpreted['testcluster']['epoch']
   print(interpreted)
   assert interpreted == {
     "testcluster": {
       "bursts": [
-        {"account":"def-dleske-aa","claimant":None,"cluster":"testcluster",
-          "id":12,"jobrange":[1005,2015],"pain":1.2, "state":"pending",
-          "state_pretty":"Pending","summary":"{}","ticks":1,"resource":"cpu",
+        {"account":"def-dleske-aa","claimant":'tst-003',"cluster":"testcluster",
+          "id":12,"jobrange":[1005,3000],"pain":1.0, "state":"rejected",
+          "state_pretty":"Rejected","summary":"{}","ticks":2,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
-          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}}
+          "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0},
+          'claimant_pretty':'User 1'},
+        {'account': 'def-bobaloo-aa', 'claimant': None, 'cluster':
+          'testcluster', 'id': 13, 'jobrange': [1015, 2015],
+          'other': {'notes': 0}, 'pain': 1.5, 'resource': 'cpu', 'resource_pretty':
+          'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ'],
+          'summary': '{}', 'ticket_href': None, 'ticket_id': None, 'ticket_no': None,
+          'ticks': 1}
       ],
     },
     "testcluster2": {
@@ -55,21 +63,9 @@ def test_update_bursts_xhr(client):
   data = [
     {
       'id':12,
-      'note': 'Hey how are ya',
-      'state': 'rejected',
-      'timestamp':'2019-03-31 10:31 AM'
-    },
-    {
-      'id':12,
       'note': 'Reverting to <b>pending</b>',
       'state': 'pending',
       'timestamp':'2019-03-31 10:37 AM'
-    },
-    {
-      'id': 12,
-      'note': 'This is not the way',
-      'claimant': 'tst-003',
-      'timestamp':'2019-03-31 10:35 AM'
     },
     {
       'id': 12,
@@ -82,6 +78,7 @@ def test_update_bursts_xhr(client):
   assert response.status_code == 200
   interpreted = json.loads(response.data.decode('utf-8'))
   del interpreted['testcluster']['bursts'][0]['epoch']
+  del interpreted['testcluster']['bursts'][1]['epoch']
   del interpreted['testcluster']['epoch']
   print(interpreted)
   assert interpreted == {
@@ -95,18 +92,24 @@ def test_update_bursts_xhr(client):
           "resource":"cpu",
           "resource_pretty": "CPU",
           "id":12,
-          "jobrange":[1005,2015],
+          "jobrange":[1005,3000],
           "submitters":["userQ"],
-          "pain":1.2,
+          "pain":1.0,
           "state":"pending",
           "state_pretty": "Pending",
           "summary": "{}",
           "ticket_id": None,
           "ticket_no": None,
           "ticket_href":None,
-          "ticks": 1,
+          "ticks": 2,
           'other': {'notes': 1}
-        }
+        },
+        {'account': 'def-bobaloo-aa', 'claimant': None, 'cluster':
+          'testcluster', 'id': 13, 'jobrange': [1015, 2015],
+          'other': {'notes': 0}, 'pain': 1.5, 'resource': 'cpu', 'resource_pretty':
+          'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ'],
+          'summary': '{}', 'ticket_href': None, 'ticket_id': None, 'ticket_no': None,
+          'ticks': 1}
       ],
     },
     "testcluster2": {
