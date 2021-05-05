@@ -22,3 +22,7 @@ i18n/messages.pot
 
 html/
 TODO.md
+
+# ignore everything in resources/ except readme
+resources/*
+!resources/README.md

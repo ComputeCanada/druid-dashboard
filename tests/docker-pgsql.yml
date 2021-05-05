@@ -22,3 +22,10 @@ services:
     container_name: postgres-$TAG
     healthcheck:
       test: pg_isready -h localhost -p 5432 -U postgres -d postgres
+  resources:
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile.resources
+    ports:
+      - "8080:80"
+    container_name: resources-$TAG

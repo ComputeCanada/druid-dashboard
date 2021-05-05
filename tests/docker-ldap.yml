@@ -31,3 +31,10 @@ services:
       test: nc -z localhost 389
       interval: 5s
       retries: 12
+  resources:
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile.resources
+    ports:
+      - "8080:80"
+    container_name: resources-$TAG

@@ -47,6 +47,7 @@ babel = Babel()
 # static defaults - even empty ones need to exist so that app knows to check
 # the environment
 defaults = {
+  'STATIC_RESOURCE_URI': 'stuff.frak.c3.ca',
   'APPLICATION_TITLE': _("Burst Enablement"),
   'APPLICATION_CSS_OVERRIDE': '',
   'APPLICATION_TAG': 'beam-dev',
@@ -72,7 +73,8 @@ optionals = [
 def inject_custom_vars():
   return dict(
     title=current_app.config['APPLICATION_TITLE'],
-    css_override=current_app.config['APPLICATION_CSS_OVERRIDE']
+    css_override=current_app.config['APPLICATION_CSS_OVERRIDE'],
+    resources_uri=current_app.config['STATIC_RESOURCE_URI']
   )
 
 def determine_config(default_config_file, default_config, test_config=None):

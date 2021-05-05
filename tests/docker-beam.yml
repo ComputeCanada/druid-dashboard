@@ -40,6 +40,7 @@ services:
     environment:
       BEAM_APPLICATION_TITLE: '[DEVELOPMENT] Burst Enablement'
       BEAM_APPLICATION_CSS_OVERRIDE: html {background:orange}
+      BEAM_STATIC_RESOURCE_URI: http://localhost:8080
       #BEAM_LDAP_BINDDN: uid=fraksvc,ou=People,dc=computecanada,dc=ca
       BEAM_LDAP_URI: ldap://ldap
       BEAM_LDAP_SKIP_TLS: "true"
@@ -49,3 +50,10 @@ services:
     depends_on:
       - postgres
       - ldap
+  resources:
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile.resources
+    ports:
+      - "8080:80"
+    container_name: resources-$TAG

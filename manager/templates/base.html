@@ -2,32 +2,34 @@
 <html>
 <head>
   <!-- jQuery-->
-  <script src="https://stuff.frak.c3.ca/jQuery-3.5.1/jquery-3.5.1.min.js"></script>
+  <script src="{{ resources_uri }}/jQuery-3.5.1/jquery-3.5.1.min.js"></script>
 
   <!-- (Bootstrap) -->
   <!-- Required meta tags -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel='stylesheet' href="https://stuff.frak.c3.ca/bootstrap/css/bootstrap.min.css">
+  <link rel='stylesheet' href="{{ resources_uri }}/bootstrap/css/bootstrap.min.css">
 
-  <script src="https://stuff.frak.c3.ca/bootstrap/js/bootstrap.bundle.js"></script>
+  <script src="{{ resources_uri }}/bootstrap/js/bootstrap.bundle.js"></script>
 
   <!-- DataTables w/o Bootstrap -->
-  <link rel="stylesheet" type="text/css" href="https://stuff.frak.c3.ca/datatables/DataTables-1.10.23-no-bootstrap/datatables.min.css"/>
-  <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/DataTables-1.10.23-no-bootstrap/datatables.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="{{ resources_uri }}/datatables/DataTables-1.10.23-no-bootstrap/datatables.min.css"/>
+  <script type="text/javascript" src="{{ resources_uri }}/datatables/DataTables-1.10.23-no-bootstrap/datatables.min.js"></script>
 
   <!-- DataTables w/ Bootstrap
-  <link rel="stylesheet" type="text/css" href="https://stuff.frak.c3.ca/datatables/datatables.min.css"/>
-  <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/datatables.min.js"></script> -->
+  <link rel="stylesheet" type="text/css" href="{{ resources_uri }}/datatables/datatables.min.css"/>
+  <script type="text/javascript" src="{{ resources_uri }}/datatables/datatables.min.js"></script> -->
 
   <!-- DataTables w/ Bootstrap 5
-  <link rel="stylesheet" type="text/css" href="https://stuff.frak.c3.ca/datatables/datatables-bootstrap-5/dataTables.bootstrap5.min.css"/>
-  <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/datatables-bootstrap-5/jquery.dataTables.min.js"></script>
-  <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/datatables-bootstrap-5/dataTables.bootstrap5.min.js"></script>
-  <script type="text/javascript" src="https://stuff.frak.c3.ca/datatables/datatables-bootstrap-5/dataTables.select.min.js"></script> -->
+  <link rel="stylesheet" type="text/css" href="{{ resources_uri }}/datatables/datatables-bootstrap-5/dataTables.bootstrap5.min.css"/>
+  <script type="text/javascript" src="{{ resources_uri }}/datatables/datatables-bootstrap-5/jquery.dataTables.min.js"></script>
+  <script type="text/javascript" src="{{ resources_uri }}/datatables/datatables-bootstrap-5/dataTables.bootstrap5.min.js"></script>
+  <script type="text/javascript" src="{{ resources_uri }}/datatables/datatables-bootstrap-5/dataTables.select.min.js"></script> -->
+
+  <!-- Simple Javascript cookie library -->
+  <script src="{{ resources_uri }}/js.cookie.min.js"></script>
 
   <!-- local scriptage and stylings -->
-  <script src="https://stuff.frak.c3.ca/js.cookie.min.js"></script>
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
   <link rel='stylesheet' href="{{ url_for('static', filename='style.css') }}">
   {% if config['ENV'] == 'development' %}
