@@ -1,8 +1,10 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=wrong-import-position,import-outside-toplevel
 #
+from flask import current_app
 from .notifier import get_notifiers
 from .ldap import get_ldap
+from .log import get_log
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -91,13 +93,15 @@ def register_event(type, cls):
 
 def report(event):
 
+  get_log().debug("In report(%s)", event)
+
   if not event.notifiable():
     return
 
   notifiers = get_notifiers()
   if notifiers:
     for notifier in notifiers:
-      notifier.notify("We got an event: {}".format(event))
+      notifier.notify("{}: {}".format(current_app.config['APPLICATION_TAG'], event))
 
 def get_burst_events(burstID):
 
