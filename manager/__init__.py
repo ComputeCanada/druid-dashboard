@@ -47,7 +47,7 @@ babel = Babel()
 # static defaults - even empty ones need to exist so that app knows to check
 # the environment
 defaults = {
-  'STATIC_RESOURCE_URI': 'stuff.frak.c3.ca',
+  'STATIC_RESOURCE_URI': 'https://stuff.frak.c3.ca',
   'APPLICATION_TITLE': _("Burst Enablement"),
   'APPLICATION_CSS_OVERRIDE': '',
   'APPLICATION_TAG': 'beam-dev',
