@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4 (2021-05-07) Two-step ticket creation
+
+Added:
+* Ticket creation now split into two steps and allows editing of title and text
+  before sending.
+* Configurable alternative location for externally sourced static resources.
+* Event notification testing.
+
+Updated:
+* Use toast notifications for all status and errors instead of flash area.
+* Use upper-right corner consistently for notifications.
+* Use application tag in event notifications.
+
+Fixed:
+* Toast notifications properly handling multiple concurrent messages.
+* Problem with partially loaded Burst objects appearing in report
+  notifications.
+* No longer displaying "undefined" in event history for unset fields.
+
 ## v0.3 (2021-05-03) Improve UI
 
 Added:
@@ -31,7 +50,4 @@ Fixed:
 
 ## v0.1 (2021-04-25) Initial Pilot release.
 
-
 ## v0.0 (2020-12-04) Empty app reusing SAW prototype with SAW-specific code removed.
-
-
