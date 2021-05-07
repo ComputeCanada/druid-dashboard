@@ -66,8 +66,7 @@ function requestBursts() {
     },
     error: function() {
       status_clear(status_id);
-      //TODO: should be status('error', ...)
-      flash_error("requestBursts() AJAX error")
+      error("Failed to retrieve burst reports");
     }
   });
 }
@@ -352,8 +351,7 @@ function updateBursts(updates, options = {
     },
     error: function() {
       status_clear(status_id);
-      //TODO: should be status('error', ...)
-      flash_error(error);
+      error(options.error);
     }
   });
 }
@@ -553,26 +551,11 @@ function showBurstHistory(burstID) {
     },
     error: function() {
       status_clear(status_id);
-      //TODO: should be status('error', ...)
-      flash_error("showBurstHistory() AJAX error");
+      error("Failed to retrieve burst events");
     }
   });
 }
 
-
-function flash_error(summary, message) {
-  error_div = document.getElementById('error');
-  error_div.innerHtml = "";
-
-  title = document.createElement('h4');
-  title.textContent = summary;
-  content = document.createElement('p');
-  content.textContent = message;
-
-  error_div.appendChild(title);
-  error_div.appendChild(content);
-  error_div.style.display = "block";
-}
 
 {# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DISABLING NOTIFICATIONS MECHANISM.
