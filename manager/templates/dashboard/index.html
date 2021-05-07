@@ -24,6 +24,13 @@ var i18n_texts = {
 
 var toasts = [];
 
+function error(msg) {
+  toast = makeToast("error", msg, {autohide: false});
+  toast.show();
+  toasts.push(toast);
+  return toasts.length - 1;
+}
+
 function status(msg) {
   toast = makeToast("info", msg, {autohide: false, noClose: true});
   toast.show();
@@ -237,28 +244,88 @@ function updateTicket(ticket, status, jqXHR) {
   $(el_id).html(href);
 }
 
-function createTicket(id, account) {
+function showTicketComposition(template, burst_id, account_id) {
 
-  // close modal
+  var modalEl = document.getElementById('ticketCompositionModal');
+
+  // reset form
+  var modalForm = modalEl.querySelector('.modal-form');
+  modalForm.reset();
+  modalForm.action = `javascript:createTicket(${burst_id}, '${account_id}')`;
+
+  // populate form
+  var titleEl = document.getElementById('ticketCreationTitle');
+  titleEl.value = template.title;
+  var bodyEl = document.getElementById('ticketCreationText');
+  bodyEl.value = template.body;
+
+  // override reset button
+  var resetEl = document.getElementById('ticketCompositionReset');
+  resetEl.addEventListener('click', function() {
+    console.log("Clicked on resetEl");
+    titleEl.value = template.title;
+    bodyEl.value = template.body;
+  });
+
+  // show modal
+  var modal = bootstrap.Modal.getInstance(modalEl);
+  modal.show();
+}
+
+// ticket creation, step 1: trigger composition
+function triggerTicketComposition(id, account) {
+
+  // close "create ticket" modal
   var myModal = bootstrap.Modal.getInstance(document.getElementById('ticketCreationModal'));
   myModal.hide();
 
   // get ticket type
   var ticket_type = $('#outreach-type')[0].value;
 
-  status_id = status("Creating ticket...")
+  // load template and then launch ticket composition modal
+  status_id = status("Retrieving template...")
+  $.ajax({
+    url: `/xhr/templates/${ticket_type}?burst_id=${id}`,
+    method: 'GET',
+    success: function(template, status, jqXHR) {
+      status_clear(status_id);
+      showTicketComposition(template, id, account);
+    },
+    error: function() {
+      status_clear(status_id);
+      error(`Unable to retrieve template of type ${ticket_type}`);
+    }
+  });
+}
+
+// step 2: actually creating the ticket
+function createTicket(id, account) {
+
+  status_id = status(`Creating ticket for account ${account}...`);
+
+  // get form data
+  var titleEl = document.getElementById('ticketCreationTitle');
+  var title = titleEl.value;
+  var bodyEl = document.getElementById('ticketCreationText');
+  var body = bodyEl.value;
+
+  // post the ticket creation
   $.ajax({
     url: '/xhr/tickets/',
     method: 'POST',
-    data: { burst_id: id, account: account, template: ticket_type },
+    data: { burst_id: id, account: account, title: title, body: body },
     success: function(ticket, status, jqXHR) {
       status_clear(status_id);
+
+      // close modal
+      var myModal = bootstrap.Modal.getInstance(document.getElementById('ticketCompositionModal'));
+      myModal.hide();
+
       updateTicket(ticket, status, jqXHR);
     },
     error: function() {
       status_clear(status_id);
-      //TODO: should be status('error', ...)
-      flash_error("createTicket() AJAX error")
+      error("Creation of ticket failed");
     }
   });
 }
@@ -629,7 +696,7 @@ function renderActionMenu(burst) {
     items += makeActionButton(burst.id, burst.account, 'claim', '#noteModal', 'Claim');
   }
   else {
-    if (burst.claimant != "{{ session['cci']}}") {
+    if (burst.claimant != "{{ session['cci'] }}") {
       items += makeActionButton(burst.id, burst.account, 'steal', '#noteModal', 'Steal');
     }
     else {
@@ -716,7 +783,13 @@ $(document).ready(function() {
     // update modal
     var modalForm = createTicketModal.querySelector('.modal-form');
     modalForm.reset();
-    modalForm.action = `javascript:createTicket(${burst_id}, '${account_id}')`;
+    modalForm.action = `javascript:triggerTicketComposition(${burst_id}, '${account_id}')`;
+  });
+
+  // initialize the compose-ticket modal.  Set to ignore Escape
+  var ticketCompositionModalEl = document.getElementById('ticketCompositionModal');
+  var ticketCompositionModal = new bootstrap.Modal(ticketCompositionModalEl, {
+    keyboard: false
   });
 
   var noteModal = document.getElementById('noteModal');
@@ -850,40 +923,71 @@ $(document).ready(function() {
 </div>
 
 {# --------------------------------------------------------------------------
-                                                      TICKET CREATION MODAL
+                                                     TICKET CREATION MODALS
 -------------------------------------------------------------------------- #}
 
-<div class='modal fade' id='ticketCreationModal' tabindex='-1'>
+<div class='modal modal.draggable fade' id='ticketCreationModal' tabindex='-1'>
   <div class='modal-dialog modal-dialog-centered'>
     <div class='modal-content'>
       <form class='modal-form'>
         <div class='modal-header'>
-          <h5 class='modal-title' id='ticketCreationModalLabel'>Create ticket</h5>
+          <h5 class='modal-title' id='ticketCreationModalLabel'>Create ticket: Select template</h5>
+          <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+        </div>
+
+        <div class='modal-body'>
+
+          <p>Select what sort of outreach you want to initiate:
+            <select class='form-select' id='outreach-type' required>
+              <option selected disabled value=''>Choose outreach type</option>
+              <option value='candidate'>Burst candidate</option>
+              <option value='impossible'>Impossible jobs</option>
+              <option value='rac'>Apply for RAC</option>
+              <option value='empty'>Empty</option>
+            </select>
+          </p>
+        </div>
+
+        <div class='modal-footer'>
+          <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+          <button type='submit' class='btn btn-primary'>Compose</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class='modal fade' id='ticketCompositionModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <form class='modal-form'>
+        <div class='modal-header'>
+          <h5 class='modal-title' id='ticketCompositionModalLabel'>Create ticket: Compose message</h5>
           <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
         </div>
         <div class='modal-body'>
           <p><strong>Note</strong>: Continuing with this operation will create a ticket and send outgoing e-mails to the PI associated with this account.</p>
 
-          <p>Select what sort of outreach you want to initiate:
-            <select class='form-select' id='outreach-type' required>
-              <option selected disabled>Choose outreach type</option>
-              <option value='candidate'>Burst candidate</option>
-              <option value='impossible'>Impossible jobs</option>
-              <option value='rac'>Apply for RAC</option>
-            </select>
-          </p>
+          <div class='form-group'>
+            <label for='ticketCreationTitle' id='ticketCreationTitleLabel'>Title</label>
+            <input class='form-control' type='text' id='ticketCreationTitle' required></input>
 
-          <p>
-            <div class='form-check'>
-              <input class='form-check-input' type='checkbox' value='' id='agreeEmail' unchecked required>
-              <label class='form-check-label' for='agreeEmail'>
-                Agree to send e-mails
-              </label>
-            </div>
-          </p>
+            <label for='ticketCreationText' id='ticketCreationTextLabel'>Body</label>
+            <textarea class='form-control' type='text' id='ticketCreationText' required rows='3'></textarea>
+          </div>
+
+          <div class='form-check'>
+            <input class='form-check-input' type='checkbox' value='' id='agreeEmail' unchecked required>
+            <label class='form-check-label' for='agreeEmail'>
+              Agree to send e-mails
+            </label>
+          </div>
+
         </div>
         <div class='modal-footer'>
           <button type='button' class='btn btn-secondary' data-bs-dismiss='modal'>Cancel</button>
+          <button type='button' id='ticketCompositionReset' class='btn btn-secondary'>Revert</button>
           <button type='submit' class='btn btn-primary'>Create ticket</button>
         </div>
       </form>
