@@ -13,6 +13,34 @@ import json
 
 
 # ---------------------------------------------------------------------------
+#                                                           TEMPLATES TESTS
+# ---------------------------------------------------------------------------
+
+def test_get_template(client):
+
+  # log in
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  assert response.status_code == 200
+
+  # retrieve template
+  response = client.get('/xhr/templates/impossible?burst_id=1')
+  assert response.status_code == 200
+
+  data = json.loads(response.data)
+  assert data['title'] == "NOTICE: Your computations on Test Cluster may be optimized"
+  print(data['body'])
+  assert data['body'].startswith("""Hello PI 1,
+
+Our records show that your account 'def-pi1' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
+
+If you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.
+
+Best regards,
+
+User 1
+Compute Canada Support""")
+
+# ---------------------------------------------------------------------------
 #                                                                OTRS TESTS
 # ---------------------------------------------------------------------------
 
@@ -46,11 +74,24 @@ def test_create_ticket_xhr(client):
   response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
   assert response.status_code == 200
 
+  title = "NOTICE: Your computations on Test Cluster may be optimized"
+  body = """Hello PI 1,
+
+Our records show that your account 'def-pi1' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
+
+If you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.
+
+Best regards,
+
+User 1
+Compute Canada Support"""
+
   # post a create ticket request
   response = client.post('/xhr/tickets/', data={
     'burst_id': 1,
     'account': 'def-pi1',
-    'template': 'intro'
+    'title': title,
+    'body': body
   })
   assert response.status_code == 200
 
@@ -62,73 +103,23 @@ def test_create_ticket_xhr(client):
     'burst_id': 1,
     'ticket_id': 1,
     'ticket_no': '01',
+    'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=1',
     'misc': {
       'ticket': {
-        'Title': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution',
-        'Queue': 'Test',
-        'State': 'new',
-        'Priority': '3 normal',
         'CustomerUser': 'pi1',
         'Owner': 'user1',
-        'Responsible': 'user1'
-      },
-      'article': {
-        'Subject': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution',
-        'Body': 'Hello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current jobs: 1403\n  Submitters:   userQ\n\nBest regards,\nUser 1',
-        'ArticleType': 'email-external',
-        'ArticleSend': 1,
-        'To': 'drew.leske+pi1@computecanada.ca'
-      }
-    },
-    'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=1'
-  }
-
-def test_create_ticket_multiplesubmitters_xhr(client):
-  """
-  See test_create_ticket_xhr.
-
-  Tests that ticket and article are correctly filled out which in this case
-  will require using multiple languages in article.
-  """
-
-  # "log in"--normally user is logged in already when creating a ticket
-  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
-  assert response.status_code == 200
-
-  # post a create ticket request
-  response = client.post('/xhr/tickets/', data={
-    'burst_id': 1,
-    'account': 'def-pi1',
-    'submitters': ['user3', 'user1'],
-    'template': 'intro'
-  })
-  assert response.status_code == 200
-
-  x = json.loads(response.data)
-  print(x)
-
-  # pylint: disable=line-too-long
-  assert x == {
-    'burst_id': 1,
-    'ticket_id': 2,
-    'ticket_no': '02',
-    'misc': {
-      'ticket': {
-        'Title': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution / AVIS: Vos calculs à Test Cluster peuvent être éligibles pour une exécution prioritaire',
-        'Queue': 'Test',
-        'State': 'new',
         'Priority': '3 normal',
-        'CustomerUser': 'pi1',
-        'Owner': 'user1',
-        'Responsible': 'user1'
-      },
+        'Queue': 'Test',
+        'Responsible': 'user1',
+        'State': 'new',
+        'Title': 'NOTICE: Your computations on Test Cluster may be optimized'
+        },
       'article': {
-        'Subject': 'NOTICE: Your computations on Test Cluster may be eligible for prioritised execution / AVIS: Vos calculs à Test Cluster peuvent être éligibles pour une exécution prioritaire',
-        'Body': "\n(La version française de ce message suit.)\n\nHello PI 1,\n\nOngoing analysis of queued jobs on Test Cluster has shown that your project has a quantity of jobs that would benefit from a temporary escalation in priority.  Please let us know by replying to this message if you are interested.\n\nAdditional job info:\n  Current jobs: 1403\n  Submitters:   userQ\n\nBest regards,\nUser 1\n\n--------------------------------------\n\nBonjour PI 1,\n\nAnalyse en cours des travaux en attente sur Test Cluster a montré que votre projet comporte une quantité de tâches bénéficier d'une escalade temporaire en priorité. S'il vous plaît laissez-nous savoir par répondre à ce message si vous êtes intéressé.\n\nInfo additionel au tâches:\n  Tâches au courant:   1403\n  Emetteurs de tâches: userQ\n\nMeilleures salutations,\nUser 1",
-        'ArticleType': 'email-external',
         'ArticleSend': 1,
+        'ArticleType': 'email-external',
+        'Body': "Hello PI 1,\n\nOur records show that your account 'def-pi1' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.\n\nIf you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.\n\nBest regards,\n\nUser 1\nCompute Canada Support",
+        'Subject': 'NOTICE: Your computations on Test Cluster may be optimized',
         'To': 'drew.leske+pi1@computecanada.ca'
+        },
       }
-    },
-    'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=2'
-  }
+    }

@@ -21,6 +21,7 @@ INSERT INTO apikeys (access, secret, component, lastused) VALUES (
   'testapikey2_d', 'rammarammadingdong', 'testcluster2_detector', 20);
 INSERT INTO apikeys (access, secret, component, lastused) VALUES (
   'testapikey2_s', 'GEMr1Ksi7I9G9BXuAhY4IITgMcyAKmHzgjFZ2uBTUpQkT1n3xUda5v+4FQAaBA==', 'testcluster2_scheduler', 20);
+INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch, summary) VALUES ('def-pi1', 'testcluster', 1.0, 10, 20, 'userQ', 10, '{"num_jobs":1403}');
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch, summary) VALUES ('def-aaa-aa', 'testcluster', 1.0, 10, 20, 'userQ', 10, '{"num_jobs":1403}');
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-bbb-aa', 'testcluster', 1.0, 11, 21, 'userQ', 10);
 INSERT INTO bursts (account, cluster, pain, firstjob, lastjob, submitters, epoch) VALUES ('def-aaa-aa', 'testcluster', 2.0, 10, 20, 'userQ', 20);

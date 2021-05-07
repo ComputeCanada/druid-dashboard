@@ -23,13 +23,13 @@ def test_get_bursts_xhr(client):
     "testcluster": {
       "bursts": [
         {"account":"def-dleske-aa","claimant":'tst-003',"cluster":"testcluster",
-          "id":12,"jobrange":[1005,3000],"pain":1.0, "state":"rejected",
+          "id":13,"jobrange":[1005,3000],"pain":1.0, "state":"rejected",
           "state_pretty":"Rejected","summary":"{}","ticks":2,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0},
           'claimant_pretty':'User 1'},
         {'account': 'def-bobaloo-aa', 'claimant': None, 'cluster':
-          'testcluster', 'id': 13, 'jobrange': [1015, 2015],
+          'testcluster', 'id': 14, 'jobrange': [1015, 2015],
           'other': {'notes': 0}, 'pain': 1.5, 'resource': 'cpu', 'resource_pretty':
           'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ'],
           'summary': '{}', 'ticket_href': None, 'ticket_id': None, 'ticket_no': None,
@@ -39,17 +39,17 @@ def test_get_bursts_xhr(client):
     "testcluster2": {
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"pending",
+          "epoch":25,"id":9,"jobrange":[15,25],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"pending",
+          "epoch":25,"id":10,"jobrange":[16,26],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"pending",
+          "epoch":25,"id":11,"jobrange":[17,27],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}}
@@ -62,13 +62,13 @@ def test_get_bursts_xhr(client):
 def test_update_bursts_xhr(client):
   data = [
     {
-      'id':12,
+      'id':13,
       'note': 'Reverting to <b>pending</b>',
       'state': 'pending',
       'timestamp':'2019-03-31 10:37 AM'
     },
     {
-      'id': 12,
+      'id': 13,
       'note': 'I just dinnae aboot this guy',
       'timestamp':'2019-03-31 10:32 AM'
     },
@@ -91,7 +91,7 @@ def test_update_bursts_xhr(client):
           "cluster":"testcluster",
           "resource":"cpu",
           "resource_pretty": "CPU",
-          "id":12,
+          "id":13,
           "jobrange":[1005,3000],
           "submitters":["userQ"],
           "pain":1.0,
@@ -105,7 +105,7 @@ def test_update_bursts_xhr(client):
           'other': {'notes': 1}
         },
         {'account': 'def-bobaloo-aa', 'claimant': None, 'cluster':
-          'testcluster', 'id': 13, 'jobrange': [1015, 2015],
+          'testcluster', 'id': 14, 'jobrange': [1015, 2015],
           'other': {'notes': 0}, 'pain': 1.5, 'resource': 'cpu', 'resource_pretty':
           'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ'],
           'summary': '{}', 'ticket_href': None, 'ticket_id': None, 'ticket_no': None,
@@ -115,17 +115,17 @@ def test_update_bursts_xhr(client):
     "testcluster2": {
       "bursts": [
         {"account":"def-aaa-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":8,"jobrange":[15,25],"pain":2.5,"state":"pending",
+          "epoch":25,"id":9,"jobrange":[15,25],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-bbb-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":9,"jobrange":[16,26],"pain":2.5,"state":"pending",
+          "epoch":25,"id":10,"jobrange":[16,26],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}},
         {"account":"def-ccc-aa","claimant":None,"cluster":"testcluster2",
-          "epoch":25,"id":10,"jobrange":[17,27],"pain":2.5,"state":"pending",
+          "epoch":25,"id":11,"jobrange":[17,27],"pain":2.5,"state":"pending",
           "state_pretty":"Pending","summary":None,"ticks":0,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0}}
@@ -143,7 +143,7 @@ def test_get_events(client):
   assert response.status_code == 200
 
   # get events
-  response = client.get('/xhr/bursts/12/events/')
+  response = client.get('/xhr/bursts/13/events/')
   assert response.status_code == 200
   x = json.loads(response.data)
 
@@ -160,7 +160,7 @@ def test_get_events(client):
   print(x)
   assert x == [
     {
-      'burstID': 12,
+      'burstID': 13,
       'type': 'StateUpdate',
       'analyst': 'tst-003',
       'analyst_pretty': 'User 1',
@@ -169,14 +169,14 @@ def test_get_events(client):
       'text': 'Hey how are ya',
     },
     {
-      'burstID': 12,
+      'burstID': 13,
       'type': 'Note',
       'analyst': 'tst-003',
       'analyst_pretty': 'User 1',
       'text': 'I just dinnae aboot this guy',
     },
     {
-      'burstID': 12,
+      'burstID': 13,
       'type': 'ClaimantUpdate',
       'analyst': 'tst-003',
       'analyst_pretty': 'User 1',
@@ -186,7 +186,7 @@ def test_get_events(client):
       'claimant_now_pretty': 'User 1',
     },
     {
-      'burstID':12,
+      'burstID':13,
       'type': 'StateUpdate',
       'analyst': 'tst-003',
       'analyst_pretty': 'User 1',
@@ -217,22 +217,22 @@ def test_get_no_events(client):
 def test_update_bursts_xhr_no_timestamps(client):
   data = [
     {
-      'id':12,
+      'id':13,
       'note': 'Stupid note',
       'state': 'rejected',
     },
     {
-      'id':12,
+      'id':13,
       'note': 'Reverting to pending again',
       'state': 'pending',
     },
     {
-      'id': 12,
+      'id': 13,
       'note': 'This is not the way of the leaf',
       'claimant': 'tst-003',
     },
     {
-      'id': 12,
+      'id': 13,
       'note': 'I just do not ascertain this chap',
     },
   ]

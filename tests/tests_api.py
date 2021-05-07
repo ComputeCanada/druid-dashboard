@@ -78,7 +78,7 @@ def test_get_bursts(client):
 
 def test_get_burst(client):
 
-  response = api_get(client, '/api/bursts/10')
+  response = api_get(client, '/api/bursts/11')
   assert response.status_code == 200
   x = json.loads(response.data)
   print(x)
@@ -88,7 +88,7 @@ def test_get_burst(client):
     'claimant': None,
     'cluster': 'testcluster2',
     'epoch': 25,
-    'id': 10,
+    'id': 11,
     'jobrange': [17, 27],
     'pain': 2.5,
     'state': 'pending',
@@ -390,13 +390,13 @@ def test_post_bursts_with_other_updates(client, notifier):
 
   data = [
     {
-      'id': 12,
+      'id': 13,
       'note': 'Hey how are ya',
       'state': 'rejected',
       'timestamp':'2019-03-31 10:31 AM'
     },
     {
-      'id': 12,
+      'id': 13,
       'note': 'This is not the way',
       'claimant': 'tst-003',
       'timestamp':'2019-03-31 10:35 AM'
