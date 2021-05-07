@@ -1,5 +1,5 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=raise-missing-from
 #
 import html
 
@@ -15,7 +15,7 @@ from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.component import get_components, add_component, delete_component
 from manager.burst import get_bursts, update_bursts, set_ticket, Burst
 from manager.template import Template
-from manager.exceptions import ImpossibleException, ResourceNotFound, BadCall, AppException
+from manager.exceptions import ImpossibleException, ResourceNotFound, BadCall, AppException, LdapException
 from manager.event import get_burst_events
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
@@ -87,6 +87,68 @@ def _bursts_by_cluster():
         bbc[cluster]['bursts'].append(burst)
   return bbc
 
+def _get_project_pi(account):
+
+  # initialize
+  ldap = get_ldap()
+
+  # look up project
+  project = ldap.get_project(account)
+  if not project:
+    error = "Could not find project {}".format(account)
+    raise LdapException(error)
+
+  # look up PI
+  pi = ldap.get_person_by_cci(project['ccResponsible'], ['ccPrimaryEmail'])
+  if not pi:
+    error = "Could not lookup PI {} for project {}".format(project['ccResponsible'], project)
+    raise LdapException(error)
+
+  # extract PI information
+  try:
+    return {
+      'language': pi['preferredLanguage'],
+      'uid': pi['uid'],
+      'email': pi['ccPrimaryEmail'][0],
+      'givenName': pi['givenName']
+    }
+  except KeyError:
+    error = "Incomplete information for PI {}".format(project['ccResponsible'])
+    raise LdapException(error)
+
+def _render_template(template, burstID):
+
+  # retrieve burst object and info
+  burst = Burst(burstID)
+  burst_info = burst.info
+
+  try:
+    pi = _get_project_pi(burst.account)
+  except Exception as e:
+    raise LdapException("Could not lookup PI: {}".format(e))
+
+  # determine templates to use
+  title_template = template + " title"
+
+  # set up values for template substitutions
+  template_values = dict({
+    'piName': pi['givenName'],
+    'analyst': session['givenName'],
+  }, **burst_info)
+
+  # parametrize templates
+  try:
+    title = Template(title_template, pi['language']).render(values=template_values)
+    body = Template(template, pi['language']).render(values=template_values)
+  except ResourceNotFound as e:
+    error = "Could not find template: {}".format(e)
+    raise ResourceNotFound(error)
+
+  return {
+    'title': title,
+    'body': body
+  }
+
 # ---------------------------------------------------------------------------
 #                                                   ROUTES - authorizations
 # ---------------------------------------------------------------------------
@@ -130,12 +192,7 @@ def xhr_delete_apikey(access):
     delete_apikey(access)
   except Exception as e:
     get_log().error("Exception in deleting API key: %s", e)
-
-    # I cannot figure out how to respond in such a way that indicates error, except
-    # not to respond at all.  Have not tried using 4xx HTTP response status because
-    # that is not necessarily appropriate
-    #return jsonify({'status': 'error'}), 200
-    return None
+    return jsonify({'error': 'error'}), 500
 
   return jsonify({'status': 'OK'}), 200
 
@@ -196,6 +253,34 @@ def xhr_get_burst_events(id):
   return jsonify(events), 200
 
 # ---------------------------------------------------------------------------
+#                                                          ROUTES - templates
+# ---------------------------------------------------------------------------
+
+@bp.route('/templates/<string:name>', methods=['GET'])
+@login_required
+def xhr_get_template(name):
+
+  get_log().debug("In xhr_get_template(%s)", name)
+
+  # get request data, if available
+  if 'burst_id' in request.args:
+    # get burst information
+    burst_id = int(request.args['burst_id'])
+
+    # render template with burst and account information
+    try:
+      return jsonify(_render_template(name, burst_id)), 200
+    except AppException as e:
+      get_log().error(e)
+      return jsonify({'error': str(e)}, 500)
+
+  if session.get('admin'):
+    # TODO: implement for admin dashboard
+    return jsonify({'error': 'Not implemented'}), 501
+
+  return jsonify({'error': 'Forbidden'}), 403
+
+# ---------------------------------------------------------------------------
 #                                                          ROUTES - tickets
 # ---------------------------------------------------------------------------
 
@@ -206,98 +291,25 @@ def xhr_create_ticket():
   # get request data
   try:
     burst_id = int(request.form['burst_id'])
-    account = request.form['account']
-    template = request.form['template']
+    title = request.form['title']
+    body = request.form['body']
   except KeyError:
     error = "Missing required request parameter"
     get_log().error(error)
     return jsonify({'error': error}), 400
 
-  submitters = request.form.getlist('submitters')
+  # get burst
+  burst = Burst(burst_id)
+  account = burst.account
 
-  # populate objects we'll need
-  burst = Burst(id=burst_id)
-  burst_info = burst.info
-
-  # initialize
-  ldap = get_ldap()
-
-  # look up project
-  project = ldap.get_project(account)
-  if not project:
-    error = "Could not find project {}".format(account)
-    get_log().error(error)
-    return jsonify({'error': error}), 500
-
-  # look up PI
-  pi = ldap.get_person_by_cci(project['ccResponsible'], ['ccPrimaryEmail'])
-  if not pi:
-    error = "Could not lookup PI {} for project {}".format(project['ccResponsible'], project)
-    get_log().error(error)
-    return jsonify({'error': error}), 500
-
-  # extract PI information
-  try:
-    languages = [ pi['preferredLanguage'] ]
-    pi_uid = pi['uid']
-    pi_email = pi['ccPrimaryEmail'][0]
-  except KeyError as e:
-    error = "Incomplete information for PI {} for account {}.  Info: {}".format(project['ccResponsible'], account, pi)
-    get_log().error(error)
-    return jsonify({'error': error}), 500
-
-  # lookup e-mails for the users
-  CCs = []
-  for user in submitters:
-    userrec = ldap.get_person(user, ['ccPrimaryEmail'])
-    if not userrec:
-      get_log().error("Burst record lists job submitter not found in LDAP: %s", user)
-      # TODO: flash user of error
-    else:
-      try:
-        CCs.append(userrec['ccPrimaryEmail'][0])
-      except KeyError:
-        get_log().error("Could not retrieve ccPrimaryEmail for user %s; continuing without", user)
-      else:
-        l = userrec['preferredLanguage']
-        if l not in languages:
-          languages.append(l)
-
-  # determine templates to use
-  title_template = template + " title"
-
-  # set up values for template substitutions
-  template_values = dict({
-    'piName': pi['givenName'],
-    'analyst': session['givenName'],
-  }, **burst_info)
-
-  # build title and body from templates
-  try:
-    if len(languages) > 1:
-      title = "{} / {}".format(
-        Template(title_template, languages[0]).render(values=template_values),
-        Template(title_template, languages[1]).render(values=template_values)
-      )
-      body = "{}\n{}\n{}\n{}".format(
-        Template("other language follows", languages[1]).render(),
-        Template(template, languages[0]).render(values=template_values),
-        Template("separator").render(),
-        Template(template, languages[1]).render(values=template_values)
-      )
-    else:
-      title = Template(title_template, languages[0]).render(values=template_values)
-      body = Template(template, languages[0]).render(values=template_values)
-  except ResourceNotFound as e:
-    error = "Could not find template: {}".format(e)
-    get_log().error(error)
-    return jsonify({'error': error}), 500
+  # get PI
+  pi = _get_project_pi(account)
 
   get_log().debug("About to create ticket with title '%s', PI %s, to e-mail %s",
-    title, pi_uid, pi_email)
+    title, pi['uid'], pi['email'])
 
   # create ticket via OTRS
-  ticket = create_ticket(title, body, g.user['id'], pi_uid, pi_email, CCs=CCs)
+  ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['email'])
   if not ticket:
     error = "Unable to create ticket"
     get_log().error(error)
