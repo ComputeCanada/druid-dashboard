@@ -35,6 +35,7 @@ Usage: $(basename $0) [options]
 Options:
   --no-cleanup:   Do not clean up temporary directories
   --schema:       Include schema upgrade testing
+  --only-sqlite:  Only SQLite testing (no Postgres, integration)
   --no-sqlite:    Skip SQLite testing
   --no-linting:   Skip lint testing
   -x|--exitfirst: [pytest] Exit at first failed test
@@ -47,6 +48,7 @@ EOF
 }
 
 # get arguments
+sqlite_only=0
 test_schema=0
 linting=1
 exitfirst=0
@@ -62,6 +64,9 @@ do
       ;;
     --schema)
       test_schema=1
+      ;;
+    --only-sqlite)
+      sqlite_only=1
       ;;
     --no-sqlite)
       sqlite=0
@@ -168,20 +173,23 @@ then
 fi
 
 # test pgsql if container is running
-pgsql_testing=""
-ldap_testing=""
-if docker ps | grep -q postgres-beam
+if (( ! only_sqlite ))
 then
-  pgsql_testing="tests/test_pgsql.py"
-  if (( test_schema ))
+  pgsql_testing=""
+  ldap_testing=""
+  if docker ps | grep -q postgres-beam
   then
-    pgsql_testing="${pgsql_testing} tests/test_pgsql_upgrade.py"
-  fi
+    pgsql_testing="tests/test_pgsql.py"
+    if (( test_schema ))
+    then
+      pgsql_testing="${pgsql_testing} tests/test_pgsql_upgrade.py"
+    fi
 
-  # test if LDAP container is running
-  if docker ps | grep -q ldap-beam
-  then
-    ldap_testing="tests/test_integration.py"
+    # test if LDAP container is running
+    if docker ps | grep -q ldap-beam
+    then
+      ldap_testing="tests/test_integration.py"
+    fi
   fi
 fi
 
