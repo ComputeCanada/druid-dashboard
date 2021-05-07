@@ -1,10 +1,19 @@
-## Default section, does not need to be present
-#[DEFAULT]
+## Configurations specific to the application
+#[core]
 ## By default all uncaught exceptions are caught at the last minute and
 ## logged with a traceback logged at debug level.  (Otherwise uncaught
 ## exceptions would bypass the log system.)  This is less helpful when
 ## running the app locally.
 #catch_all_exceptions = yes
+
+## URL for static resources sourced externally, such as third-party media
+## or Javascript.
+#static_resource_uri = http://localhost:8080
+
+## It is possible to override CSS elements here.  The intended use is to
+## differentiate between instances, such as production and development,
+## in a visually obvious way.
+#application_css_override = html{background:chartreuse}
 
 ## LDAP definitions.  A valid, usable LDAP service is required for the app
 ## to function.

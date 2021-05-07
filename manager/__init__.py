@@ -130,7 +130,7 @@ def determine_config(default_config_file, default_config, test_config=None):
   for section in config_from_file:
 
     # determine environment and config variable prefixes
-    if section != 'DEFAULT':
+    if section.lower() != 'core':
       configprefix = section.upper() + '_'
     else:
       configprefix = ''
