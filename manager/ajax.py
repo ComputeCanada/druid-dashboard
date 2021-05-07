@@ -122,10 +122,8 @@ def _render_template(template, burstID):
   burst = Burst(burstID)
   burst_info = burst.info
 
-  try:
-    pi = _get_project_pi(burst.account)
-  except Exception as e:
-    raise LdapException("Could not lookup PI: {}".format(e))
+  # get PI information
+  pi = _get_project_pi(burst.account)
 
   # determine templates to use
   title_template = template + " title"
@@ -269,10 +267,11 @@ def xhr_get_template(name):
 
     # render template with burst and account information
     try:
-      return jsonify(_render_template(name, burst_id)), 200
-    except AppException as e:
-      get_log().error(e)
-      return jsonify({'error': str(e)}, 500)
+      data = _render_template(name, burst_id)
+      return jsonify(data), 200
+    except LdapException as e:
+      get_log().error("Error in rendering template: %s", e)
+      return jsonify({'error': str(e)}), 500
 
   if session.get('admin'):
     # TODO: implement for admin dashboard
@@ -303,7 +302,11 @@ def xhr_create_ticket():
   account = burst.account
 
   # get PI
-  pi = _get_project_pi(account)
+  try:
+    pi = _get_project_pi(account)
+  except LdapException as e:
+    get_log().error("Error in readying ticket for %s: %s", account, e)
+    return jsonify({'error': 'Error in readying ticket'}), 500
 
   get_log().debug("About to create ticket with title '%s', PI %s, to e-mail %s",
     title, pi['uid'], pi['email'])
