@@ -421,6 +421,10 @@ class Burst():
         raise DatabaseException("Could not {}".format(trying_to)) from e
 
   @property
+  def account(self):
+    return self._account
+
+  @property
   def ticks(self):
     return self._ticks
 
