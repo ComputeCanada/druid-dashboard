@@ -442,3 +442,34 @@ def test_post_bursts_with_other_updates(client, notifier):
     'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
   assert notifier.notifications[4] == \
     'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 2 existing.  In total there are 1 pending, 0 accepted, 1 rejected.  1 have been claimed.'
+
+def test_post_bursts_with_updated_submitters(client):
+  """
+  Tests that submitters are updated correctly.
+  """
+
+  response = api_post(client, '/api/bursts', {
+    'version': 1,
+    'bursts': [
+      {
+        'account': 'def-dleske-aa',
+        'resource': 'cpu',
+        'pain': 1.0,
+        'firstjob': 1005,
+        'lastjob': 3000,
+        'summary': {},
+        'submitters': ['userQ']
+      },
+      {
+        'account': 'def-bobaloo-aa',
+        'resource': 'cpu',
+        'pain': 1.5,
+        'firstjob': 1015,
+        'lastjob': 2015,
+        'summary': {},
+        'submitters': ['userX']
+      }
+    ]})
+  assert response.status_code == 201
+
+

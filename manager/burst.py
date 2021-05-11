@@ -50,7 +50,8 @@ SQL_UPDATE_EXISTING = '''
           lastjob = ?,
           summary = ?,
           epoch = ?,
-          ticks = ?
+          ticks = ?,
+          submitters = ?
   WHERE   id = ?
 '''
 
@@ -378,6 +379,9 @@ class Burst():
         self._ticket_id = res['ticket_id']
         self._ticket_no = res['ticket_no']
 
+        # get union of current and past submitters on this candidate
+        self._submitters = set(res['submitters'].split()) | set(submitters)
+
         # update as necessary
         self._jobrange = [res['firstjob'], jobrange[1]]
         self._ticks = res['ticks'] + 1
@@ -396,7 +400,10 @@ class Burst():
 
         # update burst record
         try:
-          db.execute(SQL_UPDATE_EXISTING, (pain, jobrange[1], json.dumps(summary), epoch, self._ticks, self._id))
+          db.execute(SQL_UPDATE_EXISTING, (
+            pain, jobrange[1], json.dumps(summary), epoch, self._ticks,
+            ' '.join(self._submitters), self._id)
+          )
         except Exception as e:
           raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
 
@@ -407,7 +414,6 @@ class Burst():
 
         # create burst record
         try:
-          print("Creating new record with submitters: {}".format(submitters))
           db.execute(SQL_CREATE, (
             cluster, account, resource, pain, jobrange[0], jobrange[1], ' '.join(submitters),
             json.dumps(summary), epoch

@@ -24,16 +24,16 @@ def test_get_bursts_xhr(client):
       "bursts": [
         {"account":"def-dleske-aa","claimant":'tst-003',"cluster":"testcluster",
           "id":13,"jobrange":[1005,3000],"pain":1.0, "state":"rejected",
-          "state_pretty":"Rejected","summary":"{}","ticks":2,"resource":"cpu",
+          "state_pretty":"Rejected","summary":"{}","ticks":3,"resource":"cpu",
           "resource_pretty":"CPU","ticket_id":None, "ticket_no":None,
           "ticket_href":None,"submitters":["userQ"], 'other': {'notes': 0},
           'claimant_pretty':'User 1'},
         {'account': 'def-bobaloo-aa', 'claimant': None, 'cluster':
           'testcluster', 'id': 14, 'jobrange': [1015, 2015],
           'other': {'notes': 0}, 'pain': 1.5, 'resource': 'cpu', 'resource_pretty':
-          'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ'],
+          'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ', 'userX'],
           'summary': '{}', 'ticket_href': None, 'ticket_id': None, 'ticket_no': None,
-          'ticks': 1}
+          'ticks': 2}
       ],
     },
     "testcluster2": {
@@ -101,15 +101,15 @@ def test_update_bursts_xhr(client):
           "ticket_id": None,
           "ticket_no": None,
           "ticket_href":None,
-          "ticks": 2,
+          "ticks": 3,
           'other': {'notes': 1}
         },
         {'account': 'def-bobaloo-aa', 'claimant': None, 'cluster':
           'testcluster', 'id': 14, 'jobrange': [1015, 2015],
           'other': {'notes': 0}, 'pain': 1.5, 'resource': 'cpu', 'resource_pretty':
-          'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ'],
+          'CPU', 'state': 'pending', 'state_pretty': 'Pending', 'submitters': ['userQ', 'userX'],
           'summary': '{}', 'ticket_href': None, 'ticket_id': None, 'ticket_no': None,
-          'ticks': 1}
+          'ticks': 2}
       ],
     },
     "testcluster2": {
