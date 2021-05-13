@@ -15,9 +15,13 @@ def test_get_bursts_xhr(client):
   assert response.status_code == 200
   interpreted = json.loads(response.data.decode('utf-8'))
   assert interpreted['testcluster']['bursts'][0]['epoch'] == interpreted['testcluster']['epoch']
+
+  # take care of test-to-test variance
   del interpreted['testcluster']['bursts'][0]['epoch']
   del interpreted['testcluster']['bursts'][1]['epoch']
   del interpreted['testcluster']['epoch']
+  interpreted['testcluster']['bursts'][1]['submitters'].sort()
+
   print(interpreted)
   assert interpreted == {
     "testcluster": {
@@ -80,6 +84,7 @@ def test_update_bursts_xhr(client):
   del interpreted['testcluster']['bursts'][0]['epoch']
   del interpreted['testcluster']['bursts'][1]['epoch']
   del interpreted['testcluster']['epoch']
+  interpreted['testcluster']['bursts'][1]['submitters'].sort()
   print(interpreted)
   assert interpreted == {
     "testcluster": {
