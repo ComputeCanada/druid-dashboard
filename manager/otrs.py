@@ -26,7 +26,8 @@ else:
     'OTRS_URL': 'https://support-dev2.computecanada.ca',
     'OTRS_USERNAME': 'fraksvc',
     'OTRS_PASSWORD': 'this is never the thing',
-    'OTRS_QUEUE': 'Staff::FRAK'
+    'OTRS_QUEUE': 'Staff::FRAK',
+    'OTRS_TICKET_STATE': 'closed: successful'
   }
 
   # pylint: disable=no-self-use
@@ -36,6 +37,9 @@ else:
 
     def error(self, msg, *args):
       print("ERROR: " + msg % args)
+
+    def fatal(self, msg, *args):
+      print("FATAL: " + msg % args)
 
     def debug(self, msg, *args):
       print("DEBUG: " + msg % args)
