@@ -90,7 +90,9 @@ Compute Canada Support"""
   response = client.post('/xhr/tickets/', data={
     'burst_id': 1,
     'title': title,
-    'body': body
+    'body': body,
+    'recipient': 'pi1',
+    'email': 'drew.leske+pi1@computecanada.ca'
   })
   assert response.status_code == 200
 
