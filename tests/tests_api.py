@@ -471,5 +471,3 @@ def test_post_bursts_with_updated_submitters(client):
       }
     ]})
   assert response.status_code == 201
-
-
