@@ -250,7 +250,7 @@ function showTicketComposition(template, burst_id, account_id) {
   // reset form
   var modalForm = modalEl.querySelector('.modal-form');
   modalForm.reset();
-  modalForm.action = `javascript:createTicket(${burst_id}, '${account_id}')`;
+  modalForm.action = `javascript:createTicket(${burst_id}, '${template.recipient}', '${template.email}')`;
 
   // populate form
   var titleEl = document.getElementById('ticketCreationTitle');
@@ -281,10 +281,19 @@ function triggerTicketComposition(id, account) {
   // get ticket type
   var ticket_type = $('#outreach-type')[0].value;
 
+  // determine URL
+  var url = `/xhr/templates/${ticket_type}?burst_id=${id}`;
+
+  // add recipient if appropriate
+  if (recipientSelectable(ticket_type)) {
+    var recipient = $('#ticketRecipient')[0].value;
+    url += `&recipient=${recipient}`;
+  }
+
   // load template and then launch ticket composition modal
   status_id = status("Retrieving template...")
   $.ajax({
-    url: `/xhr/templates/${ticket_type}?burst_id=${id}`,
+    url: url,
     method: 'GET',
     success: function(template, status, jqXHR) {
       status_clear(status_id);
@@ -298,9 +307,9 @@ function triggerTicketComposition(id, account) {
 }
 
 // step 2: actually creating the ticket
-function createTicket(id, account) {
+function createTicket(id, recipient, email) {
 
-  status_id = status(`Creating ticket for account ${account}...`);
+  status_id = status(`Creating ticket for user ${recipient}...`);
 
   // get form data
   var titleEl = document.getElementById('ticketCreationTitle');
@@ -312,7 +321,13 @@ function createTicket(id, account) {
   $.ajax({
     url: '/xhr/tickets/',
     method: 'POST',
-    data: { burst_id: id, account: account, title: title, body: body },
+    data: { 
+      burst_id: id,
+      recipient: recipient,
+      email: email,
+      title: title,
+      body: body
+    },
     success: function(ticket, status, jqXHR) {
       status_clear(status_id);
 
@@ -748,6 +763,17 @@ function renderTableData(bursts) {
   return bycols;
 }
 
+function recipientSelectable(outreach) {
+  console.log("Evaluating outreach type: " + outreach);
+  switch (outreach) {
+    case "impossible":
+    case "empty":
+      return true;
+      break;
+  }
+  return false;
+}
+
 $(document).ready(function() {
 
   // load bursts
@@ -763,10 +789,58 @@ $(document).ready(function() {
     var burst_id = button.getAttribute('data-burst-id');
     var account_id = button.getAttribute('data-account-id');
 
+    // by default hide the recipient selector
+    var recipientSelector = document.getElementById('recipientSelector');
+    recipientSelector.style.display = 'none';
+
+    // show status
+    status_id = status("Retrieving burst info...");
+
+    // get recipient selection element
+    var recipients = $('#ticketRecipient');
+    recipients.empty();
+
+    $.ajax({
+      url: `/xhr/bursts/${burst_id}/people/`,
+      method: 'GET',
+      success: function(people, status, jqXHR) {
+        status_clear(status_id);
+
+        // create recipient list, starting with PI as default
+        var pi = people.pi;
+        recipients.append(`<option value='${pi}' selected>${pi} (PI)</option>`);
+        for (var i=0; i<people.submitters.length; i++) {
+          var submitter = people.submitters[i];
+          if (pi != submitter) {
+            recipients.append(`<option value='${submitter}'>${submitter}</option>`);
+          }
+        }
+      },
+      error: function() {
+        status_clear(status_id);
+        error("Failed to retrieve burst info");
+      }
+    });
+
     // update modal
     var modalForm = createTicketModal.querySelector('.modal-form');
     modalForm.reset();
     modalForm.action = `javascript:triggerTicketComposition(${burst_id}, '${account_id}')`;
+  });
+
+  // initialize the choose-a-template selection
+  var templateSelector = document.getElementById('outreach-type');
+  templateSelector.addEventListener('change', function(event) {
+    // get the recipient selector
+    var recipientSelector = document.getElementById('recipientSelector');
+    if (recipientSelectable(event.target.value)) {
+      // show recipient selection
+      recipientSelector.style.display = 'block';
+    }
+    else {
+      // hide recipient selection
+      recipientSelector.style.display = 'none';
+    }
   });
 
   // initialize the compose-ticket modal.  Set to ignore Escape
@@ -920,7 +994,11 @@ $(document).ready(function() {
 
         <div class='modal-body'>
 
-          <p>Select what sort of outreach you want to initiate:
+          <p>Some types of outreach allow specification of a recipient other
+          than the account's PI, based on those submitting jobs to this account.</p>
+
+          <p>
+            <label for='outreach-type'>Select what sort of outreach you want to initiate:</label>
             <select class='form-select' id='outreach-type' required>
               <option selected disabled value=''>Choose outreach type</option>
               <option value='candidate'>Burst candidate</option>
@@ -929,6 +1007,13 @@ $(document).ready(function() {
               <option value='empty'>Empty</option>
             </select>
           </p>
+
+          <p id='recipientSelector'>
+            <label for='recipient'>Select recipient:</label>
+            <select class='form-select' id='ticketRecipient'>
+            </select>
+          </p>
+
         </div>
 
         <div class='modal-footer'>
@@ -950,7 +1035,7 @@ $(document).ready(function() {
           <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
         </div>
         <div class='modal-body'>
-          <p><strong>Note</strong>: Continuing with this operation will create a ticket and send outgoing e-mails to the PI associated with this account.</p>
+          <p><strong>Note</strong>: Continuing with this operation will create a ticket and send an outgoing e-mail to the PI associated with this account, or another recipient as selected.</p>
 
           <div class='form-group'>
             <label for='ticketCreationTitle' id='ticketCreationTitleLabel'>Title</label>
