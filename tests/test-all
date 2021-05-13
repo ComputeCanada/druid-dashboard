@@ -20,8 +20,13 @@
 
 fail_to()
 {
-  echo Unable to $@
+  2>&1 echo Unable to $@
   exit 1
+}
+
+warn_couldnt()
+{
+  2>&1 echo Unable to $@
 }
 
 # --------------------------------------------------------------------------
@@ -33,10 +38,13 @@ usage()
   cat <<EOF
 Usage: $(basename $0) [options]
 Options:
+  --no-sqlite:    Don't test SQLite (default to test SQLite)
+  --pgsql:        Test Postgres (default true if container running)
+  --ldap:         Test LDAP integration (default true if container running)
+  --selenium:     Execute Selenium testing (default false)
+  -a|--all:       Test all above if containers available
   --no-cleanup:   Do not clean up temporary directories
   --schema:       Include schema upgrade testing
-  --only-sqlite:  Only SQLite testing (no Postgres, integration)
-  --no-sqlite:    Skip SQLite testing
   --no-linting:   Skip lint testing
   -x|--exitfirst: [pytest] Exit at first failed test
   -v|--verbose:   [pytest] Show verbose information
@@ -47,8 +55,11 @@ with the label 'postgres-beam'.
 EOF
 }
 
-# get arguments
-sqlite_only=0
+# defaults
+sqlite=1
+pgsql=0
+ldap=0
+selenium=0
 test_schema=0
 linting=1
 exitfirst=0
@@ -56,23 +67,37 @@ verbose=0
 debug=0
 sqlite=1
 cleanup=1
+
+# get arguments
 while [ -n "$1" ]
 do
   case "$1" in
+    -a|--all)
+      sqlite=1
+      pgsql=1
+      ldap=1
+      selenium=1
+      ;;
     --no-cleanup)
       cleanup=0
       ;;
     --schema)
       test_schema=1
       ;;
-    --only-sqlite)
-      sqlite_only=1
-      ;;
     --no-sqlite)
       sqlite=0
       ;;
+    --pgsql)
+      pgsql=1
+      ;;
+    --ldap)
+      ldap=1
+      ;;
     --no-linting)
       linting=0
+      ;;
+    --selenium)
+      selenium=1
       ;;
     -d|--debug)
       debug=1
@@ -163,6 +188,7 @@ then
 fi
 
 # test sqlite if desired
+sqlite_testing=""
 if (( sqlite ))
 then
   sqlite_testing="tests/test_sqlite.py"
@@ -172,10 +198,10 @@ then
   fi
 fi
 
-# test pgsql if container is running
-if (( ! only_sqlite ))
+# test pgsql if desired and container is running
+pgsql_testing=""
+if (( pgsql ))
 then
-  pgsql_testing=""
   ldap_testing=""
   if docker ps | grep -q postgres-beam
   then
@@ -184,16 +210,40 @@ then
     then
       pgsql_testing="${pgsql_testing} tests/test_pgsql_upgrade.py"
     fi
+  else
+    warn_couldnt test Postgres
+  fi
+fi
 
-    # test if LDAP container is running
-    if docker ps | grep -q ldap-beam
-    then
-      ldap_testing="tests/test_integration.py"
-    fi
+# test LDAP if desired and container is running
+ldap_testing=""
+if (( ldap ))
+then
+  # test if LDAP container is running
+  if docker ps | grep -q ldap-beam
+  then
+    ldap_testing="tests/test_integration.py"
+  else
+    warn_couldnt test LDAP
+  fi
+fi
+
+# test Selenium if desired and container is running
+selenium_testing=""
+if (( selenium ))
+then
+  if docker ps | grep -q selenium-beam
+  then
+    selenium_testing="tests/test_selenium.py"
+  else
+    warn_couldnt test Selenium
   fi
 fi
 
 # functional testing
-echo "SQLite testing: $sqlite_testing"
-echo "Postgres testing: $pgsql_testing"
-pytest $pytest_opts $sqlite_testing $pgsql_testing $ldap_testing || exit 1
+emptypat='^ *$'
+if [[ "$sqlite_testing $pgsql_testing $ldap_testing $selenium_testing" =~ $emptypat ]]
+then
+  fail_to test anything.
+fi
+pytest $pytest_opts $sqlite_testing $pgsql_testing $ldap_testing $selenium_testing || exit 1
