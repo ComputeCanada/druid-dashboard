@@ -455,6 +455,10 @@ class Burst():
     return self._claimant
 
   @property
+  def submitters(self):
+    return self._submitters
+
+  @property
   def notes(self):
     if self._other and 'notes' in self._other:
       return self._other['notes']
@@ -467,7 +471,7 @@ class Burst():
       'cluster': Cluster(self._cluster).name,
       'resource': self._resource,
       'pain': self._pain,
-      'submitters': ', '.join(self._submitters)
+      'submitters': self._submitters
     }
     if self._summary:
       return dict(basic, **self._summary)
