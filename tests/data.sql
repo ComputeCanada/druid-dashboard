@@ -199,4 +199,45 @@ Info additionel au tâches:
   Emetteurs de tâches: %submitters%
 ');
 
+INSERT INTO templates (name, language, content) VALUES (
+  'empty title', 'en', 'Regarding your computations on %cluster%');
+INSERT INTO templates (name, language, content) VALUES (
+  'empty', 'en', 'Hello %piName%,
+
+
+
+If you would like to discuss this issue with %account% you can respond to this message and we will follow up with more details.
+
+Best regards,
+
+%analyst%
+Compute Canada Support
+
+
+Additional job info:
+  Current jobs: %num_jobs%
+  Submitters:   %submitters%
+');
+
+INSERT INTO templates (name, language, content) VALUES (
+  'empty title', 'fr', 'Vos calculs sur %cluster%');
+INSERT INTO templates (name, language, content) VALUES (
+  'empty', 'fr', 'Bonjour %piName%,
+
+
+
+
+Si vous souhaitez discuter de ce changement de priorité transitoire potentiel vers% account%, vous pouvez répondre à ce message et nous vous donnerons plus de détails.
+
+Meilleures salutations,
+
+%analyst%
+Compute Canada Support
+
+
+Info additionel au tâches:
+  Tâches au courant:   %num_jobs%
+  Emetteurs de tâches: %submitters%
+');
+
 INSERT INTO notifiers (name, type, config) VALUES ('Test Notifier', 'test', '{}');
