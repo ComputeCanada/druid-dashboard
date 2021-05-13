@@ -89,7 +89,6 @@ Compute Canada Support"""
   # post a create ticket request
   response = client.post('/xhr/tickets/', data={
     'burst_id': 1,
-    'account': 'def-pi1',
     'title': title,
     'body': body
   })
