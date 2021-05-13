@@ -110,7 +110,7 @@ class StateUpdate(BurstEvent):
     if id and not burstID:
       res = get_db().execute(SQL_STATE_UPDATE_BY_ID, (id,)).fetchone()
       if not res:
-        raise Exception('TODO: proper exception (Could not retrieve object)')
+        raise DatabaseException('Could retrieve record from updates_state with ID {}'.format(id))
       self._text = res['note']
       self._old_state = State(res['old_state'])
       self._new_state = State(res['new_state'])
@@ -128,7 +128,7 @@ class StateUpdate(BurstEvent):
           res = db.execute(SQL_CREATE_STATE_UPDATE, (
             burstID, analyst, text, burstID, state))
         if not res:
-          raise Exception('TODO: proper exception (Could not create new object)')
+          raise DatabaseException('Could not create new record in updates_state')
 
       self._text = text
       self._old_state = old_state
@@ -148,7 +148,7 @@ class ClaimantUpdate(BurstEvent):
     if id and not burstID:
       res = get_db().execute(SQL_CLAIMANT_UPDATE_BY_ID, (id,)).fetchone()
       if not res:
-        raise Exception('TODO: proper exception (Could not retrieve object)')
+        raise DatabaseException('Could retrieve record from updates_claimant with ID {}'.format(id))
       self._text = res['note']
       self._claimant_was = res['claimant_was']
       self._claimant_now = res['claimant_now']
@@ -166,7 +166,7 @@ class ClaimantUpdate(BurstEvent):
           res = db.execute(SQL_CREATE_CLAIMANT_UPDATE, (burstID, analyst, text,
             burstID, claimant))
         if not res:
-          raise Exception('TODO: proper exception (Could not create new object)')
+          raise DatabaseException('Could not create new record in updates_claimant')
 
       self._text = text
       self._claimant_was = claimant_was
