@@ -116,36 +116,56 @@ def _get_project_pi(account):
     error = "Incomplete information for PI {}".format(project['ccResponsible'])
     raise LdapException(error)
 
-def _render_template(template, burstID):
+def _render_template(template, burstID, recipient=None):
 
   # retrieve burst object and info
   burst = Burst(burstID)
   burst_info = burst.info
 
-  # get PI information
-  pi = _get_project_pi(burst.account)
+  # use requested recipient if provided
+  if recipient:
+    userrec = get_ldap().get_person(recipient, ['ccPrimaryEmail'])
+    if not userrec:
+      raise LdapException("Could not lookup recipient {}".format(recipient))
+    try:
+      email = userrec['ccPrimaryEmail'][0]
+      givenName = userrec['givenName']
+      language = userrec['preferredLanguage']
+    except KeyError:
+      raise LdapException("Could not find e-mail, given name and/or language for recipient {}".format(recipient))
+  else:    # get PI
+    pi = _get_project_pi(burst.account)
+
+    recipient = pi['uid']
+    email = pi['email']
+    givenName = pi['givenName']
+    language = pi['language']
 
   # determine templates to use
   title_template = template + " title"
 
   # set up values for template substitutions
   template_values = dict({
-    'piName': pi['givenName'],
+    'pi': recipient,
+    'piName': givenName,
+    'email': email,
     'analyst': session['givenName'],
   }, **burst_info)
 
   # parametrize templates
   try:
-    title = Template(title_template, pi['language']).render(values=template_values)
-    body = Template(template, pi['language']).render(values=template_values)
+    title = Template(title_template, language).render(values=template_values)
+    body = Template(template, language).render(values=template_values)
   except ResourceNotFound as e:
     error = "Could not find template: {}".format(e)
     raise ResourceNotFound(error)
 
-  return {
+  return dict({
+    'recipient': recipient,
+    'email': email,
     'title': title,
-    'body': body
-  }
+    'body': body,
+  }, **template_values)
 
 # ---------------------------------------------------------------------------
 #                                                   ROUTES - authorizations
@@ -250,6 +270,25 @@ def xhr_get_burst_events(id):
   events = get_burst_events(id)
   return jsonify(events), 200
 
+@bp.route('/bursts/<int:id>/people/', methods=['GET'])
+@login_required
+def xhr_get_burst_people(id):
+
+  get_log().debug("Retrieving people involved in burst %d", id)
+  burst = Burst(id)
+
+  # get PI
+  try:
+    pi = _get_project_pi(burst.account)
+  except LdapException as e:
+    get_log().error("Error in retrieving PI for account %s: %s", burst.account, e)
+    return jsonify({'error': 'Error in retrieving PI information'}), 500
+
+  return jsonify(dict({
+    'pi': pi['uid'],
+    'submitters': burst.submitters
+    })), 200
+
 # ---------------------------------------------------------------------------
 #                                                          ROUTES - templates
 # ---------------------------------------------------------------------------
@@ -265,9 +304,12 @@ def xhr_get_template(name):
     # get burst information
     burst_id = int(request.args['burst_id'])
 
+    # if recipient specified
+    recipient = request.args.get('recipient', None)
+
     # render template with burst and account information
     try:
-      data = _render_template(name, burst_id)
+      data = _render_template(name, burst_id, recipient)
       return jsonify(data), 200
     except LdapException as e:
       get_log().error("Error in rendering template: %s", e)
@@ -292,6 +334,8 @@ def xhr_create_ticket():
     burst_id = int(request.form['burst_id'])
     title = request.form['title']
     body = request.form['body']
+    recipient = request.form['recipient']
+    email = request.form['email']
   except KeyError:
     error = "Missing required request parameter"
     get_log().error(error)
@@ -301,18 +345,14 @@ def xhr_create_ticket():
   burst = Burst(burst_id)
   account = burst.account
 
-  # get PI
-  try:
-    pi = _get_project_pi(account)
-  except LdapException as e:
-    get_log().error("Error in readying ticket for %s: %s", account, e)
-    return jsonify({'error': 'Error in readying ticket'}), 500
+  get_log().debug("About to create ticket with title '%s', recipient %s, to e-mail %s",
+    title, recipient, email)
 
-  get_log().debug("About to create ticket with title '%s', PI %s, to e-mail %s",
-    title, pi['uid'], pi['email'])
+  ## testing
+  #return jsonify({'error': "I don't wanna"}), 501
 
   # create ticket via OTRS
-  ticket = create_ticket(title, body, g.user['id'], pi['uid'], pi['email'])
+  ticket = create_ticket(title, body, g.user['id'], recipient, email)
   if not ticket:
     error = "Unable to create ticket"
     get_log().error(error)
