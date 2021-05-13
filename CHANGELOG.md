@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5 (2021-05-13) Allow tickets to non-PI submitters
+
+Added:
+* Tickets for some types of issues can be created with one of the submitters
+  instead of the PI.
+
+Updated:
+* Submitters are now properly updated on burst reports.
+
 ## v0.4 (2021-05-07) Two-step ticket creation
 
 Added:
