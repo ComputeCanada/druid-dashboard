@@ -230,6 +230,7 @@ def create_app(test_config=None):
 def init_app(app):
   app.teardown_appcontext(db.close_db)
   app.teardown_appcontext(ldap.close_ldap)
+  app.teardown_appcontext(otrs.close_otrs)
   app.teardown_appcontext(log.close_log)
   app.cli.add_command(db.init_db_command)
   app.cli.add_command(db.seed_db_command)
