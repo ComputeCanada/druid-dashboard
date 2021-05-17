@@ -8,9 +8,11 @@ class OtrsStub():
     # net ticket ID
     self._nextID = 1
 
-  def ticket_create(self, ticket, article):
+  # pylint: disable=no-self-use
+  def close(self):
+    print("Closing OTRS (stub)")
 
-    print("HEY CREATING A TICKET HEAH")
+  def ticket_create(self, ticket, article):
 
     # assign ticket number
     ticket_id = self._nextID
