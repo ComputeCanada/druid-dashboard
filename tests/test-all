@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Git apparently always sets the working directory to the root of the
 # workspace, so using relative paths from there is fine.
 
