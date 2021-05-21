@@ -670,7 +670,7 @@ function renderActionMenu(burst) {
 
   function makeActionButton(burstID, account, action, target, label) {
     return `
-        <li><button class='dropdown-item' type='button'
+        <li><button class='dropdown-item' type='button' id='action_${action}_${burstID}'
               data-bs-toggle='modal' data-bs-target='${target}'
               data-burst-id='${burstID}' data-account-id='${account}'
               data-action='${action}'
@@ -686,7 +686,7 @@ function renderActionMenu(burst) {
   }
 
   // "History" menu item
-  var items = makeButton(burst.id, burst.account, '#historyModal', 'History');
+  var items = makeActionButton(burst.id, burst.account, 'history', '#historyModal', 'History');
 
   // "Claim" menu item
   // only available if no claimant
@@ -1109,7 +1109,7 @@ a note.
       <div class='modal-body' id='historyModalBody'>
       </div>
       <div class='modal-footer'>
-        <button type='button' class='btn btn-primary' data-bs-dismiss='modal'>Mkay</button>
+        <button id='history_mkay' type='button' class='btn btn-primary' data-bs-dismiss='modal'>Mkay</button>
       </div>
     </div>
   </div>
