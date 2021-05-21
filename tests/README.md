@@ -4,7 +4,7 @@
 
 Selenium testing is always somewhat painful and/or laborious, or at least that
 seems to be a common opinion.  There are two factors in this project and my
-dev/test environment that complicates things a bit.  Actually quite a lot.
+dev/test environment that complicate things a bit.  Actually quite a lot.
 
 The first issue is the networking which is a result of the container setup I
 have.  The containers are important as a way of both easily standing up and
@@ -70,3 +70,5 @@ $ BEAM_STATIC_RESOURCE_URI=http://resources:8080 \
     SELENIUM_URL=0.0.0.0:4444/wd/hub PYTHONPATH=. \
     pytest -v -x --log-level=debug tests/test_selenium.py
 ```
+
+This is also available with `tests/test-all --selenium`.
