@@ -1,0 +1,48 @@
+# yamllint
+#
+# TAG should be defined by caller.  Used to ensure testing containers have
+# unique but known names.
+#
+# Create "beamnet" with:
+# $ docker network create -d bridge --subnet 192.168.44.0/24 --gateway 192.168.44.1 beamnet
+
+version: '3'
+
+volumes:
+  pip:
+    driver: local
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - type: bind
+        source: ../instance/pg
+        target: /var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: supersecretpassword
+    ports:
+      - "5432:5432"
+    container_name: postgres-$TAG
+    healthcheck:
+      test: pg_isready -h localhost -p 5432 -U postgres -d postgres
+  ldap:
+    image: git.computecanada.ca:4567/dleske/ldap-ctnr
+    ports:
+      - "389:389"
+    container_name: ldap-$TAG
+    healthcheck:
+      test: nc -z localhost 389
+      interval: 5s
+      retries: 12
+  selenium:
+    image: selenium/standalone-chrome
+    ports:
+      - "4444:4444"
+    container_name: selenium-$TAG
+  resources:
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile.resources
+    ports:
+      - "8080:80"
+    container_name: resources-$TAG
