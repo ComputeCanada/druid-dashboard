@@ -234,6 +234,7 @@ if (( selenium ))
 then
   if docker ps | grep -q selenium-beam
   then
+    env="$env BEAM_STATIC_RESOURCE_URI=http://resources:8080 SELENIUM_URL=0.0.0.0:4444/wd/hub"
     selenium_testing="tests/test_selenium.py"
   else
     warn_couldnt test Selenium
@@ -246,4 +247,4 @@ if [[ "$sqlite_testing $pgsql_testing $ldap_testing $selenium_testing" =~ $empty
 then
   fail_to test anything.
 fi
-pytest $pytest_opts $sqlite_testing $pgsql_testing $ldap_testing $selenium_testing || exit 1
+sh -c "$env pytest $pytest_opts $sqlite_testing $pgsql_testing $ldap_testing $selenium_testing || exit 1"
