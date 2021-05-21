@@ -25,6 +25,19 @@ def get_status():
   statuses = []
   status = 200
 
+  # run some tests
+  # TODO...
+  statuses.append("I'm okay")
+
+  status_all = "\n".join(statuses)
+  return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
+
+@bp.route('/services', methods=['GET'])
+def get_services_status():
+
+  statuses = []
+  status = 200
+
   # try to get an LDAP record
   try:
     canary = get_ldap().get_person('ldapcanary')

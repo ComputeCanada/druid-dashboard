@@ -9,10 +9,19 @@ from manager.db import SCHEMA_VERSION
 
 def test_status(client):
   """
-  Test that /status returns a 200 in the case of things working, which they
-  should be here because it's stubbed out.
+  Test that /status returns a 200 in the case of the app responding.
   """
   response = client.get('/status/')
+  print(response.data)
+  assert response.data == "I'm okay".encode('utf-8')
+  assert response.status_code == 200
+
+def test_services_status(client):
+  """
+  Test that /status/services returns a 200 in the case of things working,
+  which they should be here because they're stubbed out.
+  """
+  response = client.get('/status/services')
   print(response.data)
   assert response.data == 'LDAP: Okay\nDB: Okay (schema version {})\nOTRS: Okay'.format(SCHEMA_VERSION).encode('utf-8')
   assert response.status_code == 200
