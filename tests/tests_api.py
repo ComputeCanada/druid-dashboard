@@ -69,6 +69,11 @@ def api_post(client, resource, data):
 #                                                                API TESTS
 # ---------------------------------------------------------------------------
 
+def test_api_unsigned(client):
+
+  response = client.get('/api/bursts')
+  assert response.status_code == 401
+
 def test_get_bursts(client):
 
   response = api_get(client, '/api/bursts')
