@@ -1,7 +1,6 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621
 #
-import re
 import functools
 import time
 import email.utils
@@ -10,15 +9,13 @@ from flask import (
 )
 from manager.log import get_log
 from manager.apikey import ApiKey
-from manager.burst import Burst, get_bursts, State, Resource
+from manager.burst import Burst, get_bursts, BurstReporter
 from manager.component import Component
 from manager.event import report, BurstReportReceived
+from manager.exceptions import InvalidApiCall
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
-
-# regular expression to match job array IDs and allow extraction of just ID
-job_id_re = re.compile(r'^(\d+)')
 
 # ---------------------------------------------------------------------------
 #                                                                 CONSTANTS
@@ -26,7 +23,7 @@ job_id_re = re.compile(r'^(\d+)')
 
 # API version.  Simple integer; increment as needed.  Should match what is
 # reported by the Detector.
-API_VERSION = 1
+API_VERSION = 2
 
 # ---------------------------------------------------------------------------
 #                                                            ERROR HANDLERS
@@ -55,18 +52,6 @@ def servererror(error):
 # ---------------------------------------------------------------------------
 #                                                                    HELPERS
 # ---------------------------------------------------------------------------
-
-def just_job_id(jobid):
-  """
-  Strip job ID to just the base ID, not including any array part.
-  """
-  if isinstance(jobid, int):
-    return jobid
-  match = job_id_re.match(jobid)
-  if not match:
-    raise Exception("Could not parse job ID ('{}') to extract base ID".format(jobid))
-  return match.groups()[0]
-
 
 def api_key_required(view):
   @functools.wraps(view)
@@ -156,36 +141,6 @@ def api_key_required(view):
 
   return wrapped_view
 
-def summarize_burst_report(cluster, bursts):
-
-  # counts
-  newbs = 0
-  existing = 0
-  claimed = 0
-  by_state = {
-    State.PENDING: 0,
-    State.ACCEPTED: 0,
-    State.REJECTED: 0
-  }
-
-  for burst in bursts:
-    if burst.ticks > 0:
-      existing += 1
-    else:
-      newbs += 1
-
-    if burst.claimant:
-      claimed += 1
-
-    by_state[State(burst.state)] += 1
-
-  return "A new burst report came in from {} with {} new burst record(s)" \
-    " and {} existing.  In total there are {} pending, {} accepted," \
-    " {} rejected.  {} have been claimed.".format(
-      cluster, newbs, existing, by_state[State.PENDING],
-      by_state[State.ACCEPTED], by_state[State.REJECTED], claimed
-    )
-
 # ---------------------------------------------------------------------------
 #                                                                 BURST API
 # ---------------------------------------------------------------------------
@@ -212,59 +167,36 @@ def api_get_bursts():
 @api_key_required
 def api_post_bursts():
   """
-  Post a Burst Report: a list of accounts and information about their current
-  job context which constitutes a potential burst candidate.
+  Use this API to report on burst candidates and other actionable metrics
+  related to users' use of resources.
 
-  Format:
-    ```
-    report = {
-      version = 1,
-      bursts = [
-        {
-          'account':  character string representing CC account name,
-          'resource': type of resource involved in burst (ex. 'cpu', 'gpu'),
-          'pain':     number indicating pain ratio as defined by Detector,
-          'firstjob': first job owned by account currently in the system,
-          'lastjob':  last job owned by account currently in the system,
-          'submitters': array of user IDs of those submitting jobs,
-          'summary':  JSON-encoded key-value information about burst context
-                      which may be of use to analyst in evaluation
-        },
-        ...
-      ]
-    }
-    ```
+  All reports must conform to the base API.  In the trivial case, this
+  consists of the following:
 
-  The `jobrange` is used by the Manager and Scheduler to provide a way by
-  which the Scheduler can decide to "unbless" an account--no longer promote it
-  or its jobs to the Burst Pool--without the Detector or the Scheduler needing
-  to maintain independent state.
+  ```
+  report = {
+    version = 2
+  }
+  ```
 
-  When the Detector signals a potential burst, it reports the first and last
-  jobs (lowest- and highest-numbered) in every report.  The Manager compares
-  this to existing burst candidates.  If the new report overlaps with an
-  existing one, the Manager updates its current understanding with the new upper
-  range.  (The lower range is not updated as this probably only reflects that
-  earlier jobs have been completed, although in the case of mass job deletion
-  this would be misleading, but this range is not intended to be used for any
-  analyst decisions.)
+  In most cases additional report sections will contain information gathered by
+  Detectors.  Each section will be named for the type of report and will
+  consist of a list of accounts, users and/or jobs, a trouble metric, and
+  contextual information.  For example:
 
-  The Detector may report several times a day and so will report the same
-  burst candidates multiple times.
+  ```
+  report = {
+    version = 2,
+    bursts = [ ... ],
+    job_age = [ ... ]
+  }
+  ```
 
-  The Scheduler retrieves affirmed Burst candidates from the Manager.  When
-  a new candidate is pulled, the Scheduler promotes the account to the burst
-  pool.  That account will be provided on every query by the Scheduler, with
-  the job range updated as necessary based on information received by the
-  Manager from the Detector.  Even once the Detector no longer reports this
-  account as a burst candidate, the Manager will maintain its record.
+  In this example the Detector is reporting on potential burst candidates as
+  well as jobs where their age is of potential concern.  Each of these would
+  be handled by a subclass of the Reporter base class.
 
-  The Scheduler will compare the burst record against jobs currently in the
-  system.  If no jobs exist owned by the account that fall within the burst
-  range, then the burst must be complete.  The Scheduler must then report the
-  burst as such to the Manager.
-
-  The Detector does not need to report the cluster where the burst occurs,
+  The Detector does not need to report the cluster where the detection occurs,
   since this information is associated with the API key the Detector uses.
   The Manager still needs to save this with the record.
   """
@@ -273,15 +205,15 @@ def api_post_bursts():
 
   epoch = session['api_epoch']
   cluster = Component(session['api_component']).cluster
-  get_log().debug("Registering burst for cluster %s", cluster)
+  get_log().debug("Receiving report for cluster %s", cluster)
 
-  # check basic request validity
+  # check basic request validity.  At this stage only verify there is data,
+  # that the version is specified and it matches the expected version.
   data = request.get_json()
   if (not data
       or data.get('version', None) is None
-      or data.get('bursts', None) is None
   ):
-    errmsg = "API violation: must define both 'version' and 'bursts'"
+    errmsg = "API violation: must define 'version'"
     get_log().error(errmsg)
     abort(400, errmsg)
   if int(data['version']) != API_VERSION:
@@ -290,51 +222,35 @@ def api_post_bursts():
     get_log().error(errmsg)
     abort(400, errmsg)
 
-  # build list of burst objects from report
-  bursts = []
-  for burst in data['bursts']:
+  # run through reports.  For each, invoke appropriate class
+  # TODO: two ways to make this easier to read:
+  # 1. Just delete 'version' from data.  Possibly not as efficient as next,
+  #    but easy to read
+  # 2. Create generator like so:
+  #    >>> def not_three(d):
+  #    ...   for x in d.keys():
+  #    ...     if x != 3:
+  #    ...       yield((x, d[x]))
+  #    Then:
+  #    for (n, s) in not_three(d): etc.
+  for (report_name, report_data) in { x: data[x] for x in data.keys() if x != 'version' }.items():
 
-    # get the submitted data
-    try:
-      # pull the others
-      res_raw = burst['resource']
-      account = burst['account']
-      pain = burst['pain']
-      summary = burst['summary']
-      submitters = burst['submitters']
+    # TODO: subclasses of Reporter should register their report names, so we
+    #       can just loop through the registry here.
+    if report_name == 'bursts':
+      reporter = BurstReporter()
+      try:
+        summary = reporter.report(cluster, epoch, report_data)
 
-      # strip job array ID component, if present
-      firstjob = just_job_id(burst['firstjob'])
-      lastjob = just_job_id(burst['lastjob'])
-
-    except KeyError as e:
-      # client not following API
-      errmsg = "Missing field required by API: {}".format(e)
+        # TODO: generalize and move outside if/else stuff
+        report(BurstReportReceived("{} on {}: {}".format(report_name, cluster, summary)))
+      except InvalidApiCall as e:
+        errmsg = "Does not conform to API for report type {}: {}".format(report_name, e)
+        get_log().error(errmsg)
+        abort(400, errmsg)
+    else:
+      errmsg = "Unrecognized report type: {}".format(report_name)
       get_log().error(errmsg)
       abort(400, errmsg)
-
-    # convert from JSON representations
-    try:
-      resource = Resource.get(res_raw)
-    except KeyError as e:
-      errmsg = "Invalid resource type: {}".format(e)
-      get_log().error(errmsg)
-      abort(400, errmsg)
-
-    # create burst and append to list
-    bursts.append(Burst(
-      cluster=cluster,
-      account=account,
-      resource=resource,
-      pain=pain,
-      submitters=submitters,
-      jobrange=(firstjob, lastjob),
-      summary=summary,
-      epoch=epoch
-    ))
-
-  # report event
-  summary = summarize_burst_report(cluster, bursts)
-  report(BurstReportReceived(summary))
 
   return jsonify({'status': 'OK'}), 201

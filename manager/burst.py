@@ -4,9 +4,10 @@
 import json
 from manager.db import get_db, DbEnum
 from manager.log import get_log
-from manager.exceptions import DatabaseException, BadCall, AppException
+from manager.exceptions import DatabaseException, BadCall, AppException, InvalidApiCall
 from manager.component import Component
 from manager.cluster import Cluster
+from manager.reporter import Reporter, just_job_id
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -114,6 +115,35 @@ SQL_SET_TICKET = '''
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
+
+def _summarize_burst_report(bursts):
+
+  # counts
+  newbs = 0
+  existing = 0
+  claimed = 0
+  by_state = {
+    State.PENDING: 0,
+    State.ACCEPTED: 0,
+    State.REJECTED: 0
+  }
+
+  for burst in bursts:
+    if burst.ticks > 0:
+      existing += 1
+    else:
+      newbs += 1
+
+    if burst.claimant:
+      claimed += 1
+
+    by_state[State(burst.state)] += 1
+
+  return "{} new record(s) and {} existing.  In total there are {} pending, " \
+    "{} accepted, {} rejected.  {} have been claimed.".format(
+      newbs, existing, by_state[State.PENDING], by_state[State.ACCEPTED],
+      by_state[State.REJECTED], claimed
+    )
 
 def _burst_array(db_results):
   bursts = []
@@ -482,3 +512,149 @@ class Burst():
       key.lstrip('_'): val
       for (key, val) in self.__dict__.items()
     }
+
+# ---------------------------------------------------------------------------
+#                                                      Burst Reporter class
+# ---------------------------------------------------------------------------
+
+class BurstReporter(Reporter):
+  """
+  Class for reporting bursts: a list of accounts and information about their
+  current job contexts which constitute potential burst candidates.
+
+  Burst reports are reported via the reports API and may occur with other
+  reports of other metrics or appear on their own, so long as the overall
+  message conforms to the API.
+
+  Format:
+    ```
+    bursts = [
+      {
+        'account':  character string representing CC account name,
+        'resource': type of resource involved in burst (ex. 'cpu', 'gpu'),
+        'pain':     number indicating pain ratio as defined by Detector,
+        'firstjob': first job owned by account currently in the system,
+        'lastjob':  last job owned by account currently in the system,
+        'submitters': array of user IDs of those submitting jobs,
+        'summary':  JSON-encoded key-value information about burst context
+                    which may be of use to analyst in evaluation
+      },
+      ...
+    ]
+    ```
+
+  The `jobrange` is used by the Manager and Scheduler to provide a way by
+  which the Scheduler can decide to "unbless" an account--no longer promote it
+  or its jobs to the Burst Pool--without the Detector or the Scheduler needing
+  to maintain independent state.
+
+  When the Detector signals a potential burst, it reports the first and last
+  jobs (lowest- and highest-numbered) in every report.  The Manager compares
+  this to existing burst candidates.  If the new report overlaps with an
+  existing one, the Manager updates its current understanding with the new upper
+  range.  (The lower range is not updated as this probably only reflects that
+  earlier jobs have been completed, although in the case of mass job deletion
+  this would be misleading, but this range is not intended to be used for any
+  analyst decisions.)
+
+  The Detector may report several times a day and so will report the same
+  burst candidates multiple times.
+
+  The Scheduler retrieves affirmed Burst candidates from the Manager.  When
+  a new candidate is pulled, the Scheduler promotes the account to the burst
+  pool.  That account will be provided on every query by the Scheduler, with
+  the job range updated as necessary based on information received by the
+  Manager from the Detector.  Even once the Detector no longer reports this
+  account as a burst candidate, the Manager will maintain its record.
+
+  The Scheduler will compare the burst record against jobs currently in the
+  system.  If no jobs exist owned by the account that fall within the burst
+  range, then the burst must be complete.  The Scheduler must then report the
+  burst as such to the Manager.
+  """
+
+  @classmethod
+  def describe(cls):
+    return {
+      'table': 'bursts',
+      'metric': 'pain',
+      'cols': [
+        { 'datum': 'account' }
+      ]
+    }
+
+  def init(self):
+    """
+    Initializer.  Does not a thing.
+    """
+
+  def report(self, cluster, epoch, data):
+    """
+    Report potential job and/or account issues.
+
+    Args:
+      cluster: reporting cluster
+      epoch: epoch of report (UTC)
+      data: list of dicts describing current instances of potential account
+            or job pain or other metrics, as appropriate for the type of
+            report.
+
+    Returns:
+      String describing summary of report.
+    """
+
+    # build list of burst objects from report
+    bursts = []
+    for burst in data:
+
+      # get the submitted data
+      try:
+        # pull the others
+        res_raw = burst['resource']
+        account = burst['account']
+        pain = burst['pain']
+        summary = burst['summary']
+        submitters = burst['submitters']
+
+        # strip job array ID component, if present
+        firstjob = just_job_id(burst['firstjob'])
+        lastjob = just_job_id(burst['lastjob'])
+
+      except KeyError as e:
+        # client not following API
+        raise InvalidApiCall("Missing required field: {}".format(e))
+
+      # convert from JSON representations
+      try:
+        resource = Resource.get(res_raw)
+      except KeyError as e:
+        raise InvalidApiCall("Invalid resource type: {}".format(e))
+
+      # create burst and append to list
+      bursts.append(Burst(
+        cluster=cluster,
+        account=account,
+        resource=resource,
+        pain=pain,
+        submitters=submitters,
+        jobrange=(firstjob, lastjob),
+        summary=summary,
+        epoch=epoch
+      ))
+
+    # report event
+    return _summarize_burst_report(bursts)
+
+  def validate(self, data):
+    """
+    Check that provided data structure is valid for this type of report.
+
+    Args:
+      data: list of dicts describing current instances of potential account
+            or job pain or other metrics, as appropriate for the type of
+            report.
+
+    Returns:
+      True, if the data validates and the report can be registered
+      False, otherwise
+    """

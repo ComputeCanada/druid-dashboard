@@ -109,7 +109,7 @@ def test_post_nothing(client):
 
   response = api_post(client, '/api/bursts', {})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: API violation: must define both \'version\' and \'bursts\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: API violation: must define \'version\'"}\n'
 
 def test_post_burst_no_version(client):
 
@@ -124,7 +124,7 @@ def test_post_burst_no_version(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: API violation: must define both \'version\' and \'bursts\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: API violation: must define \'version\'"}\n'
 
 def test_post_burst_old_version(client):
   # Note: version 0 of the API used "report" instead of "bursts", so using a
@@ -150,7 +150,7 @@ def test_post_burst_old_version(client):
 def test_post_incomplete_burst_no_account(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'resource': 'cpu',
@@ -162,12 +162,13 @@ def test_post_incomplete_burst_no_account(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'account\'"}\n'
+  print(response.data)
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'account\'"}\n'
 
 def test_post_incomplete_burst_no_firstjob(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -179,12 +180,12 @@ def test_post_incomplete_burst_no_firstjob(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'firstjob\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'firstjob\'"}\n'
 
 def test_post_incomplete_burst_no_lastjob(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -196,12 +197,12 @@ def test_post_incomplete_burst_no_lastjob(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'lastjob\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'lastjob\'"}\n'
 
 def test_post_incomplete_burst_no_pain(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -213,12 +214,12 @@ def test_post_incomplete_burst_no_pain(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'pain\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'pain\'"}\n'
 
 def test_post_incomplete_burst_no_resource(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -230,12 +231,12 @@ def test_post_incomplete_burst_no_resource(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'resource\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'resource\'"}\n'
 
 def test_post_incomplete_burst_no_summary(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -247,12 +248,12 @@ def test_post_incomplete_burst_no_summary(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'summary\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'summary\'"}\n'
 
 def test_post_incomplete_burst_no_submitters(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -264,12 +265,12 @@ def test_post_incomplete_burst_no_submitters(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Missing field required by API: \'submitters\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'submitters\'"}\n'
 
 def test_post_bad_burst_bad_resource(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -282,7 +283,7 @@ def test_post_bad_burst_bad_resource(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Invalid resource type: \'ppu\'"}\n'
+  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Invalid resource type: \'ppu\'"}\n'
 
 def test_post_empty_burst_report(client):
   """
@@ -290,7 +291,7 @@ def test_post_empty_burst_report(client):
   """
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': []
   })
   assert response.status_code == 201
@@ -298,7 +299,7 @@ def test_post_empty_burst_report(client):
 def test_post_burst(client):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske',
@@ -315,7 +316,7 @@ def test_post_burst(client):
 def test_post_bursts(client, notifier):
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske-aa',
@@ -339,9 +340,9 @@ def test_post_bursts(client, notifier):
   assert response.status_code == 201
 
   assert notifier.notifications == [
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 1 new burst record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-    "beam-dev: BurstReportReceived: A new burst report came in from testcluster with 2 new burst record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
+    'beam-dev: BurstReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    "beam-dev: BurstReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
 
   # SQLite uses second-accuracy time so for consistency we do the same with
   # Postgres.  In testing we need to introduce a 1s delay to force the
@@ -349,7 +350,7 @@ def test_post_bursts(client, notifier):
   time.sleep(1)
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske-aa',
@@ -364,10 +365,10 @@ def test_post_bursts(client, notifier):
   assert response.status_code == 201
 
   assert notifier.notifications == [
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 1 new burst record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 2 new burst record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.']
+    'beam-dev: BurstReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: BurstReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.']
 
   # now login and retrieve burst candidates as manager would
   response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
@@ -413,7 +414,7 @@ def test_post_bursts_with_other_updates(client, notifier):
   assert response.status_code == 200
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske-aa',
@@ -438,15 +439,15 @@ def test_post_bursts_with_other_updates(client, notifier):
 
   print(notifier.notifications)
   assert notifier.notifications[0] == \
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+    'beam-dev: BurstReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.'
   assert notifier.notifications[1] == \
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 1 new burst record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+    'beam-dev: BurstReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
   assert notifier.notifications[2] == \
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 2 new burst record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+    'beam-dev: BurstReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.'
   assert notifier.notifications[3] == \
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+    'beam-dev: BurstReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
   assert notifier.notifications[4] == \
-    'beam-dev: BurstReportReceived: A new burst report came in from testcluster with 0 new burst record(s) and 2 existing.  In total there are 1 pending, 0 accepted, 1 rejected.  1 have been claimed.'
+    'beam-dev: BurstReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 1 pending, 0 accepted, 1 rejected.  1 have been claimed.'
 
 def test_post_bursts_with_updated_submitters(client):
   """
@@ -454,7 +455,7 @@ def test_post_bursts_with_updated_submitters(client):
   """
 
   response = api_post(client, '/api/bursts', {
-    'version': 1,
+    'version': 2,
     'bursts': [
       {
         'account': 'def-dleske-aa',
