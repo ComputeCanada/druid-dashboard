@@ -70,3 +70,9 @@ class ImpossibleException(AppException):
   These are the type of situation where it might make sense to not even try
   to detect it in the first place; that's how impossible it is, or should be.
   """
+
+class InvalidApiCall(AppException):
+  """
+  Exception raised for invalid use of the API, such as message does not
+  conform to report specifications.
+  """
