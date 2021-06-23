@@ -6,6 +6,10 @@
 
 {% block extra %}
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
+  <script src="{{ url_for('static', filename='alerts.js') }}"></script>
+  {# ---- Disabling, but will want to consider at some point
+  <script src="{{ url_for('static', filename='notifications.js') }}"></script>
+  ----- #}
 {% endblock %}
 
 {# --------------------------------------------------------------------------
@@ -22,39 +26,13 @@ var i18n_texts = {
   "Update": "{{ _('Update') }}"
 };
 
-var toasts = [];
-
-function error(msg) {
-  toast = makeToast("error", msg, {autohide: false});
-  toast.show();
-  toasts.push(toast);
-  return toasts.length - 1;
-}
-
-function status(msg) {
-  toast = makeToast("info", msg, {autohide: false, noClose: true});
-  toast.show();
-  toasts.push(toast);
-  return toasts.length - 1;
-}
-
-function status_clear(id) {
-  /* I would expect toasts[id].dispose() to replace the next three lines but
-   * instead it always throws an exception that _element is NULL, which is
-   * what removing the DOM element manually presumably does.
-   */
-  var parent = document.getElementById('toast-container');
-  parent.removeChild(toasts[id]._element);
-  toasts[id].hide();
-  delete toasts[id];
-}
-
 $("#notification").hide();
 $("#error").hide();
 $("#error").click(function(e) {
   $("#error").hide();
 });
 
+// TODO: request reports for a given cluster
 function requestBursts() {
   status_id = status("Retrieving burst reports...")
   $.ajax({
@@ -71,6 +49,7 @@ function requestBursts() {
   });
 }
 
+// TODO: for each report for the cluster
 function makeTableBlank(cluster) {
   return `
             <table id='bursts_table_${cluster}' class='bursts' style='width: 100%'>
@@ -571,84 +550,6 @@ function showBurstHistory(burstID) {
   });
 }
 
-
-{# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * DISABLING NOTIFICATIONS MECHANISM.
- *
- * Currently unused and it creates zombie threads (?) that are not cleaned up,
- * causing an effective DOS.
- *
-// NOTIFICATIONS
-// This mechanism adapted from
-// https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API
-
-function handleNoNotifications(msg) {
-  console.log("No notifications: " + msg);
-
-  // show "refresh <stuff>" link
-  var link = document.getElementById("refresh_content_link");
-  link.style.display = "block";
-}
-
-function handlePermission(permission) {
-
-  // make sure Chrome stores the information
-  if (!('permission' in Notification)) {
-    Notification.permission = permission;
-  }
-
-  if (Notification.permission === 'denied' || Notification.permission === 'default') {
-    handleNoNotifications("Denied by user.");
-  } else {
-    // set up notifications listener
-    var targetContainer = document.getElementById("notification");
-    var eventSource = new EventSource("/notifications");
-
-    eventSource.onmessage = function(e) {
-
-      // "refresh" notification needs no other processing, just refresh
-      if (e.data != "refresh") {
-        // if window is in focus or notifications are disabled
-        if (document.hasFocus() || Notification.permission != "granted") {
-          // TODO: really mixing jQuery and vanilla JS here
-          $("#notification").show();
-          targetContainer.innerHTML = e.data;
-        }
-        else {
-          var notification = new Notification(e.data)
-          notification.onshow = function() { setTimeout(notification.close, 15000) }
-        }
-      }
-      refresh_content();
-    };
-  }
-}
-
-function checkNotificationPromise() {
-  try {
-    Notification.requestPermission().then();
-  } catch(e) {
-    return false;
-  }
-  return true;
-}
-
-// set up notifications...
-// first check if browser supports them
-if (!('Notification' in window)) {
-  handleNoNotifications("Browser does not suppoert");
-} else {
-  if (checkNotificationPromise()) {
-    Notification.requestPermission().then((permission) => {
-      handlePermission(permission);
-    })
-  } else {
-    Notification.requestPermission(function(permission) {
-      handlePermission(permission);
-    });
-  }
-}
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * #}
 
 function jsonToTable(json) {
   var summary = JSON.parse(json);
