@@ -2,6 +2,7 @@
 # pylint: disable=wrong-import-position,import-outside-toplevel
 #
 import re
+from manager.log import get_log
 from manager.exceptions import AppException
 
 # ---------------------------------------------------------------------------
@@ -25,10 +26,49 @@ def just_job_id(jobid):
   return match.groups()[0]
 
 # ---------------------------------------------------------------------------
+#                                                         Reporter registry
+# ---------------------------------------------------------------------------
+
+class ReporterRegistry:
+
+  _instance = None
+
+  def __new__(cls):
+    if cls._instance:
+      # TODO: better exception
+      raise Exception("You can't create multiples of these!")
+    cls._instance = super(ReporterRegistry, cls).__new__(cls)
+    return cls._instance
+
+  def __init__(self):
+    self._reporters = {}
+
+  def register(self, name, reporter):
+    if name in self._reporters.keys():
+      # TODO: better exception
+      raise Exception("A reporter has already been registered with that name: {}".format(name))
+    self._reporters[name] = reporter
+    get_log().info("Registered reporter for %s", name)
+
+  @property
+  def reporters(self):
+    return self._reporters
+
+  @property
+  def descriptions(self):
+    descriptions = {}
+    for (name, reporter) in self._reporters.items():
+      descriptions[name] = reporter.describe()
+    return descriptions
+
+# create global reporter registry
+registry = ReporterRegistry()
+
+# ---------------------------------------------------------------------------
 #                                                       base Reporter class
 # ---------------------------------------------------------------------------
 
-class Reporter():
+class Reporter:
   """
   Base class for reporting metrics.  Subclasses must implement documented
   methods.
