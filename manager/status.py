@@ -70,7 +70,6 @@ def get_services_status():
     statuses.append("OTRS: could not create client session")
     status = 500
   else:
-    print("OTRS: {}".format(otrs))
     statuses.append("OTRS: Okay")
 
   status_all = "\n".join(statuses)
