@@ -2,12 +2,13 @@
 # pylint: disable=W0621,raise-missing-from,import-outside-toplevel
 #
 import json
+from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
 from manager.exceptions import DatabaseException, BadCall, AppException, InvalidApiCall
 from manager.component import Component
 from manager.cluster import Cluster
-from manager.reporter import Reporter, just_job_id
+from manager.reporter import Reporter, registry, just_job_id
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -579,7 +580,37 @@ class BurstReporter(Reporter):
       'table': 'bursts',
       'metric': 'pain',
       'cols': [
-        { 'datum': 'account' }
+        { 'datum': 'ticks',
+          'searchable': False,
+          'sortable': True,
+          'type': 'number',
+          'title': "<img src='static/icons/ticks.svg' height='18' width='20' " \
+                   "alt='Times reported' title='Times reported'/>",
+        },
+        { 'datum': 'account',
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('Account')
+        },
+        { 'datum': 'usage',
+          'searchable': False,
+          'sortable': False,
+          'type': 'text',
+          'title': _('Usage')
+        },
+        { 'datum': 'pain',
+          'searchable': True,
+          'sortable': True,
+          'type': 'number',
+          'title': _('Pain')
+        },
+        { 'datum': 'summary',
+          'searchable': True,
+          'sortable': False,
+          'type': 'text',
+          'title': _('Summary')
+        }
       ]
     }
 
@@ -658,3 +689,8 @@ class BurstReporter(Reporter):
       True, if the data validates and the report can be registered
       False, otherwise
     """
+    # not actually doing anything at all
+    return True
+
+reporter = BurstReporter()
+registry.register('bursts', reporter)
