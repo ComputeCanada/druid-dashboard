@@ -33,7 +33,6 @@ notifiers = {}
 notifiers_inited = None
 
 def register_notifier(type, cls):
-  print("In register_notifiers()")
   notifiers[type] = cls
 
 def list_notifiers():
