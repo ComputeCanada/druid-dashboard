@@ -19,6 +19,9 @@
 {% block scriptage %}
   <script>
 
+// need the report specifications to create tables and interpret data
+var report_specs = {{ reports|tojson|safe }};
+
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
 var i18n_texts = {
@@ -33,8 +36,8 @@ $("#error").click(function(e) {
 });
 
 // TODO: request reports for a given cluster
-function requestBursts() {
-  status_id = status("Retrieving burst reports...")
+function requestReports() {
+  status_id = status("Retrieving reports...")
   $.ajax({
     url: '/xhr/bursts/',
     method: 'GET',
@@ -49,20 +52,28 @@ function requestBursts() {
   });
 }
 
-// TODO: for each report for the cluster
-function makeTableBlank(cluster) {
-  return `
-            <table id='bursts_table_${cluster}' class='bursts' style='width: 100%'>
-              <thead>
-                <tr>
-                  <th class='number'         ><img
-                          src='static/icons/ticks.svg' height='18' width='20'
-                          alt='Times reported' title='Times reported'
-                          /></th>
-                  <th                        >{{ _('Account') }}</th>
-                  <th class='nosearch nosort'>{{ _('Usage') }}</th>
-                  <th class='number'         >{{ _('Pain') }}</th>
-                  <th class='nosort'         >{{ _('Summary') }}</th>
+function makeTableBlank(cluster, report) {
+  console.log(report_specs[report]);
+  var header = `
+            <table id='${report}_table_${cluster}' class='bursts' style='width: 100%'>
+              <thead>`;
+  var rows = "";
+  report_specs[report].cols.forEach(function(value, index, array) {
+    var classes = "";
+    if (!value['searchable']) {
+      classes += " nosearch";
+    }
+    if (!value['sortable']) {
+      classes += " nosort";
+    }
+    if (value['type'] == "number") {
+      classes += " number";
+    }
+    rows += `
+                  <th class='${ classes }'>${ value['title'] }</th>`;
+  });
+
+  return header + rows + `
                   <th                        >{{ _('State') }}</th>
                   <th                        >{{ _('Analyst') }}</th>
                   <th                        >{{ _('Ticket') }}</th>
@@ -113,7 +124,7 @@ function displayBursts(reports, status, jqXHR) {
         </h2>
         <div id="collapse-${cluster}" class="accordion-collapse collapse" aria-labelledby="heading-${cluster}" data-bs-parent="#bursts_accordion" data-ccf-cluster='${cluster}'>
           <div class="accordion-body">
-            ${makeTableBlank(cluster)}
+            ${makeTableBlank(cluster, "bursts")}
           </div>
         </div>
       </div>`;
@@ -678,7 +689,7 @@ function recipientSelectable(outreach) {
 $(document).ready(function() {
 
   // load bursts
-  requestBursts();
+  requestReports();
 
   // initialize the create-ticket modal
   var createTicketModal = document.getElementById('ticketCreationModal');
