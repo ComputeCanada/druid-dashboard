@@ -14,6 +14,23 @@ SQL_GET_BY_ID = '''
   WHERE   id = ?
 '''
 
+SQL_GET_ALL = '''
+  SELECT  *
+  FROM    clusters
+'''
+
+# ---------------------------------------------------------------------------
+#                                                             helpers
+# ---------------------------------------------------------------------------
+
+def get_clusters():
+  res = get_db().execute(SQL_GET_ALL).fetchall()
+  if not res:
+    return None
+  return [
+    Cluster(row['id'], row['name']) for row in res
+  ]
+
 # ---------------------------------------------------------------------------
 #                                                             cluster class
 # ---------------------------------------------------------------------------
@@ -32,7 +49,7 @@ class Cluster():
     self._id = id
     self._name = name
 
-    if self._id and not self._name:
+    if not self._name:
       # lookup
       res = get_db().execute(SQL_GET_BY_ID, (self._id,)).fetchone()
       if not res:
@@ -42,3 +59,9 @@ class Cluster():
   @property
   def name(self):
     return self._name
+
+  def serialize(self):
+    return {
+      key.lstrip('_'): val
+      for (key, val) in self.__dict__.items()
+    }
