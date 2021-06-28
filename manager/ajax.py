@@ -12,11 +12,13 @@ from manager.log import get_log
 from manager.ldap import get_ldap
 from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
+from manager.cluster import get_clusters
 from manager.component import get_components, add_component, delete_component
 from manager.burst import get_bursts, update_bursts, set_ticket, Burst
 from manager.template import Template
 from manager.exceptions import ImpossibleException, ResourceNotFound, BadCall, AppException, LdapException
 from manager.event import get_burst_events
+from manager.reporter import registry
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
@@ -27,6 +29,24 @@ bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 # ---------------------------------------------------------------------------
 #                                                                   HELPERS
 # ---------------------------------------------------------------------------
+
+def _reports_by_cluster(cluster):
+  """
+  Collect reports available for given cluster.
+  """
+
+  # trivial response structure
+  reports = {
+    'cluster': cluster
+  }
+
+  # add reports
+  for name, reporter in registry.reporters.items():
+    report = reporter.view({'cluster':cluster})
+    if report:
+      reports[name] = report
+
+  return reports
 
 def _bursts_by_cluster():
   """
@@ -215,13 +235,27 @@ def xhr_delete_apikey(access):
   return jsonify({'status': 'OK'}), 200
 
 # ---------------------------------------------------------------------------
+#                                                         ROUTES - clusters
+# ---------------------------------------------------------------------------
+
+@bp.route('/clusters/', methods=['GET'])
+@login_required
+def xhr_get_clusters():
+  return jsonify(get_clusters())
+
+# ---------------------------------------------------------------------------
 #                                                           ROUTES - bursts
 # ---------------------------------------------------------------------------
 
-@bp.route('/bursts/', methods=['GET'])
+@bp.route('/reports/', methods=['GET'])
 @login_required
 def xhr_get_bursts():
-  return jsonify(_bursts_by_cluster())
+  if 'cluster' not in request.args:
+    get_log().error("No cluster specified when requesting reporsts")
+    return jsonify({'error': 'error'}), 400
+  # get cluster information
+  cluster = request.args['cluster']
+  return jsonify(_reports_by_cluster(cluster))
 
 @bp.route('/bursts/', methods=['PATCH'])
 @login_required
