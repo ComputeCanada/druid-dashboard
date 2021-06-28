@@ -63,6 +63,13 @@ function error(msg) {
   return toasts.length - 1;
 }
 
+function warning(msg) {
+  toast = makeToast("alert", msg, {autohide: false});
+  toast.show();
+  toasts.push(toast);
+  return toasts.length - 1;
+}
+
 function status(msg) {
   toast = makeToast("info", msg, {autohide: false, noClose: true});
   toast.show();
