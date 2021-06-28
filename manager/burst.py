@@ -9,6 +9,8 @@ from manager.exceptions import DatabaseException, BadCall, AppException, Invalid
 from manager.component import Component
 from manager.cluster import Cluster
 from manager.reporter import Reporter, registry, just_job_id
+from manager.ldap import get_ldap
+from manager.otrs import ticket_url
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -102,9 +104,12 @@ SQL_GET_CURRENT_BURSTS = '''
 '''
 
 SQL_GET_CLUSTER_BURSTS = '''
-  SELECT  *
-  FROM    bursts
-  WHERE   cluster = ? AND epoch = ? AND state='a'
+  SELECT    B.*, COUNT(N.id) AS notes
+  FROM      bursts B
+  LEFT JOIN notes N
+  ON        (B.id = N.burst_id)
+  WHERE     cluster = ? AND epoch = ? AND state='a'
+  GROUP BY  B.id
 '''
 
 SQL_SET_TICKET = '''
@@ -163,7 +168,10 @@ def _burst_array(db_results):
       ticks=row['ticks'],
       claimant=row['claimant'],
       ticket_id=row['ticket_id'],
-      ticket_no=row['ticket_no']
+      ticket_no=row['ticket_no'],
+      other=dict({
+        'notes': row['notes']
+      })
     ))
   return bursts
 
@@ -200,12 +208,13 @@ def get_cluster_bursts(cluster):
 
   # get cluster's detector
   detector = Component(cluster=cluster, service='detector')
+  epoch = detector.lastheard
 
   # get current bursts
-  res = db.execute(SQL_GET_CLUSTER_BURSTS, (cluster, detector.lastheard)).fetchall()
+  res = db.execute(SQL_GET_CLUSTER_BURSTS, (cluster, epoch)).fetchall()
   if not res:
-    return None
-  return _burst_array(res)
+    return None, None
+  return epoch, _burst_array(res)
 
 def get_current_bursts():
   db = get_db()
@@ -691,6 +700,48 @@ class BurstReporter(Reporter):
     """
     # not actually doing anything at all
     return True
+
+  def view(self, criteria):
+
+    if list(criteria.keys()) != ['cluster']:
+      raise NotImplementedError
+
+    ldap = get_ldap()
+
+    epoch, bursts = get_cluster_bursts(cluster=criteria['cluster'])
+    if not bursts:
+      return None
+
+    # serialize bursts individually so as to add attributes
+    serialized = []
+    for burst in bursts:
+      row = burst.serialize()
+
+      # add claimant's name
+      cci = row['claimant']
+      if cci:
+        person = ldap.get_person_by_cci(cci)
+        if not person:
+          get_log().error("Could not find name for cci '%s'", row['claimant'])
+          prettyname = cci
+        else:
+          prettyname = person['givenName']
+        row['claimant_pretty'] = prettyname
+
+      # add ticket URL if there's a ticket
+      if burst.ticket_id:
+        row['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
+          ticket_url(burst.ticket_id), burst.ticket_no)
+      else:
+        row['ticket_href'] = None
+
+      # add any prettified fields
+      row['state_pretty'] = _(str(burst.state))
+      row['resource_pretty'] = _(str(burst.resource))
+
+      serialized.append(row)
+
+    return { 'epoch': epoch, 'results': serialized }
 
 reporter = BurstReporter()
 registry.register('bursts', reporter)
