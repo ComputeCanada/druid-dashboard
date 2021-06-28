@@ -57,7 +57,7 @@ class ReporterRegistry:
   @property
   def descriptions(self):
     descriptions = {}
-    for (name, reporter) in self._reporters.items():
+    for name, reporter in self._reporters.items():
       descriptions[name] = reporter.describe()
     return descriptions
 
@@ -94,6 +94,7 @@ class Reporter:
         ), ... ],
       }
     """
+    raise NotImplementedError
 
   def init(self):
     """
@@ -114,6 +115,7 @@ class Reporter:
     Returns:
       String describing summary of report.
     """
+    raise NotImplementedError
 
   def validate(self, data):
     """
@@ -128,3 +130,16 @@ class Reporter:
       True, if the data validates and the report can be registered
       False, otherwise
     """
+    raise NotImplementedError
+
+  def view(self, criteria):
+    """
+    Return dict describing view of data reported.
+
+    Args:
+      criteria: dict of criteria for selecting data for view.
+
+    Returns:
+      Dict describing view of data reported.
+    """
+    raise NotImplementedError
