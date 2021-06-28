@@ -22,6 +22,29 @@
 // need the report specifications to create tables and interpret data
 var report_specs = {{ reports|tojson|safe }};
 
+// for lookup for cluster names
+var cluster_lookup = {};
+
+// get user preferences
+/* prefs:
+ *   cluster: graham
+ *   clusters:
+ *     graham:
+ *       expanded: job age
+ *       sorting:
+ *         bursts: [3, 'desc']
+ *         job age: [4, 'desc']
+ *     cedar:
+ *       expanded: bursts
+ *       sorting:
+ *         bursts: [3, 'desc']
+ */
+var prefsJSON = Cookies.get("prefs");
+var prefs = null;
+if (prefsJSON) {
+  prefs = JSON.parse(prefsJSON);
+}
+
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
 var i18n_texts = {
@@ -35,15 +58,153 @@ $("#error").click(function(e) {
   $("#error").hide();
 });
 
-// TODO: request reports for a given cluster
-function requestReports() {
-  status_id = status("Retrieving reports...")
+function initializePreferences(clusters) {
+  /* prefs:
+   *   cluster: graham
+   *   clusters:
+   *     graham:
+   *       expanded: job age
+   *       sorting:
+   *         bursts: [3, 'desc']
+   *         job age: [4, 'desc']
+   *     cedar:
+   *       expanded: bursts
+   *       sorting:
+   *         bursts: [3, 'desc']
+   */
+  if (prefs) {
+    return;
+  }
+
+  prefs = {
+    'cluster': clusters[0]['id'],
+    'clusters': {}
+  };
+
+  clusters.forEach(function(x) {
+      prefs['clusters'][x['id']] = x;
+    });
+
+  // add each report to sorting list for each cluster
+  Object.keys(report_specs).forEach(function(report_name, i1, a1) {
+
+    var report = report_specs[report_name];
+
+    // by default sort descending on the trouble metric
+    var troubleIdx = report['cols'].findIndex(function(x) {
+      return report['metric'] == x['datum'];
+    });
+    //Object.keys(prefs['clusters']).forEach(function(cluster_name, i2, a2) {
+    //  cluster = prefs['clusters'][cluster_name];
+    for (const cluster of Object.values(prefs['clusters'])) {
+      if (! cluster['sorting']) {
+        cluster['sorting'] = {};
+      }
+      cluster['sorting'][report_name] = [troubleIdx, 'desc'];
+    }
+  });
+
+  // we don't write the prefs to cookie yet because it'll get updated by other
+  // stuff shortly
+}
+
+function updatePreferences() {
+  var prefsJSON = JSON.stringify(prefs);
+  Cookies.set('prefs', prefsJSON);
+}
+
+function requestClusters() {
+  status_id = status("Retrieving cluster info...")
   $.ajax({
-    url: '/xhr/bursts/',
+    url: '/xhr/clusters/',
+    method: 'GET',
+    success: function(clusters, status, jqXHR) {
+      status_clear(status_id);
+      displayClusters(clusters, status, jqXHR);
+    },
+    error: function() {
+      status_clear(status_id);
+      error("Failed to retrieve cluster list");
+    }
+  });
+}
+
+function displayClusters(clusters, stats, jqXHR) {
+  // sort cluster list by proper name
+  var clusters_sorted = clusters.sort(function(a, b) {
+    return a['name'].localeCompare(b['name']);
+  });
+
+  // create cluster lookup
+  clusters.forEach(function(cluster) {
+    cluster_lookup[cluster['id']] = cluster['name'];
+  });
+
+  // initialize preferences
+  initializePreferences(clusters_sorted);
+
+  // get tab parent containers
+  var tabsContainer = document.getElementById('tabs_container');
+  var panesContainer = document.getElementById('panes_container');
+
+  // create tabs for each cluster and add to parent container
+  for (var i=0; i < clusters_sorted.length; i++) {
+    var cluster = clusters_sorted[i];
+    var cluster_id = cluster['id'];
+    var cluster_name = cluster['name'];
+
+    var tab_id = cluster_id + '-tab';
+    var pane_id = cluster_id + '-pane';
+
+    // add cluster tab
+    var tab = document.createElement('li');
+    tab.className = 'nav-item';
+    tab.setAttribute('role', 'presentation');
+    tab.innerHTML = `
+      <button class='nav-link' id='${tab_id}' data-bs-toggle='tab'
+        data-bs-target='#${pane_id}' role='tab'
+        aria-controls='${cluster_id}' aria-selected='false'
+      >${cluster_name}</button>`;
+    tabsContainer.appendChild(tab);
+
+    // add cluster pane
+    var pane = document.createElement('div');
+    pane.className = 'tab-pane fade';
+    pane.setAttribute('id', pane_id);
+    pane.setAttribute('role', 'tabpanel');
+    pane.setAttribute('aria-labelled-by', tab_id);
+    pane.innerHTML = `
+      <div class='accordion' id='${cluster_id}_accordions'>
+      </div>`;
+    panesContainer.appendChild(pane);
+  }
+
+  // display cluster tab from preferences
+  activeCluster = prefs['cluster'];
+
+  var activeTabId = `${activeCluster}-tab`;
+  var activeTab = document.getElementById(activeTabId);
+  activeTab.classList.add('active');
+  activeTab.setAttribute('aria-selected', 'true');
+
+  var activePaneId = `${activeCluster}-pane`;
+  console.log(`activePaneId = ${activePaneId}`);
+  var activePane = document.getElementById(activePaneId);
+  activePane.classList.add('show');
+  activePane.classList.add('active');
+
+  requestReports(activeCluster);
+}
+
+
+function requestReports(cluster) {
+  status_id = status(`Retrieving reports for ${cluster_lookup[cluster]}...`);
+  $.ajax({
+    url: `/xhr/reports/?cluster=${cluster}`,
     method: 'GET',
     success: function(reports, status, jqXHR) {
       status_clear(status_id);
-      displayBursts(reports, status, jqXHR);
+      displayReports(reports, status, jqXHR);
     },
     error: function() {
       status_clear(status_id);
@@ -53,7 +214,6 @@ function requestReports() {
 }
 
 function makeTableBlank(cluster, report) {
-  console.log(report_specs[report]);
   var header = `
             <table id='${report}_table_${cluster}' class='bursts' style='width: 100%'>
               <thead>`;
@@ -74,10 +234,10 @@ function makeTableBlank(cluster, report) {
   });
 
   return header + rows + `
-                  <th                        >{{ _('State') }}</th>
-                  <th                        >{{ _('Analyst') }}</th>
-                  <th                        >{{ _('Ticket') }}</th>
-                  <th class='number'         >{{ _('Notes') }}</th>
+                  <th>{{ _('State') }}</th>
+                  <th>{{ _('Analyst') }}</th>
+                  <th>{{ _('Ticket') }}</th>
+                  <th class='number'>{{ _('Notes') }}</th>
                   <th class='nosearch nosort'>{{ _('Action') }}</th>
                 </tr>
               </thead>
@@ -88,41 +248,47 @@ function makeTableBlank(cluster, report) {
 }
 
 
-function displayBursts(reports, status, jqXHR) {
+function displayReports(reports, status, jqXHR) {
 
-  // used to track clusters
-  var clusters = [];
+  // we don't go by active tab in case there's a race condition
+  var cluster = reports['cluster'];
 
   // get main accordion container
-  var accordionParent = document.getElementById('bursts_accordion');
+  var accordionParent = document.getElementById(`${cluster}_accordions`);
 
-  // burst reports are organized by cluster
-  if (Object.keys(reports).length > 0) {
+  // get just reports by filtering out 'cluster'
+  var report_names = Object.keys(reports).filter(function(item) {
+    return item !== 'cluster'
+  });
 
-    // get ordering
-    var orderingJSON = Cookies.get("ordering");
-    if (orderingJSON) {
-      var ordering = JSON.parse(orderingJSON);
-    } else {
-      var ordering = [[3, 'desc']];
-    }
+  // check if there are reports
+  if (report_names.length == 0) {
+    accordionParent.innerHTML = "<p>{{ _('There are currently no bursts defined.') }}</p>";
+  }
+  else {
+    for (var i=0; i < report_names.length; i++) {
 
-    for (var cluster in reports) {
-
-      clusters.push(cluster);
+      var report = report_names[i];
 
       // TODO: i18n
-      var title = `${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}`;
+      var title = `${report} - reported ${epoch_to_local_time(reports[report]['epoch'])}`;
 
       // create accordian for this
       var accordion = document.createElement('div');
       accordion.innerHTML = `<div class="accordion-item">
-        <h2 class="accordion-header" id="heading-${cluster}">
-          <button id="collapse-button-${cluster}" class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${cluster}" aria-expanded="false" aria-controls="collapse-${cluster}">
+        <h2 class="accordion-header" id="heading-${cluster}-${report}">
+          <button id="collapse-button-${cluster}-${report}"
+            class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+            data-bs-target="#collapse-${cluster}-${report}" aria-expanded="false"
+            aria-controls="collapse-${cluster}-${report}"
+          >
             ${title}
           </button>
         </h2>
-        <div id="collapse-${cluster}" class="accordion-collapse collapse" aria-labelledby="heading-${cluster}" data-bs-parent="#bursts_accordion" data-ccf-cluster='${cluster}'>
+        <div id="collapse-${cluster}-${report}" class="accordion-collapse collapse"
+          aria-labelledby="heading-${cluster}-${report}" data-bs-parent="#${cluster}_accordions"
+          data-ccf-report='${report}' data-ccf-cluster='${cluster}'
+        >
           <div class="accordion-body">
             ${makeTableBlank(cluster, "bursts")}
           </div>
@@ -133,21 +299,25 @@ function displayBursts(reports, status, jqXHR) {
       accordionParent.appendChild(accordion);
 
       // create the table
-      populateBurstTable(cluster, reports[cluster], ordering);
+      // TODO: use `prefs` instead of `ordering`
+      populateReportTable(cluster, report, reports[report]['results'], [[3, 'desc']]);
 
       // set up ordering update handler
-      $(`#bursts_table_${cluster}`).on('order.dt', function(event) {
+      // TODO: use `prefs` instead of `ordering`
+      $(`#${report}_table_${cluster}`).on('order.dt', function(event) {
         var order = $(event.target).DataTable().order();
         Cookies.set("ordering", JSON.stringify(order));
       });
 
     }
 
-    // determine which cluster should be expanded by default
-    var expand_cluster = Cookies.get("default-cluster");
-    if (!expand_cluster || clusters.indexOf(expand_cluster) == -1) {
-      expand_cluster = clusters[0];
-      Cookies.set("default-cluster", expand_cluster);
+    // determine which report should be expanded by default
+    var expanded = prefs['clusters'][cluster]['expanded'];
+    if (!expanded || report_names.indexOf(expanded) == -1) {
+      error(`Resetting preferred report because report ${expanded} does not exist for cluster ${cluster_lookup[cluster]}`);
+      expanded = report_names[0];
+      prefs['clusters'][cluster]['expanded'] = expanded;
+      updatePreferences();
     }
 
     // expand that cluster's accordion
@@ -155,21 +325,31 @@ function displayBursts(reports, status, jqXHR) {
     // accordion button, or manipulate the classes of the accordion button
     // and the accordioned division.  The latter eliminates the animation,
     // which is too much fancy for a basic page load
-    //$(`#collapse-button-${expand_cluster}`).click();
-    $(`#collapse-button-${expand_cluster}`).removeClass('collapsed');
-    $(`#collapse-${expand_cluster}`).addClass('show');
+    //$(`#collapse-button-${expanded}`).click();
+    $(`#collapse-button-${cluster}-${expanded}`).removeClass('collapsed');
+    $(`#collapse-${cluster}-${expanded}`).addClass('show');
 
     // add listener for saving user's preference
     accordionParent.addEventListener('show.bs.collapse', function(event) {
-      defaultCluster = event.target.dataset.ccfCluster;
-      Cookies.set("default-cluster", defaultCluster);
+      var thisCluster = event.target.dataset.ccfCluster;
+      var defaultReport = event.target.dataset.ccfReport;
+      prefs['clusters'][thisCluster]['expanded'] = defaultReport;
+      updatePreferences();
     });
-  } else {
-    accordionParent.innerHTML = "<p>{{ _('There are currently no bursts defined.') }}</p>";
   }
 }
 
 function refreshBursts(reports, status, jqXHR) {
+
+  /* TODO: should be "refreshReports"
+   * This should check whether there are additional clusters and/or reports
+   * than existed previously by checking contents of prefs, and if updates
+   * do not match what's there, create default prefs for new stuff, and update
+   * UI components to match changes (add and remove cluster tabs; add and
+   * remove report accordions)
+   */
+
+  /* TODO: DRY.  This is very "wet" */
 
   // burst reports are organized by cluster
   if (Object.keys(reports).length == 0) {
@@ -178,6 +358,7 @@ function refreshBursts(reports, status, jqXHR) {
   else {
 
     // get ordering
+    // TODO: use `prefs` instead of `ordering`
     var orderingJSON = Cookies.get("ordering");
     if (orderingJSON) {
       var ordering = JSON.parse(orderingJSON);
@@ -188,42 +369,49 @@ function refreshBursts(reports, status, jqXHR) {
     for (var cluster in reports) {
 
       // clear out the accordion
-      $(`#collapse-${cluster}`).html(`
+      $(`#collapse-${cluster}-${report}`).html(`
           <div class="accordion-body">
             ${makeTableBlank(cluster)}
           </div>`);
 
       // create the table
-      populateBurstTable(cluster, reports[cluster], ordering);
+      // TODO: use `prefs` instead of `ordering`
+      populateReportTable(cluster, report, reports[cluster], ordering);
     }
   }
 }
 
-function populateBurstTable(cluster, report, ordering) {
-  $(`#bursts_table_${cluster}`).dataTable({
+function populateReportTable(cluster, report, data, ordering) {
+  console.log("In populateReportTable().  Cluster: " + cluster + ", report: " + report);
+  console.log("Preferences:");
+  console.log(prefs);
+
+  // build array of column definitions of the format {"name": name}
+  var columnNames = report_specs[report]['cols'].map(function(x) {
+    return { "name": x['datum'] };
+  }).concat([
+    { "name": "state" },
+    { "name": "analyst" },
+    { "name": "ticket" },
+    { "name": "notes" },
+    { "name": "action" },
+    { "name": "id" },
+  ]);
+  var idRowIdx = columnNames.length - 1;
+
+  $(`#${report}_table_${cluster}`).dataTable({
     "autoWidth": false,
-    "data": renderTableData(report['bursts']),
+    "data": renderTableData(data),
     "columnDefs": [
       { searchable: false, targets: 'nosearch' },
       { orderable: false, targets: 'nosort' },
       { className: 'number', targets: 'number' },
-      { visible: false, targets: [10] }
+      { visible: false, targets: [idRowIdx] }
     ],
-    columns: [
-      { "name": "ticks" },
-      { "name": "account" },
-      { "name": "usage" },
-      { "name": "pain" },
-      { "name": "summary" },
-      { "name": "state" },
-      { "name": "analyst" },
-      { "name": "ticket" },
-      { "name": "notes" },
-      { "name": "action" },
-      { "name": "id" },
-    ],
-    order: ordering,
-    rowId: function(row) { return "burst_" + row[10] }
+    columns: columnNames,
+    // TODO: use `prefs` instead of `ordering`
+    order: prefs['clusters'][cluster]['sorting'][report],
+    rowId: function(row) { return "burst_" + row[idRowIdx] }
   });
 }
 
@@ -311,7 +499,7 @@ function createTicket(id, recipient, email) {
   $.ajax({
     url: '/xhr/tickets/',
     method: 'POST',
-    data: { 
+    data: {
       burst_id: id,
       recipient: recipient,
       email: email,
@@ -688,8 +876,8 @@ function recipientSelectable(outreach) {
 
 $(document).ready(function() {
 
-  // load bursts
-  requestReports();
+  // retrieve clusters
+  requestClusters();
 
   // initialize the create-ticket modal
   var createTicketModal = document.getElementById('ticketCreationModal');
@@ -888,7 +1076,9 @@ $(document).ready(function() {
 <div id='error'>
 </div>
 
-<div class='accordion' id='bursts_accordion'>
+<ul class='nav nav-tabs' id='tabs_container' role='tablist'>
+</ul>
+<div class='tab-content' id='panes_container'>
 </div>
 
 {# --------------------------------------------------------------------------
