@@ -99,7 +99,7 @@ function initializePreferences(clusters) {
 
 function updatePreferences() {
   var prefsJSON = JSON.stringify(prefs);
-  Cookies.set('prefs', prefsJSON);
+  Cookies.set('prefs', prefsJSON, { 'SameSite': 'strict' });
 }
 
 function requestClusters() {
