@@ -1,3 +1,6 @@
+// globals for tracking toasts
+var toasts = [];
+
 /**
  * Make Toast component (requires Bootstrap) for alerts.
  *
@@ -8,14 +11,14 @@
  */
 function makeToast(type, message, options) {
   // defaults
-  var parentSelector = '#toast-container';
+  var parentContainerId = 'toast-container';
   var closeButtonHTML = '';
   var title = 'Message';
   var extraClasses = '';
 
   // check for optional overrides
-  if (options.parent)
-    parentSelector = options.parent
+  if (options.parentContainerId)
+    parentContainerId = options.parentContainerId;
   if (!options.noClose)
     closeButtonHTML = '<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>';
 
@@ -37,8 +40,16 @@ function makeToast(type, message, options) {
       break;
   }
 
-  $(parentSelector).prepend(`
-    <div class="toast ${extraClasses}" role="alert" aria-live="assertive" aria-atomic="true">
+  // get parent container
+  var parentContainer = document.getElementById(parentContainerId);
+
+  // create toast element
+  var toastEl = document.createElement('div');
+  toastEl.className = `toast ${extraClasses}`;
+  toastEl.setAttribute('role', 'alert');
+  toastEl.setAttribute('aria-live', 'assertive');
+  toastEl.setAttribute('aria-atomic', 'true');
+  toastEl.innerHTML = `
       <div class="toast-header">
         <strong class="me-auto">${title}</strong>
         <small></small>
@@ -46,35 +57,28 @@ function makeToast(type, message, options) {
       </div>
       <div class="toast-body">
         ${message}
-      </div>
-    </div>
-  `);
-  var toast = $(parentSelector).children().toArray()[0];
-  return new bootstrap.Toast(toast, options);
-}
-
-// global for tracking toasts
-var toasts = [];
-
-function error(msg) {
-  toast = makeToast("error", msg, {autohide: false});
+      </div>`;
+  parentContainer.insertBefore(toastEl, parentContainer.firstChild);
+  
+  var toast = new bootstrap.Toast(toastEl, options);
   toast.show();
+
+  // add to toasts array.  Index in array is retained even when elements are
+  // deleted, and length never decreases.
   toasts.push(toast);
   return toasts.length - 1;
+}
+
+function error(msg) {
+  return makeToast("error", msg, {autohide: false});
 }
 
 function warning(msg) {
-  toast = makeToast("alert", msg, {autohide: false});
-  toast.show();
-  toasts.push(toast);
-  return toasts.length - 1;
+  return makeToast("alert", msg, {autohide: false});
 }
 
 function status(msg) {
-  toast = makeToast("info", msg, {autohide: false, noClose: true});
-  toast.show();
-  toasts.push(toast);
-  return toasts.length - 1;
+  return makeToast("info", msg, {autohide: false, noClose: true});
 }
 
 function status_clear(id) {
@@ -85,6 +89,9 @@ function status_clear(id) {
   var parent = document.getElementById('toast-container');
   parent.removeChild(toasts[id]._element);
   toasts[id].hide();
+
+  // this removes the element from the array, leaving an empty slot and
+  // without actually shortening the array, so other elements' indices remain
+  // unchanged
   delete toasts[id];
 }
-
