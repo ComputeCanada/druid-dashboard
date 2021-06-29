@@ -26,19 +26,6 @@ var report_specs = {{ reports|tojson|safe }};
 var cluster_lookup = {};
 
 // get user preferences
-/* prefs:
- *   cluster: graham
- *   clusters:
- *     graham:
- *       expanded: job age
- *       sorting:
- *         bursts: [3, 'desc']
- *         job age: [4, 'desc']
- *     cedar:
- *       expanded: bursts
- *       sorting:
- *         bursts: [3, 'desc']
- */
 var prefsJSON = Cookies.get("prefs");
 var prefs = null;
 if (prefsJSON) {
@@ -72,15 +59,19 @@ function initializePreferences(clusters) {
    *       sorting:
    *         bursts: [3, 'desc']
    */
+
+  // only initialize if there weren't any to load previously
   if (prefs) {
     return;
   }
 
+  // basic structure
   prefs = {
     'cluster': clusters[0]['id'],
     'clusters': {}
   };
 
+  // create lookup map
   clusters.forEach(function(x) {
       prefs['clusters'][x['id']] = x;
     });
@@ -94,8 +85,6 @@ function initializePreferences(clusters) {
     var troubleIdx = report['cols'].findIndex(function(x) {
       return report['metric'] == x['datum'];
     });
-    //Object.keys(prefs['clusters']).forEach(function(cluster_name, i2, a2) {
-    //  cluster = prefs['clusters'][cluster_name];
     for (const cluster of Object.values(prefs['clusters'])) {
       if (! cluster['sorting']) {
         cluster['sorting'] = {};
@@ -105,7 +94,7 @@ function initializePreferences(clusters) {
   });
 
   // we don't write the prefs to cookie yet because it'll get updated by other
-  // stuff shortly
+  // stuff shortly, so it's okay to just leave in memory
 }
 
 function updatePreferences() {
@@ -162,7 +151,7 @@ function displayClusters(clusters, stats, jqXHR) {
     tab.setAttribute('role', 'presentation');
     tab.innerHTML = `
       <button class='nav-link' id='${tab_id}' data-bs-toggle='tab'
-        data-bs-target='#${pane_id}' role='tab'
+        data-bs-target='#${pane_id}' role='tab' data-cluster='${cluster_id}'
         aria-controls='${cluster_id}' aria-selected='false'
       >${cluster_name}</button>`;
     tabsContainer.appendChild(tab);
@@ -179,6 +168,17 @@ function displayClusters(clusters, stats, jqXHR) {
     panesContainer.appendChild(pane);
   }
 
+  // create listeners
+  var triggerTabList = [].slice.call(document.querySelectorAll('#tabs_container button'))
+  triggerTabList.forEach(function (triggerEl) {
+    var tabTrigger = new bootstrap.Tab(triggerEl)
+
+    triggerEl.addEventListener('click', function (event) {
+      event.preventDefault();
+      tabTrigger.show();
+    });
+  });
+
   // display cluster tab from preferences
   activeCluster = prefs['cluster'];
 
@@ -188,17 +188,22 @@ function displayClusters(clusters, stats, jqXHR) {
   activeTab.setAttribute('aria-selected', 'true');
 
   var activePaneId = `${activeCluster}-pane`;
-  console.log(`activePaneId = ${activePaneId}`);
   var activePane = document.getElementById(activePaneId);
   activePane.classList.add('show');
   activePane.classList.add('active');
 
+  // request reports for each cluster, beginning with active cluster
   requestReports(activeCluster);
+  clusters.forEach(function(cluster) {
+    if (cluster['id'] !== activeCluster) {
+      requestReports(cluster['id']);
+    }
+  });
 }
 
 
 function requestReports(cluster) {
-  status_id = status(`Retrieving reports for ${cluster_lookup[cluster]}...`);
+  var status_id = status(`Retrieving reports for ${cluster_lookup[cluster]}...`);
   $.ajax({
     url: `/xhr/reports/?cluster=${cluster}`,
     method: 'GET',
@@ -248,6 +253,29 @@ function makeTableBlank(cluster, report) {
 }
 
 
+function createReportTable(cluster, report, results) {
+
+  console.log("report = " + report);
+
+  // get ordering from preferences
+  var ordering = prefs['clusters'][cluster]['sorting'][report];
+
+  // create and populate the table
+  $(`#collapse-${cluster}-${report}`).html(`
+      <div class="accordion-body">
+        ${makeTableBlank(cluster, report)}
+      </div>`);
+  populateReportTable(cluster, report, results, [ordering]);
+
+  // set up ordering update handler
+  $(`#${report}_table_${cluster}`).on('order.dt', function(event) {
+    var order = $(event.target).DataTable().order();
+    prefs['clusters'][cluster]['sorting'][report] = order;
+    updatePreferences();
+  });
+}
+
+
 function displayReports(reports, status, jqXHR) {
 
   // we don't go by active tab in case there's a race condition
@@ -263,7 +291,7 @@ function displayReports(reports, status, jqXHR) {
 
   // check if there are reports
   if (report_names.length == 0) {
-    accordionParent.innerHTML = "<p>{{ _('There are currently no bursts defined.') }}</p>";
+    accordionParent.innerHTML = "<p>{{ _('There are no current reports for this cluster.') }}</p>";
   }
   else {
     for (var i=0; i < report_names.length; i++) {
@@ -271,7 +299,7 @@ function displayReports(reports, status, jqXHR) {
       var report = report_names[i];
 
       // TODO: i18n
-      var title = `${report} - reported ${epoch_to_local_time(reports[report]['epoch'])}`;
+      var title = `${report_specs[report].title} - reported ${epoch_to_local_time(reports[report]['epoch'])}`;
 
       // create accordian for this
       var accordion = document.createElement('div');
@@ -289,26 +317,14 @@ function displayReports(reports, status, jqXHR) {
           aria-labelledby="heading-${cluster}-${report}" data-bs-parent="#${cluster}_accordions"
           data-ccf-report='${report}' data-ccf-cluster='${cluster}'
         >
-          <div class="accordion-body">
-            ${makeTableBlank(cluster, "bursts")}
-          </div>
         </div>
       </div>`;
 
       // add to parent and so to the DOM
       accordionParent.appendChild(accordion);
 
-      // create the table
-      // TODO: use `prefs` instead of `ordering`
-      populateReportTable(cluster, report, reports[report]['results'], [[3, 'desc']]);
-
-      // set up ordering update handler
-      // TODO: use `prefs` instead of `ordering`
-      $(`#${report}_table_${cluster}`).on('order.dt', function(event) {
-        var order = $(event.target).DataTable().order();
-        Cookies.set("ordering", JSON.stringify(order));
-      });
-
+      // create and populate report table
+      createReportTable(cluster, report, reports[report]['results']);
     }
 
     // determine which report should be expanded by default
@@ -339,52 +355,43 @@ function displayReports(reports, status, jqXHR) {
   }
 }
 
-function refreshBursts(reports, status, jqXHR) {
+function refreshReports(reports) {
 
-  /* TODO: should be "refreshReports"
+  /* TODO:
    * This should check whether there are additional clusters and/or reports
    * than existed previously by checking contents of prefs, and if updates
    * do not match what's there, create default prefs for new stuff, and update
    * UI components to match changes (add and remove cluster tabs; add and
    * remove report accordions)
+   *
+   * ...maybe.  This is called after updating reports with notes, ticket, etc.
+   * and so might well be limited.
    */
 
-  /* TODO: DRY.  This is very "wet" */
+  // we don't go by active tab in case there's a race condition
+  var cluster = reports['cluster'];
 
-  // burst reports are organized by cluster
-  if (Object.keys(reports).length == 0) {
-    //TODO: remove accordions and data tables and paste a message of some kind
+  // get main accordion container
+  var accordionParent = document.getElementById(`${cluster}_accordions`);
+
+  // get just reports by filtering out 'cluster'
+  var report_names = Object.keys(reports).filter(function(item) {
+    return item !== 'cluster'
+  });
+
+  // check if there are reports
+  if (report_names.length == 0) {
+    // TODO: remove accordions and data tables and paste a message of some kind
+    // or does this just mean there aren't any updates for this report
   }
   else {
-
-    // get ordering
-    // TODO: use `prefs` instead of `ordering`
-    var orderingJSON = Cookies.get("ordering");
-    if (orderingJSON) {
-      var ordering = JSON.parse(orderingJSON);
-    } else {
-      var ordering = [[3, 'desc']];
-    }
-
-    for (var cluster in reports) {
-
-      // clear out the accordion
-      $(`#collapse-${cluster}-${report}`).html(`
-          <div class="accordion-body">
-            ${makeTableBlank(cluster)}
-          </div>`);
-
-      // create the table
-      // TODO: use `prefs` instead of `ordering`
-      populateReportTable(cluster, report, reports[cluster], ordering);
+    for (var i=0; i < report_names.length; i++) {
+      createReportTable(cluster, report_names[i], reports[report]['results']);
     }
   }
 }
 
 function populateReportTable(cluster, report, data, ordering) {
-  console.log("In populateReportTable().  Cluster: " + cluster + ", report: " + report);
-  console.log("Preferences:");
-  console.log(prefs);
 
   // build array of column definitions of the format {"name": name}
   var columnNames = report_specs[report]['cols'].map(function(x) {
@@ -409,7 +416,6 @@ function populateReportTable(cluster, report, data, ordering) {
       { visible: false, targets: [idRowIdx] }
     ],
     columns: columnNames,
-    // TODO: use `prefs` instead of `ordering`
     order: prefs['clusters'][cluster]['sorting'][report],
     rowId: function(row) { return "burst_" + row[idRowIdx] }
   });
@@ -439,7 +445,6 @@ function showTicketComposition(template, burst_id, account_id) {
   // override reset button
   var resetEl = document.getElementById('ticketCompositionReset');
   resetEl.addEventListener('click', function() {
-    console.log("Clicked on resetEl");
     titleEl.value = template.title;
     bodyEl.value = template.body;
   });
@@ -522,7 +527,7 @@ function createTicket(id, recipient, email) {
   });
 }
 
-function updateBursts(updates, options = {
+function updateReport(updates, options = {
     action: "Updating...",
     error: "Failed to update"
   }) {
@@ -534,13 +539,13 @@ function updateBursts(updates, options = {
   status_id = status(options.action);
   // make request
   $.ajax({
-    url: '/xhr/bursts/',
+    url: '/xhr/reports/',
     method: 'PATCH',
     data: JSON.stringify(updates),
     contentType: 'application/json',
     success: function(reports, status, jqXHR) {
       status_clear(status_id);
-      refreshBursts(reports, status, jqXHR);
+      refreshReports(reports, status, jqXHR);
     },
     error: function() {
       status_clear(status_id);
@@ -864,7 +869,6 @@ function renderTableData(bursts) {
 }
 
 function recipientSelectable(outreach) {
-  console.log("Evaluating outreach type: " + outreach);
   switch (outreach) {
     case "impossible":
     case "empty":
