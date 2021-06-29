@@ -1,7 +1,7 @@
 html {
   font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
   background: #eee;
-  padding: 1rem;
+  padding: 2rem;
 }
 
 body {
@@ -313,3 +313,7 @@ input:active + .toggle {
   padding: 1px 3px;
   background-color: #999999;
 }
+
+/* --------------------------------------------------------------------------
+                                                            toasts
+--------------------------------------------------------------------------- */
