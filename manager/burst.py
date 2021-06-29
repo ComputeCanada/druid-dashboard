@@ -587,6 +587,7 @@ class BurstReporter(Reporter):
   def describe(cls):
     return {
       'table': 'bursts',
+      'title': _('Burst candidates'),
       'metric': 'pain',
       'cols': [
         { 'datum': 'ticks',
