@@ -47,7 +47,7 @@ class Event():
     d['type'] = self.__class__.__name__
     return d
 
-class BurstReportReceived(Event):
+class ReportReceived(Event):
 
   def __init__(self, message):
     self._message = message
