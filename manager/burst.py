@@ -584,19 +584,12 @@ class BurstReporter(Reporter):
   """
 
   @classmethod
-  def describe(cls):
+  def _describe(cls):
     return {
       'table': 'bursts',
       'title': _('Burst candidates'),
       'metric': 'pain',
       'cols': [
-        { 'datum': 'ticks',
-          'searchable': False,
-          'sortable': True,
-          'type': 'number',
-          'title': "<img src='static/icons/ticks.svg' height='18' width='20' " \
-                   "alt='Times reported' title='Times reported'/>",
-        },
         { 'datum': 'account',
           'searchable': True,
           'sortable': True,
