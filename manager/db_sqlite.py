@@ -115,6 +115,10 @@ class ExtConnection(sqlite3.Connection):
 
     return sqlite3.Connection.execute(self, sql)
 
+  def insert_returning_id(self, sql, parameters):
+    cursor = self.execute(sql, parameters)
+    return cursor.lastrowid
+
 def open_db_sqlite(uri):
   """
   Open SQLite database connection.  Uses internal subclass of SQLite3's
