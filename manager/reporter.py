@@ -2,6 +2,7 @@
 # pylint: disable=wrong-import-position,import-outside-toplevel
 #
 import re
+from flask_babel import _
 from manager.log import get_log
 from manager.exceptions import AppException
 
@@ -46,7 +47,7 @@ class ReporterRegistry:
   def register(self, name, reporter):
     if name in self._reporters.keys():
       # TODO: better exception
-      raise Exception("A reporter has already been registered with that name: {}".format(name))
+      raise BaseException("A reporter has already been registered with that name: {}".format(name))
     self._reporters[name] = reporter
     get_log().info("Registered reporter for %s", name)
 
@@ -94,6 +95,56 @@ class Reporter:
         ), ... ],
       }
     """
+    desc = cls._describe()
+    desc['cols'].insert(0,
+      { 'datum': 'ticks',
+        'searchable': False,
+        'sortable': True,
+        'type': 'number',
+        'title': "<img src='static/icons/ticks.svg' height='18' width='20' " \
+                 "alt='Times reported' title='Times reported'/>",
+      }
+    )
+    desc['cols'].extend([
+      { 'datum': 'state',
+        'searchable': True,
+        'sortable': True,
+        'type': 'text',
+        'title': _('State')
+      },
+      { 'datum': 'analyst',
+        'searchable': True,
+        'sortable': True,
+        'type': 'text',
+        'title': _('Analyst')
+      },
+      { 'datum': 'ticket',
+        'searchable': True,
+        'sortable': True,
+        'type': 'text',
+        'title': _('Ticket')
+      },
+      { 'datum': 'notes',
+        'searchable': False,
+        'sortable': True,
+        'type': 'text',
+        'title': _('Notes')
+      },
+      { 'datum': 'action',
+        'searchable': False,
+        'sortable': False,
+        'type': 'text',
+        'title': _('Action')
+      }
+    ])
+
+    return desc
+
+  @classmethod
+  def _describe(cls):
+    """
+    Subclasses should implement this
+    """
     raise NotImplementedError
 
   def init(self):
@@ -117,20 +168,20 @@ class Reporter:
     """
     raise NotImplementedError
 
-  def validate(self, data):
-    """
-    Check that provided data structure is valid for this type of report.
-
-    Args:
-      data: list of dicts describing current instances of potential account
-            or job pain or other metrics, as appropriate for the type of
-            report.
-
-    Returns:
-      True, if the data validates and the report can be registered
-      False, otherwise
-    """
-    raise NotImplementedError
+#  def validate(self, data):
+#    """
+#    Check that provided data structure is valid for this type of report.
+#
+#    Args:
+#      data: list of dicts describing current instances of potential account
+#            or job pain or other metrics, as appropriate for the type of
+#            report.
+#
+#    Returns:
+#      True, if the data validates and the report can be registered
+#      False, otherwise
+#    """
+#    raise NotImplementedError
 
   def view(self, criteria):
     """
