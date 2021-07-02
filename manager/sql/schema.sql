@@ -9,12 +9,13 @@ DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS job_ages;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210417', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210630', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -132,4 +133,22 @@ CREATE TABLE updates_claimant (
   claimant_was CHAR(7),
   claimant_now CHAR(7),
   FOREIGN KEY (burst_id) REFERENCES bursts(id)
+);
+
+CREATE TABLE job_ages (
+  -- must be in here for reportable class
+  id INTEGER PRIMARY KEY,
+  epoch INTEGER NOT NULL,
+  ticks INTEGER NOT NULL DEFAULT 1,
+  cluster VARCHAR(16) NOT NULL,
+  claimant CHAR(7),
+  ticket_id INTEGER,
+  ticket_no VARCHAR(9),
+  summary TEXT,
+  -- job age stuff
+  account VARCHAR(32) NOT NULL,
+  submitter VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  age INTEGER NOT NULL,
+  FOREIGN KEY (cluster) REFERENCES clusters(id)
 );

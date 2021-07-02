@@ -18,7 +18,7 @@ from manager import exceptions
 # or an upgrade should be performed.
 #
 # See README in SQL scripts dir for guidance on updating the schema.
-SCHEMA_VERSION = '20210417'
+SCHEMA_VERSION = '20210630'
 
 # query to fetch latest schema version
 SQL_GET_SCHEMA_VERSION = """
@@ -116,7 +116,7 @@ def get_schema_version():
   try:
     vers = db.execute(SQL_GET_SCHEMA_VERSION).fetchone()['version']
   except Exception as e:
-    get_log().error("Error in retrieving schema version: {}".format(e))
+    get_log().error("Error in retrieving schema version: %s", e)
     raise exceptions.DatabaseException("Could not retrieve schema version") from e
   if not vers:
     get_log().error("Could not find latest schema version")
@@ -130,7 +130,7 @@ def upgrade_schema(data_updates=None):
     # trivial: actual matches expected, no action needed
     return (actual, expected, None)
 
-  get_log().info("DB schema is at version {}; app expects {}".format(actual, expected))
+  get_log().info("DB schema is at version %s; app expects %s", actual, expected)
 
   ## Find upgrade path.  Scripts are "${from}_to_${to}.[sql|psql]".  Might need
   ## to run several, such as if there is ${from}_to_int1.sql, int1_to_${to}.sql
