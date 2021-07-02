@@ -9,10 +9,11 @@ from flask import (
 )
 from manager.log import get_log
 from manager.apikey import ApiKey
-from manager.burst import Burst, get_bursts, BurstReporter
+from manager.burst import Burst, get_bursts
 from manager.component import Component
-from manager.event import report, BurstReportReceived
+from manager.event import report, ReportReceived
 from manager.exceptions import InvalidApiCall
+from manager.reporter import registry
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -237,20 +238,21 @@ def api_post_bursts():
 
     # TODO: subclasses of Reporter should register their report names, so we
     #       can just loop through the registry here.
-    if report_name == 'bursts':
-      reporter = BurstReporter()
-      try:
-        summary = reporter.report(cluster, epoch, report_data)
-
-        # TODO: generalize and move outside if/else stuff
-        report(BurstReportReceived("{} on {}: {}".format(report_name, cluster, summary)))
-      except InvalidApiCall as e:
-        errmsg = "Does not conform to API for report type {}: {}".format(report_name, e)
-        get_log().error(errmsg)
-        abort(400, errmsg)
-    else:
+    try:
+      reporter = registry.reporters[report_name]
+    except KeyError as e:
       errmsg = "Unrecognized report type: {}".format(report_name)
       get_log().error(errmsg)
       abort(400, errmsg)
+
+    try:
+      summary = reporter.report(cluster, epoch, report_data)
+    except InvalidApiCall as e:
+      errmsg = "Does not conform to API for report type {}: {}".format(report_name, e)
+      get_log().error(errmsg)
+      abort(400, errmsg)
+
+    # report that, um, report was received
+    report(ReportReceived("{} on {}: {}".format(report_name, cluster, summary)))
 
   return jsonify({'status': 'OK'}), 201
