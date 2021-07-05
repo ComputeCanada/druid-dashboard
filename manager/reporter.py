@@ -3,10 +3,8 @@
 #
 import re
 from flask_babel import _
-from manager.ldap import get_ldap
 from manager.log import get_log
 from manager.exceptions import AppException
-from manager.otrs import ticket_url
 
 # ---------------------------------------------------------------------------
 #                                                                   helpers
@@ -114,7 +112,7 @@ class Reporter:
         'type': 'text',
         'title': _('State')
       },
-      { 'datum': 'analyst',
+      { 'datum': 'claimant',
         'searchable': True,
         'sortable': True,
         'type': 'text',
@@ -149,12 +147,13 @@ class Reporter:
     """
     raise NotImplementedError
 
-  def init(self):
-    """
-    Does not a thing as yet
-    """
+  #def init(self):
+  #  """
+  #  Does not a thing as yet
+  #  """
 
-  def report(self, cluster, epoch, data):
+  @classmethod
+  def report(cls, cluster, epoch, data):
     """
     Report potential job and/or account issues.
 
@@ -170,6 +169,8 @@ class Reporter:
     """
     raise NotImplementedError
 
+## I don't see any actual need for this, keeping it around until done
+## implementation
 #  def validate(self, data):
 #    """
 #    Check that provided data structure is valid for this type of report.
@@ -185,7 +186,8 @@ class Reporter:
 #    """
 #    raise NotImplementedError
 
-  def view(self, criteria):
+  @classmethod
+  def view(cls, criteria):
     """
     Return dict describing view of data reported.
 
@@ -199,38 +201,14 @@ class Reporter:
     if list(criteria.keys()) != ['cluster']:
       raise NotImplementedError
 
-    ldap = get_ldap()
-
-    records = self.__class__.get_current(criteria['cluster'])
+    records = cls.get_current(criteria['cluster'])
     if not records:
       return None
     epoch = records[0].epoch
 
     # serialize records individually so as to add attributes
-    serialized = []
-    for record in records:
-      row = record.serialize()
-
-      # add claimant's name
-      cci = row['claimant']
-      if cci:
-        person = ldap.get_person_by_cci(cci)
-        if not person:
-          get_log().error("Could not find name for cci '%s'", row['claimant'])
-        else:
-          row['claimant_pretty'] = person['givenname']
-
-      # add ticket URL if there's a ticket
-      if record.ticket_id:
-        row['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
-          ticket_url(record.ticket_id), record.ticket_no)
-      else:
-        row['ticket_href'] = None
-
-      # add any prettified fields
-      row['state_pretty'] = _(str(record.state))
-      row['resource_pretty'] = _(str(record.resource))
-
-      serialized.append(row)
+    serialized = [
+      rec.serialize(pretty=True) for rec in records
+    ]
 
     return { 'epoch': epoch, 'results': serialized }
