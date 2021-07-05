@@ -299,7 +299,7 @@ function populateReportTable(cluster, report, data, ordering) {
 
   $(`#${report}_table_${cluster}`).dataTable({
     "autoWidth": false,
-    "data": renderTableData(data),
+    "data": renderTableData(data, report_specs[report]['metric'], columnNames),
     "columnDefs": [
       { searchable: false, targets: 'nosearch' },
       { orderable: false, targets: 'nosort' },
@@ -308,15 +308,16 @@ function populateReportTable(cluster, report, data, ordering) {
     ],
     columns: columnNames,
     order: prefs['clusters'][cluster]['sorting'][report],
-    rowId: function(row) { return "burst_" + row[idRowIdx] }
+    rowId: function(row) { return cluster + "_" + report + "_" + row[idRowIdx] }
   });
 }
 
 // TODO: generalize
 // view data should be provided by reporter subclass
-function renderTableData(bursts) {
+function renderTableData(bursts, metric, columnNames) {
 
   var id, account, resource;
+  var name, prettified;
 
   bycols = [];
   for (var i=0, ien=bursts.length; i<ien; i++) {
@@ -325,12 +326,22 @@ function renderTableData(bursts) {
     account = bursts[i].account;
     resource = bursts[i].resource;
 
-    bycols[i] = [
+    bycols[i] = columnNames.map(function(column) {
+      name = column['name'];
+      prettified = column['name'] + '_pretty';
+      if (bursts[i][prettified] != null) {
+        return bursts[i][prettified];
+      }
+      return bursts[i][name];
+    });
+
+    // all this prettifying should be handled by reporter class
+    /*bycols[i] = [
       bursts[i].ticks,
       bursts[i].account,
       `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.html">Cumulative</a><br/>
        <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_insta_plot.html">Instant</a>`,
-      bursts[i].pain.toFixed(2),
+      bursts[i][metric].toFixed(2),
       jsonToTable(bursts[i].summary),
       bursts[i].state_pretty,
       bursts[i].claimant_pretty || "-",
@@ -338,7 +349,7 @@ function renderTableData(bursts) {
       bursts[i].other['notes'],
       renderActionMenu(bursts[i]),
       id
-    ];
+    ];*/
   }
 
   return bycols;
