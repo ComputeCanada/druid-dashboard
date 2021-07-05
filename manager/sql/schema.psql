@@ -144,6 +144,7 @@ CREATE TABLE job_ages (
   claimant CHAR(7),
   ticket_id INTEGER,
   ticket_no VARCHAR(9),
+  state CHAR(1) NOT NULL DEFAULT 'p',
   summary TEXT,
   -- job age stuff
   account VARCHAR(32) NOT NULL,
