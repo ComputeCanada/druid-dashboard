@@ -17,6 +17,16 @@ class JobResource(DbEnum):
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
+def json_to_table(str):
+  html = ''
+  d = json.loads(str)
+  if d:
+    html += '<table>'
+    for k, v in d.items():
+      html += f"<tr><th>{k}</th><td>{v}</td></tr>"
+    html += '</table>'
+  return html
+
 def _summarize_job_age_report(records):
   return f"There are {len(records)} records."
 
@@ -45,9 +55,101 @@ SQL_UPDATE_EXISTING = '''
 #                                                             Job Age class
 # ---------------------------------------------------------------------------
 
-class JobAge(Reportable):
+class JobAge(Reporter, Reportable):
 
   _table = 'job_ages'
+
+  @classmethod
+  def _describe(cls):
+    return {
+      'table': 'age',
+      'title': _('Job age'),
+      'metric': 'age',
+      'cols': [
+        { 'datum': 'account',
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('Account')
+        },
+        { 'datum': 'resource',
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('Resource')
+        },
+        { 'datum': 'submitter',
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('User')
+        },
+        { 'datum': 'age',
+          'searchable': True,
+          'sortable': True,
+          'type': 'number',
+          'title': _('Age'),
+          'help': _('Days waiting in system')
+        },
+        { 'datum': 'summary',
+          'searchable': True,
+          'sortable': False,
+          'type': 'text',
+          'title': _('Summary')
+        }
+      ]
+    }
+
+  @classmethod
+  def report(cls, cluster, epoch, data):
+    """
+    Report potential job and/or account issues.
+
+    Args:
+      cluster: reporting cluster
+      epoch: epoch of report (UTC)
+      data: list of dicts describing current instances of potential account
+            or job pain or other metrics, as appropriate for the type of
+            report.
+
+    Returns:
+      String describing summary of report.
+    """
+
+    # build list of objects from report
+    records = []
+    for record in data:
+
+      # get the submitted data
+      try:
+        # pull the others
+        res_raw = record['resource']
+        account = record['account']
+        age = record['age']
+        summary = record['summary']
+        submitter = record['submitter']
+
+      except KeyError as e:
+        # client not following API
+        raise InvalidApiCall("Missing required field: {}".format(e))
+
+      # convert from JSON representations
+      try:
+        resource = JobResource.get(res_raw)
+      except KeyError as e:
+        raise InvalidApiCall("Invalid resource type: {}".format(e))
+
+      records.append(cls(
+        cluster=cluster,
+        epoch=epoch,
+        account=account,
+        submitter=submitter,
+        resource=resource,
+        age=age,
+        summary=summary))
+
+    # report event
+    return _summarize_job_age_report(records)
 
   def __init__(self, id=None, record=None, cluster=None, epoch=None,
       account=None, submitter=None, resource=None, age=None, summary=None
@@ -91,166 +193,40 @@ class JobAge(Reportable):
   def contact(self):
     return self._submitter
 
+  def serialize(self, pretty=False):
+    if pretty:
+      prettified = {
+        'summary_pretty': json_to_table(self._summary),
+        'resource_pretty': str(self._resource)
+      }
+      return dict(super().serialize(pretty=True), **prettified)
+    return super().serialize()
+
 # ---------------------------------------------------------------------------
 #                                                    Job Age Reporter class
 # ---------------------------------------------------------------------------
 
-class JobAgeReporter(Reporter):
-  """
-  Class for reporting job age: a list of accounts and information about their
-  current jobs with excessive wait times.
-
-  Format:
-    ```
-    job_age = [
-      {
-        'account':  character string representing CC account name,
-        'submitter': username of submitter,
-        'resource': type of resource involved in record (ex. 'cpu', 'gpu'),
-        'age':      number of hours waiting in system, maximal over job
-                    ranges
-        'summary':  JSON-encoded key-value information about record context
-                    which may be of use to analyst in evaluation
-      },
-      ...
-    ]
-    ```
-  """
-
-  @classmethod
-  def _describe(cls):
-    return {
-      'table': 'age',
-      'title': _('Job age'),
-      'metric': 'age',
-      'cols': [
-        { 'datum': 'account',
-          'searchable': True,
-          'sortable': True,
-          'type': 'text',
-          'title': _('Account')
-        },
-        { 'datum': 'submitter',
-          'searchable': True,
-          'sortable': True,
-          'type': 'text',
-          'title': _('User')
-        },
-        { 'datum': 'age',
-          'searchable': True,
-          'sortable': True,
-          'type': 'number',
-          'title': _('Age'),
-          'help': _('Days waiting in system')
-        },
-        { 'datum': 'summary',
-          'searchable': True,
-          'sortable': False,
-          'type': 'text',
-          'title': _('Summary')
-        }
-      ]
-    }
-
-  def init(self):
-    """
-    Initializer.  Does not a thing.
-    """
-
-  def report(self, cluster, epoch, data):
-    """
-    Report potential job and/or account issues.
-
-    Args:
-      cluster: reporting cluster
-      epoch: epoch of report (UTC)
-      data: list of dicts describing current instances of potential account
-            or job pain or other metrics, as appropriate for the type of
-            report.
-
-    Returns:
-      String describing summary of report.
-    """
-
-    # build list of objects from report
-    records = []
-    for record in data:
-
-      # get the submitted data
-      try:
-        # pull the others
-        res_raw = record['resource']
-        account = record['account']
-        age = record['age']
-        summary = record['summary']
-        submitter = record['submitter']
-
-      except KeyError as e:
-        # client not following API
-        raise InvalidApiCall("Missing required field: {}".format(e))
-
-      # convert from JSON representations
-      try:
-        resource = JobResource.get(res_raw)
-      except KeyError as e:
-        raise InvalidApiCall("Invalid resource type: {}".format(e))
-
-      records.append(JobAge(
-        cluster=cluster,
-        epoch=epoch,
-        account=account,
-        submitter=submitter,
-        resource=resource,
-        age=age,
-        summary=summary))
-
-    # report event
-    return _summarize_job_age_report(records)
-
-#  # TODO: This should be handled mostly by Reporter base class, and call
-#  # subclass's `_prettify()` on each record to handle specific fields.
-#  def view(self, criteria):
+#class JobAgeReporter(Reporter):
+#  """
+#  Class for reporting job age: a list of accounts and information about their
+#  current jobs with excessive wait times.
 #
-#    if list(criteria.keys()) != ['cluster']:
-#      raise NotImplementedError
-#
-#    ldap = get_ldap()
-#
-#    records = JobAge.get_current(criteria['cluster'])
-#    if not records:
-#      return None
-#    epoch = records[0].epoch
-#
-#    # serialize records individually so as to add attributes
-#    serialized = []
-#    for record in records:
-#      row = record.serialize()
-#
-#      # add claimant's name
-#      cci = row['claimant']
-#      if cci:
-#        person = ldap.get_person_by_cci(cci)
-#        if not person:
-#          get_log().error("Could not find name for cci '%s'", row['claimant'])
-#          prettyname = cci
-#        else:
-#          prettyname = person['givenName']
-#        row['claimant_pretty'] = prettyname
-#
-#      # add ticket URL if there's a ticket
-#      if record.ticket_id:
-#        row['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
-#          ticket_url(record.ticket_id), record.ticket_no)
-#      else:
-#        row['ticket_href'] = None
-#
-#      # add any prettified fields
-#      row['state'] = _(str(record.state))
-#      row['resource'] = _(str(record.resource))
-#
-#      serialized.append(row)
-#
-#    return { 'epoch': epoch, 'results': serialized }
+#  Format:
+#    ```
+#    job_age = [
+#      {
+#        'account':  character string representing CC account name,
+#        'submitter': username of submitter,
+#        'resource': type of resource involved in record (ex. 'cpu', 'gpu'),
+#        'age':      number of hours waiting in system, maximal over job
+#                    ranges
+#        'summary':  JSON-encoded key-value information about record context
+#                    which may be of use to analyst in evaluation
+#      },
+#      ...
+#    ]
+#    ```
+#  """
 
-reporter = JobAgeReporter()
-registry.register('job_age', reporter)
+
+registry.register('job_age', JobAge)
