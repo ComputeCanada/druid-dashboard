@@ -4,9 +4,6 @@
 import json
 from flask_babel import _
 from manager.db import get_db, DbEnum
-from manager.ldap import get_ldap
-from manager.log import get_log
-from manager.otrs import ticket_url
 from manager.exceptions import InvalidApiCall
 from manager.reportable import Reportable
 from manager.reporter import Reporter, registry
@@ -52,11 +49,11 @@ class JobAge(Reportable):
 
   _table = 'job_ages'
 
-  def __init__(self, id=None, rec=None, cluster=None, epoch=None,
+  def __init__(self, id=None, record=None, cluster=None, epoch=None,
       account=None, submitter=None, resource=None, age=None, summary=None
   ):
-    if id or rec:
-      super().__init__(id=id, record=rec)
+    if id or record:
+      super().__init__(id=id, record=record)
     else:
       self._account = account
       self._submitter = submitter
@@ -83,8 +80,16 @@ class JobAge(Reportable):
     return affected == 1
 
   @property
+  def resource(self):
+    return self._resource
+
+  @property
   def summary(self):
     return json.loads(self._summary)
+
+  @property
+  def contact(self):
+    return self._submitter
 
 # ---------------------------------------------------------------------------
 #                                                    Job Age Reporter class
@@ -202,48 +207,50 @@ class JobAgeReporter(Reporter):
     # report event
     return _summarize_job_age_report(records)
 
-  def view(self, criteria):
-
-    if list(criteria.keys()) != ['cluster']:
-      raise NotImplementedError
-
-    ldap = get_ldap()
-
-    records = JobAge.get_current(criteria['cluster'])
-    if not records:
-      return None
-    epoch = records[0]['epoch']
-
-    # serialize records individually so as to add attributes
-    serialized = []
-    for record in records:
-      row = record.serialize()
-
-      # add claimant's name
-      cci = row['claimant']
-      if cci:
-        person = ldap.get_person_by_cci(cci)
-        if not person:
-          get_log().error("Could not find name for cci '%s'", row['claimant'])
-          prettyname = cci
-        else:
-          prettyname = person['givenName']
-        row['claimant_pretty'] = prettyname
-
-      # add ticket URL if there's a ticket
-      if record.ticket_id:
-        row['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
-          ticket_url(record.ticket_id), record.ticket_no)
-      else:
-        row['ticket_href'] = None
-
-      # add any prettified fields
-      row['state_pretty'] = _(str(record.state))
-      row['resource_pretty'] = _(str(record.resource))
-
-      serialized.append(row)
-
-    return { 'epoch': epoch, 'results': serialized }
+#  # TODO: This should be handled mostly by Reporter base class, and call
+#  # subclass's `_prettify()` on each record to handle specific fields.
+#  def view(self, criteria):
+#
+#    if list(criteria.keys()) != ['cluster']:
+#      raise NotImplementedError
+#
+#    ldap = get_ldap()
+#
+#    records = JobAge.get_current(criteria['cluster'])
+#    if not records:
+#      return None
+#    epoch = records[0].epoch
+#
+#    # serialize records individually so as to add attributes
+#    serialized = []
+#    for record in records:
+#      row = record.serialize()
+#
+#      # add claimant's name
+#      cci = row['claimant']
+#      if cci:
+#        person = ldap.get_person_by_cci(cci)
+#        if not person:
+#          get_log().error("Could not find name for cci '%s'", row['claimant'])
+#          prettyname = cci
+#        else:
+#          prettyname = person['givenName']
+#        row['claimant_pretty'] = prettyname
+#
+#      # add ticket URL if there's a ticket
+#      if record.ticket_id:
+#        row['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
+#          ticket_url(record.ticket_id), record.ticket_no)
+#      else:
+#        row['ticket_href'] = None
+#
+#      # add any prettified fields
+#      row['state'] = _(str(record.state))
+#      row['resource'] = _(str(record.resource))
+#
+#      serialized.append(row)
+#
+#    return { 'epoch': epoch, 'results': serialized }
 
 reporter = JobAgeReporter()
 registry.register('job_age', reporter)
