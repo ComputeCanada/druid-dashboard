@@ -3,7 +3,9 @@
 #
 from manager.db import get_db
 from manager.log import get_log
+from manager.ldap import get_ldap
 from manager.cluster import Cluster
+from manager.otrs import ticket_url
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -188,8 +190,26 @@ class Reportable:
     """
     raise NotImplementedError
 
-  def serialize(self):
-    return {
+  def serialize(self, pretty=False):
+    get_log().debug("Serializing myself: %s (pretty = %s) dict = %s", self.__class__.__name__, pretty, self.__dict__)
+    dct = {
       key.lstrip('_'): val
       for (key, val) in self.__dict__.items()
     }
+    if pretty:
+
+      # add claimant's name
+      if self._claimant:
+        person = get_ldap().get_person_by_cci(self._claimant)
+        if not person:
+          get_log().error("Could not find name for cci '%s'", self._claimant)
+        else:
+          dct['claimant_pretty'] = person['givenname']
+
+      # add ticket URL if there's a ticket
+      if self._ticket_id:
+        dct['ticket'] = "<a href='{}' target='_ticket'>{}</a>".format(ticket_url(self._ticket_id), self._ticket_no)
+      else:
+        dct['ticket'] = None
+
+    return dct
