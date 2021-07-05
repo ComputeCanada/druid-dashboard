@@ -3,6 +3,7 @@
 #
 from manager.db import get_db
 from manager.log import get_log
+from manager.cluster import Cluster
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -43,10 +44,10 @@ SQL_GET_CURRENT = '''
 SQL_GET_CURRENT_FOR_CLUSTER = '''
   SELECT    B.*, COUNT(N.id) AS notes
   FROM      {} B
-  WHERE     cluster = ?
-    AND     epoch = (SELECT MAX(epoch) FROM {})
   LEFT JOIN notes N
   ON        (B.id = N.burst_id)
+  WHERE     cluster = ?
+    AND     epoch = (SELECT MAX(epoch) FROM {} WHERE cluster = ?)
   GROUP BY  B.id
 '''
 
@@ -61,10 +62,11 @@ class Reportable:
 
   @classmethod
   def get_current(cls, cluster):
-    res = get_db().execute(SQL_GET_CURRENT_FOR_CLUSTER.format(cls.table, cls.table),
-cluster).fetchall()
+    res = get_db().execute(SQL_GET_CURRENT_FOR_CLUSTER.format(cls._table, cls._table), (cluster, cluster)).fetchall()
     if not res:
+      get_log().debug("Did not find any records in %s", cls._table)
       return None
+    get_log().debug("Returning records for %s", cls._table)
     return [
       cls(record=rec) for rec in res
     ]
@@ -88,6 +90,12 @@ cluster).fetchall()
 
       if not self.update_existing():
 
+        self._state = None
+        self._ticket_no = None
+        self._ticket_id = None
+        self._claimant = None
+        self._ticks = 1
+
         # this would also get the ID and maybe keys() and values() would not
         # return the same order
         #keystr = ', '.join([ k.split('_')[1]) for k in self.__dict__.keys() ])
@@ -97,7 +105,7 @@ cluster).fetchall()
         keys = []
         values = []
         for k, v in self.__dict__.items():
-          if k == '_id':
+          if k in ('_id', '_other'):
             continue
           keys.append(k.split('_')[1])
           values.append(v)
@@ -113,7 +121,12 @@ cluster).fetchall()
 
   def _load_from_rec(self, rec):
     for (k, v) in rec.items():
-      self.__dict__['_'+k] = v
+      if k == 'notes':
+        self._other = {
+          'notes': v
+        }
+      else:
+        self.__dict__['_'+k] = v
 
   def update_existing(self):
     """
@@ -121,6 +134,10 @@ cluster).fetchall()
     report of a potential issue matching the key data doesn't already exist.
     """
     raise NotImplementedError
+
+  @property
+  def epoch(self):
+    return self._epoch
 
   @property
   def ticks(self):
@@ -150,7 +167,14 @@ cluster).fetchall()
 
   @property
   def info(self):
-    raise NotImplementedError
+    basic = {
+      'account': self._account,
+      'cluster': Cluster(self._cluster).name,
+      'resource': self._resource,
+    }
+    if self._summary:
+      return dict(basic, **self._summary)
+    return basic
 
   @property
   def contact(self):
