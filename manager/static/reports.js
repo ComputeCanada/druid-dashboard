@@ -316,21 +316,18 @@ function populateReportTable(cluster, report, data, ordering) {
 // view data should be provided by reporter subclass
 function renderTableData(bursts, metric, columnNames) {
 
-  var id, account, resource;
   var name, prettified;
 
   bycols = [];
   for (var i=0, ien=bursts.length; i<ien; i++) {
-
-    id = bursts[i].id;
-    account = bursts[i].account;
-    resource = bursts[i].resource;
 
     bycols[i] = columnNames.map(function(column) {
       name = column['name'];
       prettified = column['name'] + '_pretty';
       if (bursts[i][prettified] != null) {
         return bursts[i][prettified];
+      } else if (bursts[i][name] == null) {
+        return '-';
       }
       return bursts[i][name];
     });
