@@ -153,3 +153,24 @@ CREATE TABLE job_ages (
   age INTEGER NOT NULL,
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
+
+CREATE TABLE reportables (
+  id SERIAL PRIMARY KEY,
+  epoch INTEGER NOT NULL,
+  ticks INTEGER NOT NULL DEFAULT 1,
+  cluster VARCHAR(16) NOT NULL,
+  claimant CHAR(7),
+  ticket_id INTEGER,
+  ticket_no VARCHAR(9),
+  summary TEXT,
+  FOREIGN KEY (cluster) REFERENCES clusters(id)
+);
+
+CREATE TABLE job_ages (
+  id INTEGER PRIMARY KEY,
+  account VARCHAR(32) NOT NULL,
+  submitter VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  age INTEGER NOT NULL,
+  FOREIGN KEY (id) REFERENCES reportables(id)
+);

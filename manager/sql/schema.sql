@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS reportables;
 DROP TABLE IF EXISTS job_ages;
 
 CREATE TABLE schemalog (
@@ -135,8 +136,7 @@ CREATE TABLE updates_claimant (
   FOREIGN KEY (burst_id) REFERENCES bursts(id)
 );
 
-CREATE TABLE job_ages (
-  -- must be in here for reportable class
+CREATE TABLE reportables (
   id INTEGER PRIMARY KEY,
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 1,
@@ -144,12 +144,15 @@ CREATE TABLE job_ages (
   claimant CHAR(7),
   ticket_id INTEGER,
   ticket_no VARCHAR(9),
-  state CHAR(1) NOT NULL DEFAULT 'p',
   summary TEXT,
-  -- job age stuff
+  FOREIGN KEY (cluster) REFERENCES clusters(id)
+);
+
+CREATE TABLE job_ages (
+  id INTEGER PRIMARY KEY,
   account VARCHAR(32) NOT NULL,
   submitter VARCHAR(32) NOT NULL,
   resource CHAR(1) NOT NULL DEFAULT 'c',
   age INTEGER NOT NULL,
-  FOREIGN KEY (cluster) REFERENCES clusters(id)
-);
+  FOREIGN KEY (id) REFERENCES reportables(id)
+) NOROWID;

@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
+import json
 from manager.db import get_db
 from manager.log import get_log
 from manager.ldap import get_ldap
@@ -14,43 +15,29 @@ from manager.otrs import ticket_url
 # use with `.format(tablename)`
 SQL_LOOKUP = '''
   SELECT  *
-  FROM    {}
+  FROM    reportables
+  JOIN    {}
+  USING   (id)
   WHERE   id = ?
 '''
 
-# use with `.format(tablename, list_of_fields_joined_with_comma,
-# list_of_question_marks_matchin_number_of_fields_joined_with_comma)`
 SQL_INSERT_NEW = '''
-  INSERT INTO {}
-              ({})
-  VALUES      ({})
+  INSERT INTO reportables
+              (epoch, cluster, summary)
+  VALUES      (?, ?, ?)
 '''
 
-# use with `.format(tablename)`
-SQL_GET_CURRENT = '''
-  SELECT    B.*, COUNT(N.id) AS notes
-  FROM      {} B
-  JOIN      (
-              SELECT    cluster, MAX(epoch) AS epoch
-              FROM      bursts
-              GROUP BY  cluster
-            ) J
-  ON        B.cluster = J.cluster AND B.epoch = J.epoch
-  LEFT JOIN notes N
-  ON        (B.id = N.burst_id)
-  GROUP BY  B.id
-'''
-
-# too complicated, need by cluster
-# Not linking in notes yet
+# Reportable table's columns are explicitly listed to avoid 'id' appearing twice
 SQL_GET_CURRENT_FOR_CLUSTER = '''
-  SELECT    B.*, COUNT(N.id) AS notes
-  FROM      {} B
+  SELECT    R.ticks, R.cluster, R.epoch, B.*, R.summary, R.claimant, R.ticket_id, R.ticket_no, COUNT(N.id) AS notes
+  FROM      reportables R
+  LEFT JOIN {} B
+  ON        (R.id = B.id)
   LEFT JOIN notes N
-  ON        (B.id = N.burst_id)
+  ON        (R.id = N.burst_id)
   WHERE     cluster = ?
-    AND     epoch = (SELECT MAX(epoch) FROM {} WHERE cluster = ?)
-  GROUP BY  B.id
+    AND     epoch = (SELECT MAX(epoch) FROM reportables WHERE cluster = ? AND id IN (SELECT id FROM {}))
+  GROUP BY  R.id, B.id
 '''
 
 # ---------------------------------------------------------------------------
@@ -73,7 +60,7 @@ class Reportable:
       cls(record=rec) for rec in res
     ]
 
-  def __init__(self, id=None, record=None, cluster=None, epoch=None):
+  def __init__(self, id=None, record=None, cluster=None, epoch=None, summary=None):
     if id and not record:
       # lookup record
       rec = get_db().execute(
@@ -87,39 +74,27 @@ class Reportable:
       self._load_from_rec(record)
     else:
       # new report--either a new record or overlaps with existing
+      if not epoch or not cluster:
+        # TODO: proper exception
+        raise BaseException("Cannot create or update reportable without cluster and epoch")
+
       self._epoch = epoch
       self._cluster = cluster
+      self._summary = summary
 
       if not self.update_existing():
 
-        self._state = None
         self._ticket_no = None
         self._ticket_id = None
         self._claimant = None
         self._ticks = 1
 
-        # this would also get the ID and maybe keys() and values() would not
-        # return the same order
-        #keystr = ', '.join([ k.split('_')[1]) for k in self.__dict__.keys() ])
-        #values = self.__dict__.values()
-        #qs = len(values) * ('?',)
+        db = get_db()
 
-        keys = []
-        values = []
-        for k, v in self.__dict__.items():
-          if k in ('_id', '_other'):
-            continue
-          keys.append(k.split('_')[1])
-          values.append(v)
-        keystr = ', '.join(keys)
-        qs = ', '.join(len(values) * ['?'])
+        self._id = db.insert_returning_id(SQL_INSERT_NEW, (self._epoch, self._cluster, json.dumps(self._summary)))
+        self.insert_new()
 
-        sql = SQL_INSERT_NEW.format(self.__class__._table, keystr, qs)
-        get_log().debug("Reportable().__init__: going to execute SQL: %s\nwith values: %s", sql, values)
-
-        self._id = get_db().insert_returning_id(sql, values)
-
-        get_db().commit()
+      db.commit()
 
   def _load_from_rec(self, rec):
     for (k, v) in rec.items():
@@ -134,6 +109,15 @@ class Reportable:
     """
     Subclasses must implement this method to verify that an existing, current
     report of a potential issue matching the key data doesn't already exist.
+    """
+    raise NotImplementedError
+
+  def insert_new(self):
+    """
+    Subclasses must implement this method to insert a new record in their
+    associated table.  This method is called by the base class after the base
+    record has been created in the "reportables" table and an ID is available
+    as `self._id`.
     """
     raise NotImplementedError
 

@@ -34,6 +34,12 @@ def _summarize_job_age_report(records):
 #                                                               SQL queries
 # ---------------------------------------------------------------------------
 
+SQL_INSERT_NEW = '''
+  INSERT INTO job_ages
+              (id, account, submitter, resource, age)
+  VALUES      (?, ?, ?, ?, ?)
+'''
+
 SQL_FIND_EXISTING = '''
   SELECT    id
   FROM      job_ages
@@ -48,7 +54,10 @@ SQL_FIND_EXISTING = '''
 SQL_UPDATE_EXISTING = '''
   UPDATE    job_ages
   SET       age = ?
-  WHERE     cluster = ? AND account = ? AND submitter = ? AND resource = ? AND age <= ?
+  FROM      reportables
+  WHERE     reportables.cluster = ? AND job_ages.account = ?
+    AND     job_ages.submitter = ? AND job_ages.resource = ?
+    AND     job_ages.age <= ? AND reportables.id = job_ages.id
 '''
 
 # ---------------------------------------------------------------------------
@@ -161,8 +170,7 @@ class JobAge(Reporter, Reportable):
       self._submitter = submitter
       self._resource = resource
       self._age = age
-      self._summary = json.dumps(summary)
-      super().__init__(cluster=cluster, epoch=epoch)
+      super().__init__(cluster=cluster, epoch=epoch, summary=summary)
 
   def find_existing(self):
     res = get_db().execute(
@@ -178,8 +186,16 @@ class JobAge(Reporter, Reportable):
         self._age, self._cluster, self._account, self._submitter, self._resource, self._age
       )).rowcount
     if affected > 1:
+      # TODO: better exception
       raise BaseException("Wait, what")
     return affected == 1
+
+  def insert_new(self):
+    res = get_db().execute(SQL_INSERT_NEW, (
+      self._id, self._account, self._submitter, self._resource, self._age
+    ))
+    if not res:
+      raise BaseException("TODO: Unable to create new JobAge record")
 
   @property
   def resource(self):
