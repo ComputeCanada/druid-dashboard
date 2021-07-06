@@ -60,12 +60,9 @@ class ExtConnection(psycopg2.extensions.connection):
 
   def insert_returning_id(self, sql, parameters):
     cursor = self.cursor()
-    #cursor.execute(sql.replace('?', '%s') + ' RETURNING id', parameters)
     updated_sql = sql.replace('?', '%s') + ' RETURNING id'
-    print("Updated_sql:")
-    print(updated_sql)
     cursor.execute(updated_sql, parameters)
-    return cursor
+    return cursor.fetchone()['id']
 
 
 def open_db_postgres(uri):
