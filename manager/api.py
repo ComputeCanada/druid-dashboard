@@ -9,7 +9,7 @@ from flask import (
 )
 from manager.log import get_log
 from manager.apikey import ApiKey
-from manager.burst import Burst, get_bursts
+from manager.burst import Burst
 from manager.component import Component
 from manager.event import report, ReportReceived
 from manager.exceptions import InvalidApiCall
@@ -156,12 +156,16 @@ def api_get_burst(id):
 @bp.route('/bursts', methods=['GET'])
 @api_key_required
 def api_get_bursts():
+  """
+  Use this API to get list of burst candidates accepted for promotion to the
+  burst pool.
+  """
 
   get_log().debug("In api.api_get_bursts")
 
   cluster = Component(session['api_component']).cluster
 
-  bursts = get_bursts(cluster=cluster)
+  bursts = Burst.view(criteria={'cluster': cluster, 'view': 'adjustor'})
   return jsonify(bursts), 200
 
 @bp.route('/bursts', methods=['POST'])
