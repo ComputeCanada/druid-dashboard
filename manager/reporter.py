@@ -77,6 +77,10 @@ class Reporter:
   Class documentation should describe report structure.
   """
 
+  # subclasses should set this as desired.  Available to view client
+  # TODO: need better name/description
+  _applicable_actions = None
+
   @classmethod
   def describe(cls):
     """
@@ -195,7 +199,17 @@ class Reporter:
       criteria: dict of criteria for selecting data for view.
 
     Returns:
-      Dict describing view of data reported.
+      Dict describing view of data reported, in the format:
+      ```
+      epoch: <seconds since epoch>
+      results:
+        - obj1.attribute1
+        - obj1.attribute2
+        - ..
+        - obj2.attribute1
+        - obj2.attribute2
+        - ..
+      ```
     """
 
     if list(criteria.keys()) != ['cluster']:
@@ -211,4 +225,8 @@ class Reporter:
       rec.serialize(pretty=True) for rec in records
     ]
 
-    return { 'epoch': epoch, 'results': serialized }
+    return {
+      'epoch': epoch,
+      'actions': cls._applicable_actions,
+      'results': serialized
+    }
