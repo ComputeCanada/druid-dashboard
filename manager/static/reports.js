@@ -312,8 +312,8 @@ function populateReportTable(cluster, report, data, ordering) {
   });
 }
 
-// TODO: generalize
-// view data should be provided by reporter subclass
+// view data provided by reporter subclass
+// TODO: render action menu based on available actions from Reporter subclass
 function renderTableData(bursts, metric, columnNames) {
 
   var name, prettified;
@@ -326,27 +326,13 @@ function renderTableData(bursts, metric, columnNames) {
       prettified = column['name'] + '_pretty';
       if (bursts[i][prettified] != null) {
         return bursts[i][prettified];
+      } else if (name == 'action') {
+        return renderActionMenu(bursts[i]);
       } else if (bursts[i][name] == null) {
         return '-';
       }
       return bursts[i][name];
     });
-
-    // all this prettifying should be handled by reporter class
-    /*bycols[i] = [
-      bursts[i].ticks,
-      bursts[i].account,
-      `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.html">Cumulative</a><br/>
-       <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_insta_plot.html">Instant</a>`,
-      bursts[i][metric].toFixed(2),
-      jsonToTable(bursts[i].summary),
-      bursts[i].state_pretty,
-      bursts[i].claimant_pretty || "-",
-      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || "-" }</span>`,
-      bursts[i].other['notes'],
-      renderActionMenu(bursts[i]),
-      id
-    ];*/
   }
 
   return bycols;
