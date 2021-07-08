@@ -82,6 +82,8 @@ class Reportable:
       self._cluster = cluster
       self._summary = summary
 
+      # TODO: to handle updating summary, could add that here
+      # i.e. if self.update_existing():... but we don't have the record ID, sigh
       if not self.update_existing():
 
         self._ticket_no = None
@@ -105,10 +107,15 @@ class Reportable:
       else:
         self.__dict__['_'+k] = v
 
+  # should update summary
   def update_existing(self):
     """
     Subclasses must implement this method to verify that an existing, current
     report of a potential issue matching the key data doesn't already exist.
+
+    TODO: This needs to update the ticks, and the epoch, ...
+    Returns:
+      id of updated record, if there's some way to do that
     """
     raise NotImplementedError
 

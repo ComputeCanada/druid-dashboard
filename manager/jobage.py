@@ -180,6 +180,7 @@ class JobAge(Reporter, Reportable):
       )).fetchone()
     return res.get('id', None)
 
+  # TODO: this should update summary, but that's in the superclass
   def update_existing(self):
     affected = get_db().execute(
       SQL_UPDATE_EXISTING, (
