@@ -312,6 +312,54 @@ def xhr_create_clusters():
   return xhr_success(201)
 
 # ---------------------------------------------------------------------------
+#                                                       ROUTES - components
+# ---------------------------------------------------------------------------
+
+@bp.route('/components/', methods=('GET',))
+@admin_required
+def xhr_get_components():
+
+  #components = get_components(get_last_heard=True)
+  #print(components)
+  #return jsonify(components), 200
+  return jsonify(get_components(get_last_heard=True)), 200
+
+@bp.route('/components/', methods=('POST',))
+@admin_required
+def xhr_add_component():
+
+  missing_args = _must_have(request.form, ['name', 'cluster', 'service'])
+  if missing_args:
+    return xhr_error(400,
+      "Must specify %s when creating component", ', '.join(missing_args))
+
+  name = request.form['name']
+  cluster = request.form['cluster']
+  service = request.form['service']
+  id = request.form.get('id', cluster + '_' + service)
+
+  get_log().debug("Adding component (%s)", id)
+  try:
+    add_component(id, name, cluster, service)
+  except Exception as e:
+    return xhr_error(400, "Unable to add component %s: %s", id, e)
+  return xhr_success(200)
+
+@bp.route('/components/<string:id>', methods=('DELETE',))
+@admin_required
+def xhr_delete_component(id):
+
+  get_log().debug("Deleting component %s", id)
+  try:
+    delete_component(id)
+  except Exception as e:
+    # TODO: Need to differentiate between 400 (unknown component?) or 500
+    # (database failure)
+    return xhr_error(404, "Exception in deleting component: %s", e)
+
+  return xhr_success(200)
+
+# ---------------------------------------------------------------------------
 #                                                           ROUTES - bursts
 # ---------------------------------------------------------------------------
 
@@ -472,52 +520,6 @@ def xhr_create_ticket():
     'url': ticket_url(ticket['ticket_id'])
   }, **ticket))
 
-# ---------------------------------------------------------------------------
-#                                          ROUTES - clusters and components
-# ---------------------------------------------------------------------------
-
-@bp.route('/components/', methods=('GET',))
-@admin_required
-def xhr_get_components():
-
-  return jsonify(get_components(get_last_heard=True))
-
-@bp.route('/components/', methods=('POST',))
-@admin_required
-def xhr_add_component():
-
-  name = request.form['name']
-  cluster = request.form['cluster']
-  service = request.form['service']
-  id = cluster + '_' + service
-
-  get_log().debug("Adding component (%s)", id)
-  try:
-    add_component(id, name, cluster, service)
-  except Exception as e:
-    get_log().error(
-      "Exception in adding component %s (%s)", id, e)
-    return None
-  return jsonify({'status': 'OK'}), 200
-
-
-@bp.route('/components/<string:id>', methods=('DELETE',))
-@admin_required
-def xhr_delete_component(id):
-
-  get_log().debug("Deleting component %s", id)
-  try:
-    delete_component(id)
-  except Exception as e:
-    get_log.error("Exception in deleting component: %s", e)
-
-    # I cannot figure out how to respond in such a way that indicates error, except
-    # not to respond at all.  Have not tried using 4xx HTTP response status because
-    # that is not necessarily appropriate
-    #return jsonify({'status': 'error'}), 200
-    return None
-
-  return jsonify({'status': 'OK'}), 200
 
 # ---------------------------------------------------------------------------
 #                                               ROUTES - site configuration
