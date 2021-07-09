@@ -124,6 +124,270 @@ def test_try_to_create_duplicate_cluster(client):
 #                                                COMPONENT MANAGEMENT TESTS
 # ---------------------------------------------------------------------------
 
+def test_get_no_components(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+
+  response = client.get('/xhr/components/')
+  assert response.status_code == 200
+  print(response.data)
+  assert json.loads(response.data) is None
+
+@pytest.mark.dependency(name='components_created')
+def test_create_components(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+
+  response = client.post('/xhr/components/', data=dict(
+    name='Scheduler',
+    cluster='testcluster',
+    service='scheduler'
+  ))
+  assert response.status_code == 200
+
+  response = client.post('/xhr/components/', data=dict(
+    name='Detector',
+    cluster='testcluster',
+    service='detector'
+  ))
+  assert response.status_code == 200
+
+@pytest.mark.dependency(depends=['components_created'])
+def test_get_components(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+
+  response = client.get('/xhr/components/')
+  assert response.status_code == 200
+  components = json.loads(response.data)
+  print(components)
+
+  assert sorted(components, key=lambda x: x['id']) == sorted([
+    {'id': 'testcluster_detector',
+     'name': 'Detector',
+     'cluster': 'testcluster',
+     'service': 'detector',
+     'lastheard': None
+    },
+    {'id': 'testcluster_scheduler',
+     'name': 'Scheduler',
+     'cluster': 'testcluster',
+     'service': 'scheduler',
+     'lastheard': None
+    }
+  ], key=lambda x: x['id'])
+
+@pytest.mark.dependency(depends=['components_created'])
+def test_delete_component_nonexistent(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+
+  response = client.delete('/xhr/components/testcluster_nonesuch')
+  assert response.status_code == 404
+
+  test_get_components(client)
+
+@pytest.mark.dependency(depends=['components_created'], name='more_components_created')
+def test_create_more_components(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+
+  response = client.post('/xhr/components/', data=dict(
+    name='Scheduler',
+    cluster='testcluster2',
+    service='scheduler'
+  ))
+  assert response.status_code == 200
+  assert json.loads(response.data) == {
+    'status': 200,
+  }
+
+  response = client.post('/xhr/components/', data=dict(
+    id='testcluster2_detector2',
+    name='Detector 2',
+    cluster='testcluster2',
+    service='detector'
+  ))
+
+  assert response.status_code == 200
+  response = client.post('/xhr/components/', data=dict(
+    name='Detector',
+    cluster='testcluster2',
+    service='detector'
+  ))
+  assert response.status_code == 200
+
+@pytest.mark.dependency(depends=['more_components_created'])
+def test_delete_component(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+
+  response = client.delete('/xhr/components/testcluster2_detector2')
+  assert response.status_code == 200
+
+  response = client.get('/xhr/components/')
+  assert response.status_code == 200
+  components = json.loads(response.data)
+  print(components)
+
+  assert sorted(components, key=lambda x: x['id']) == sorted([
+    {'id': 'testcluster_detector',
+     'name': 'Detector',
+     'cluster': 'testcluster',
+     'service': 'detector',
+     'lastheard': None
+    },
+    {'id': 'testcluster_scheduler',
+     'name': 'Scheduler',
+     'cluster': 'testcluster',
+     'service': 'scheduler',
+     'lastheard': None
+    },
+    {'id': 'testcluster2_detector',
+     'name': 'Detector',
+     'cluster': 'testcluster2',
+     'service': 'detector',
+     'lastheard': None
+    },
+    {'id': 'testcluster2_scheduler',
+     'name': 'Scheduler',
+     'cluster': 'testcluster2',
+     'service': 'scheduler',
+     'lastheard': None
+    }
+  ], key=lambda x: x['id'])
+
+# ---------------------------------------------------------------------------
+#                                                                API KEYS
+# ---------------------------------------------------------------------------
+
+def test_get_apikeys_but_there_arent_any(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+
+  response = client.get('/xhr/apikeys/')
+  assert response.status_code == 200
+  assert json.loads(response.data) is None
+
+@pytest.mark.dependency(name='apikeys_created')
+def test_add_apikeys(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+
+  response = client.post('/xhr/apikeys/', data=dict(
+    apikey_name='testapikey_d',
+    apikey='WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ==',
+    component='testcluster_detector'
+  ))
+  assert response.status_code == 200
+
+  response = client.post('/xhr/apikeys/', data=dict(
+    apikey_name='testapikey_s',
+    apikey='T3h5mwEk7mrVwxdon+s9blWhVh8zHDd7PVoUoWJsTf5Qd2EUie6I4pdBuyRykw==',
+    component='testcluster_scheduler'
+  ))
+  assert response.status_code == 200
+
+  response = client.post('/xhr/apikeys/', data=dict(
+    apikey_name='fakeyfakefake',
+    apikey='ZoHCik4dOZm4VvKnkQUv9lcWydR8aH4bNCW2/fwxGGOfbj5SrBAY50nD3gNCIA==',
+    component='testcluster_detector'
+  ))
+  assert response.status_code == 200
+
+  response = client.post('/xhr/apikeys/', data=dict(
+    apikey_name='testapikey2_d',
+    apikey='rammarammadingdong',
+    component='testcluster2_detector'
+  ))
+  assert response.status_code == 200
+
+  response = client.post('/xhr/apikeys/', data=dict(
+    apikey_name='testapikey2_s',
+    apikey='GEMr1Ksi7I9G9BXuAhY4IITgMcyAKmHzgjFZ2uBTUpQkT1n3xUda5v+4FQAaBA==',
+    component='testcluster2_scheduler'
+  ))
+  assert response.status_code == 200
+
+  #response = client.post('/xhr/apikeys/', data=dict(
+  #  apikey='gibberishdickensjustsuchweirdlycrap',
+  #  apikey_name='different_key',
+  #  component='testcluster_detector'
+  #))
+  #assert response.status_code == 200
+
+@pytest.mark.dependency(depends=['apikeys_created'])
+def test_get_apikeys(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+
+  response = client.get('/xhr/apikeys/')
+  assert response.status_code == 200
+  apikeys = json.loads(response.data)
+  assert sorted(apikeys, key=lambda x: x['access']) == sorted([
+    {'access': 'fakeyfakefake',
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey_d',
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey2_d',
+     'component': 'Detector',
+     'cluster': 'Test Cluster 2'
+    },
+    {'access': 'testapikey2_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster 2'
+    }
+  ], key=lambda x: x['access'])
+
+@pytest.mark.dependency(depends=['apikeys_created'])
+def test_delete_apikey_xhr(client):
+
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+
+  response = client.delete('/xhr/apikeys/fakeyfakefake')
+  assert response.status_code == 200
+
+  response = client.get('/xhr/apikeys/')
+  assert response.status_code == 200
+  apikeys = json.loads(response.data)
+  print(apikeys)
+  assert sorted(apikeys, key=lambda x: x['access']) == sorted([
+    #{'access': 'different_key',
+    # 'component': 'Detector',
+    # 'cluster': 'Test Cluster'
+    #},
+    {'access': 'testapikey_d',
+     'component': 'Detector',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster'
+    },
+    {'access': 'testapikey2_d',
+     'component': 'Detector',
+     'cluster': 'Test Cluster 2'
+    },
+    {'access': 'testapikey2_s',
+     'component': 'Scheduler',
+     'cluster': 'Test Cluster 2'
+    }
+  ], key=lambda x: x['access'])
 
 # ---------------------------------------------------------------------------
 #                                                           TEMPLATES TESTS
