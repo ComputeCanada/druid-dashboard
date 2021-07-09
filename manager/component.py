@@ -54,17 +54,16 @@ def get_components(get_last_heard=False):
   res = db.execute(SQL_GET_ALL).fetchall()
   if not res:
     return None
-  components = []
-  for row in res:
-    components.append(Component(
+  return [
+    Component(
       id=row['id'],
       name=row['name'],
       cluster=row['cluster'],
       service=row['service'],
       factory_load=True,
-      get_last_heard=get_last_heard
-    ))
-  return components
+      get_last_heard=get_last_heard)
+    for row in res
+  ]
 
 
 def add_component(id, name, cluster, service):
@@ -73,7 +72,9 @@ def add_component(id, name, cluster, service):
 
 def delete_component(id):
   db = get_db()
-  db.execute(SQL_DELETE, (id,))
+  res = db.execute(SQL_DELETE, (id,))
+  if res.rowcount != 1:
+    raise DatabaseException("No such component exists")
   db.commit()
 
 
