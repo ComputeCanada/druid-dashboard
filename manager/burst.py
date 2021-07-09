@@ -100,7 +100,7 @@ SQL_GET_BURSTERS = '''
   USING     (id)
   WHERE     R.cluster = ?
     AND     B.state = 'a'
-    AND     epoch = (
+    AND     R.epoch = (
               SELECT MAX(epoch)
                 FROM reportables
                 WHERE cluster = ?
