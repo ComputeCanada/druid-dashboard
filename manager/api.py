@@ -14,6 +14,7 @@ from manager.component import Component
 from manager.event import report, ReportReceived
 from manager.exceptions import InvalidApiCall
 from manager.reporter import registry
+from manager.reportable import Reportable
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -146,12 +147,14 @@ def api_key_required(view):
 #                                                                 BURST API
 # ---------------------------------------------------------------------------
 
-@bp.route('/bursts/<int:id>', methods=['GET'])
+# TODO: evaluate necessity hereof
+@bp.route('/cases/<int:id>', methods=['GET'])
 @api_key_required
-def api_get_burst(id):
+def api_get_case(id):
 
-  get_log().debug("In api.get_burst(%d)", id)
-  return jsonify(Burst(id=id))
+  get_log().debug("In api.get_case(%d)", id)
+  case = Reportable.get(id)
+  return jsonify(case)
 
 @bp.route('/bursts', methods=['GET'])
 @api_key_required
@@ -227,6 +230,10 @@ def api_post_bursts():
     get_log().error(errmsg)
     abort(400, errmsg)
 
+  # default status is 200 in case there isn't anything actually
+  # created/updated
+  status = 200
+
   # run through reports.  For each, invoke appropriate class
   # TODO: two ways to make this easier to read:
   # 1. Just delete 'version' from data.  Possibly not as efficient as next,
@@ -240,8 +247,6 @@ def api_post_bursts():
   #    for (n, s) in not_three(d): etc.
   for (report_name, report_data) in { x: data[x] for x in data.keys() if x != 'version' }.items():
 
-    # TODO: subclasses of Reporter should register their report names, so we
-    #       can just loop through the registry here.
     try:
       reporter = registry.reporters[report_name]
     except KeyError as e:
@@ -259,4 +264,6 @@ def api_post_bursts():
     # report that, um, report was received
     report(ReportReceived("{} on {}: {}".format(report_name, cluster, summary)))
 
-  return jsonify({'status': 'OK'}), 201
+    status = 201
+
+  return jsonify({'status': status}), status
