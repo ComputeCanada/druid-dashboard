@@ -35,13 +35,21 @@ class ReporterRegistry:
   _instance = None
 
   def __new__(cls):
-    if cls._instance:
-      # TODO: better exception
-      raise Exception("You can't create multiples of these!")
+    get_log().debug("in ReporterRegistry::__new__")
+    if cls._instance is not None:
+      raise BaseException("You can't create two of me.  Use get_registry()")
+    get_log().debug("New registry")
     cls._instance = super(ReporterRegistry, cls).__new__(cls)
     return cls._instance
 
+  @classmethod
+  def get_registry(cls):
+    if cls._instance is None:
+      cls._instance = cls()
+    return cls._instance
+
   def __init__(self):
+    get_log().debug("Initializing reporters...")
     self._reporters = {}
 
   def register(self, name, reporter):
