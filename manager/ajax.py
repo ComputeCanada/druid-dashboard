@@ -13,11 +13,12 @@ from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.cluster import Cluster, get_clusters
 from manager.component import get_components, add_component, delete_component
-from manager.burst import update_bursts, set_ticket, Burst
+from manager.burst import set_ticket, Burst
 from manager.template import Template
 from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, DatabaseException
 from manager.event import get_burst_events
 from manager.reporter import registry
+from manager.reportable import Reportable
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
@@ -81,6 +82,7 @@ def _reports_by_cluster(cluster):
   }
 
   # add reports
+  get_log().debug("Starting to look through reports for cluster %s", cluster)
   for name, reporter in registry.reporters.items():
     get_log().debug("Getting view from %s reporter", name)
     report = reporter.view({'cluster':cluster})
@@ -360,32 +362,42 @@ def xhr_delete_component(id):
   return xhr_success(200)
 
 # ---------------------------------------------------------------------------
-#                                                           ROUTES - bursts
+#                                                           ROUTES - cases
 # ---------------------------------------------------------------------------
 
-@bp.route('/reports/', methods=['GET'])
+@bp.route('/cases/', methods=['GET'])
 @login_required
-def xhr_get_bursts():
+def xhr_get_cases():
+  print("In xhr_get_cases()")
+  get_log().debug("Retrieving cases")
   if 'cluster' not in request.args:
-    get_log().error("No cluster specified when requesting reporsts")
-    return jsonify({'error': 'error'}), 400
+    return xhr_error(400, "No cluster specified when requesting reports")
+
   # get cluster information
   cluster = request.args['cluster']
   return jsonify(_reports_by_cluster(cluster))
 
-@bp.route('/bursts/', methods=['PATCH'])
+@bp.route('/cases/<int:id>', methods=['PATCH'])
 @login_required
-def xhr_update_bursts():
+def xhr_update_case(id):
+
+  get_log().debug("In xhr_update_case(%d)", id)
 
   # parse request
   try:
     data = request.get_json()
   except BadRequest as e:
-    get_log().error("Could not parse request data: %s", e)
-    return jsonify({'error': str(e)}), 400
+    return xhr_error(400, "Could not parse request data: %s", e)
 
-  # sanitize any strings
+  # verify/validate/sanitize individual updates
   for item in data:
+
+    # check for required fields
+    missing = _must_have(item, ['datum', 'value'])
+    if missing:
+      return xhr_error(400, "Update requests require fields: %s", missing)
+
+    # sanitize any strings
     for (key, val) in item.items():
       if isinstance(val, str):
         sanitized = html.escape(val)
@@ -395,31 +407,30 @@ def xhr_update_bursts():
             key, sanitized)
 
   try:
-    update_bursts(data, user=g.user['cci'])
+    case = Reportable.get(id)
+    get_log().debug("Found case of type %s for ID %d", case.__class__.__name__, id)
+    for item in data:
+      case.update(item, g.user['cci'])
   except BadCall as e:
-    get_log().info("Client error: %s", e)
-    return jsonify({'error': str(e)}), 400
+    return xhr_error(400, "Client error: %s", e)
   except AppException as e:
-    get_log().error(e)
-    return jsonify({'error': str(e)}), 500
+    return xhr_error(500, "Application error: %s", e)
   except Exception as e:
-    get_log().error(e)
-    return jsonify({'error': str(e)}), 500
+    return xhr_error(500, "Unexpected exception: %s", e)
 
   try:
-    # TODO: Require cluster name in update, or needs to return just the
-    # updated reportable
-    return jsonify(_reports_by_cluster('TODO: I have no cluster name'))
+    # TODO: Require cluster name in update, get from reportable, or return
+    # just the updated reportable
+    return xhr_success(200)
   except Exception as e:
-    get_log().error(e)
-    return jsonify({'error': str(e)}), 500
+    return xhr_error(500, "Could not get update information: %s", str(e))
 
-@bp.route('/bursts/<int:id>/events/', methods=['GET'])
+@bp.route('/cases/<int:id>/events/', methods=['GET'])
 @login_required
-def xhr_get_burst_events(id):
+def xhr_get_case_events(id):
 
-  get_log().debug("Retrieving events for burst %d", id)
-  events = get_burst_events(id)
+  get_log().debug("Retrieving events for case %d", id)
+  events = get_case_events(id)
   return jsonify(events), 200
 
 @bp.route('/bursts/<int:id>/people/', methods=['GET'])
