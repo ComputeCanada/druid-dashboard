@@ -5,9 +5,13 @@ import os
 import re
 import pytest
 from manager.notifier import Notifier, register_notifier, get_notifiers
+from manager.burst import Burst
+from manager.jobage import JobAge
+from manager.reporter import registry
 
 @pytest.fixture(scope='class')
 def client(seeded_app):
+  print("Registry (%s) has %d registered reporters" % (registry, len(registry.reporters)))
   return seeded_app.test_client()
 
 
