@@ -52,33 +52,6 @@ CREATE TABLE notifications (
   message TEXT NOT NULL
 );
 
-/*
- * state: 'p' = pending/unactioned, 'a' = accepted, 'r' = rejected
- * resource: 'c' = CPU, 'g' = GPU
- * see burst.py::State, burst.py::Resource
- * submitters is an space-separated list of user IDs
- */
-CREATE TABLE bursts (
-  id INTEGER PRIMARY KEY,
-  state CHAR(1) NOT NULL DEFAULT 'p',
-  account VARCHAR(32) NOT NULL,
-  resource CHAR(1) NOT NULL DEFAULT 'c',
-  cluster VARCHAR(16) NOT NULL,
-  pain REAL NOT NULL,
-  firstjob INTEGER NOT NULL,
-  lastjob INTEGER NOT NULL,
-  submitters TEXT NOT NULL,
-  summary TEXT,
-  epoch INTEGER NOT NULL,
-  ticks INTEGER NOT NULL DEFAULT 0,
-  claimant CHAR(7),
-  ticket_id INTEGER,
-  ticket_no VARCHAR(9),
-  CHECK (state in ('p', 'a', 'r')),
-  CHECK (resource in ('c', 'g')),
-  FOREIGN KEY (cluster) REFERENCES clusters(id)
-);
-
 CREATE TABLE notifiers (
   name VARCHAR(32) PRIMARY KEY,
   type VARCHAR(16) NOT NULL,
@@ -148,6 +121,28 @@ CREATE TABLE reportables (
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
 
+/*
+ * state: 'p' = pending/unactioned, 'a' = accepted, 'r' = rejected
+ * resource: 'c' = CPU, 'g' = GPU
+ * see burst.py::State, burst.py::Resource
+ * submitters is an space-separated list of user IDs
+ */
+CREATE TABLE bursts (
+  id INTEGER PRIMARY KEY,
+  state CHAR(1) NOT NULL DEFAULT 'p',
+  account VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  pain REAL NOT NULL,
+  firstjob INTEGER NOT NULL,
+  lastjob INTEGER NOT NULL,
+  submitters TEXT NOT NULL,
+  CHECK (state in ('p', 'a', 'r')),
+  CHECK (resource in ('c', 'g')),
+  FOREIGN KEY (id) REFERENCES reportables(id)
+) WITHOUT ROWID;
+
+-- tables keying to reportables must be declared as WITHOUT ROWID
+-- so that the primary key is not tied to the row ID
 CREATE TABLE job_ages (
   id INTEGER PRIMARY KEY,
   account VARCHAR(32) NOT NULL,
@@ -155,4 +150,16 @@ CREATE TABLE job_ages (
   resource CHAR(1) NOT NULL DEFAULT 'c',
   age INTEGER NOT NULL,
   FOREIGN KEY (id) REFERENCES reportables(id)
-) NOROWID;
+) WITHOUT ROWID;
+
+CREATE TABLE history (
+  id INTEGER PRIMARY KEY,
+  case_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  datum TEXT,
+  note TEXT,
+  was TEXT,
+  now TEXT,
+  FOREIGN KEY (case_id) REFERENCES reportables(id)
+);
