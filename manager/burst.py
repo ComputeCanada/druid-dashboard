@@ -5,7 +5,7 @@ import json
 from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
-from manager.exceptions import DatabaseException, BadCall, AppException, InvalidApiCall
+from manager.exceptions import DatabaseException, InvalidApiCall
 from manager.cluster import Cluster
 from manager.reporter import Reporter, registry, just_job_id
 from manager.reportable import Reportable
@@ -43,25 +43,34 @@ SQL_INSERT_NEW = '''
   VALUES      (?, ?, ?, ?, ?, ?, ?)
 '''
 
+# TODO: generalize this into something similar
 SQL_FIND_EXISTING = '''
-  SELECT  *
-  FROM    bursts
-  WHERE   cluster = ?
-    AND   account = ?
-    AND   resource = ?
-    AND   ? <= lastjob
+  SELECT    B.id, B.submitters
+  FROM      bursts B
+  JOIN      reportables R
+  USING     (id)
+  WHERE     R.cluster = ? AND B.account = ?
+    AND     B.resource = ? AND ? <= B.lastjob
+'''
+
+SQL_UPDATE_BY_ID = '''
+  UPDATE    bursts
+  SET       pain = ?,
+            lastjob = ?,
+            submitters = ?
+  WHERE     id = ?
 '''
 
 SQL_UPDATE_EXISTING = '''
-  UPDATE  bursts
-  SET     pain = ?,
-          lastjob = ?,
-          submitters = ?
-  WHERE   cluster = ?
-    AND   account = ?
-    AND   resource = ?
-    AND   ? <= lastjob
+  UPDATE    bursts
+  SET       pain = ?,
+            lastjob = ?,
+            submitters = ?
+  FROM      reportables
+  WHERE     reportables.cluster = ? AND bursts.account = ?
+    AND     bursts.resource = ? AND ? <= bursts.lastjob
 '''
+
 
 SQL_UPDATE_STATE = '''
   UPDATE  bursts
@@ -154,7 +163,7 @@ def _summarize_burst_report(bursts):
   }
 
   for burst in bursts:
-    if burst.ticks > 0:
+    if burst.ticks > 1:
       existing += 1
     else:
       newbs += 1
@@ -163,6 +172,10 @@ def _summarize_burst_report(bursts):
       claimed += 1
 
     by_state[State(burst.state)] += 1
+    get_log().debug(
+      "With burst %d having state %s, updated state counts for burst report: %s",
+      burst.id, burst.state, by_state
+    )
 
   return "{} new record(s) and {} existing.  In total there are {} pending, " \
     "{} accepted, {} rejected.  {} have been claimed.".format(
@@ -249,88 +262,88 @@ def _summarize_burst_report(bursts):
 #     return get_cluster_bursts(cluster)
 #   return get_current_bursts()
 
-def update_bursts(updates, user):
-  """
-  Update burst information such as state or claimant.
-
-  Args:
-    updates (list of dict): list of dicts where each dict contains a burst ID
-      and a new value for state and/or claimant.
-  """
-  from manager.actions import StateUpdate, ClaimantUpdate
-  from manager.note import Note
-
-  get_log().debug("In update_bursts()")
-  if not updates:
-    get_log().error("update_bursts() called with no updates")
-    return
-
-  db = get_db()
-  for update in updates:
-
-    # get update parameters
-    try:
-      id = update['id']
-      text = update['note']
-    except KeyError as e:
-      raise BadCall("Burst update missing required field: {}".format(e))
-    timestamp = update.get('timestamp', None)
-
-    # update state if applicable
-    if state := update.get('state', None):
-
-      s = State.get(state)
-
-      # update history
-      try:
-        StateUpdate(burstID=id, analyst=user, text=text, timestamp=timestamp,
-          state=s.value)
-      except KeyError as e:
-        error = "Missing required update parameter: {}".format(e)
-        raise BadCall(error)
-      except Exception as e:
-        get_log().error("Exception in creating state update event log: %s", e)
-        raise AppException(str(e))
-
-      # update state
-      res = db.execute(SQL_UPDATE_STATE, (s.value, id))
-      if not res:
-        raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
-
-    # update claimant if applicable
-    elif 'claimant' in update:
-
-      # if claimant is empty string, use user instead
-      if update['claimant'] == '':
-        claimant = user
-      else:
-        claimant = update['claimant']
-
-      get_log().debug("Updating burst %d with claimant %s", id, claimant)
-
-      # update history
-      try:
-        ClaimantUpdate(burstID=id, analyst=user, text=text,
-          timestamp=timestamp, claimant=claimant)
-      except Exception as e:
-        get_log().error("Exception in creating claimant update event log: %s", e)
-        raise AppException(str(e))
-
-      # update claimant
-      res = db.execute(SQL_UPDATE_CLAIMANT, (claimant, id))
-      if not res:
-        raise DatabaseException("Could not update claimant for Burst ID {} to {}".format(id, claimant))
-
-    # otherwise, since we already have the text, this must be just a note
-    else:
-
-      try:
-        Note(burstID=id, analyst=user, text=text, timestamp=timestamp)
-      except Exception as e:
-        get_log().error("Exception in creating note: %s", e)
-        raise AppException(str(e))
-
-  db.commit()
+#def update_bursts(updates, user):
+#  """
+#  Update burst information such as state or claimant.
+#
+#  Args:
+#    updates (list of dict): list of dicts where each dict contains a burst ID
+#      and a new value for state and/or claimant.
+#  """
+#  from manager.actions import StateUpdate, ClaimantUpdate
+#  from manager.note import Note
+#
+#  get_log().debug("In update_bursts()")
+#  if not updates:
+#    get_log().error("update_bursts() called with no updates")
+#    return
+#
+#  db = get_db()
+#  for update in updates:
+#
+#    # get update parameters
+#    try:
+#      id = update['id']
+#      text = update['note']
+#    except KeyError as e:
+#      raise BadCall("Burst update missing required field: {}".format(e))
+#    timestamp = update.get('timestamp', None)
+#
+#    # update state if applicable
+#    if state := update.get('state', None):
+#
+#      s = State.get(state)
+#
+#      # update history
+#      try:
+#        StateUpdate(burstID=id, analyst=user, text=text, timestamp=timestamp,
+#          state=s.value)
+#      except KeyError as e:
+#        error = "Missing required update parameter: {}".format(e)
+#        raise BadCall(error)
+#      except Exception as e:
+#        get_log().error("Exception in creating state update event log: %s", e)
+#        raise AppException(str(e))
+#
+#      # update state
+#      res = db.execute(SQL_UPDATE_STATE, (s.value, id))
+#      if not res:
+#        raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
+#
+#    # update claimant if applicable
+#    elif 'claimant' in update:
+#
+#      # if claimant is empty string, use user instead
+#      if update['claimant'] == '':
+#        claimant = user
+#      else:
+#        claimant = update['claimant']
+#
+#      get_log().debug("Updating burst %d with claimant %s", id, claimant)
+#
+#      # update history
+#      try:
+#        ClaimantUpdate(burstID=id, analyst=user, text=text,
+#          timestamp=timestamp, claimant=claimant)
+#      except Exception as e:
+#        get_log().error("Exception in creating claimant update event log: %s", e)
+#        raise AppException(str(e))
+#
+#      # update claimant
+#      res = db.execute(SQL_UPDATE_CLAIMANT, (claimant, id))
+#      if not res:
+#        raise DatabaseException("Could not update claimant for Burst ID {} to {}".format(id, claimant))
+#
+#    # otherwise, since we already have the text, this must be just a note
+#    else:
+#
+#      try:
+#        Note(burstID=id, analyst=user, text=text, timestamp=timestamp)
+#      except Exception as e:
+#        get_log().error("Exception in creating note: %s", e)
+#        raise AppException(str(e))
+#
+#  db.commit()
 
 def set_ticket(id, ticket_id, ticket_no):
   db = get_db()
@@ -453,7 +466,7 @@ class Burst(Reporter, Reportable):
         resource=resource,
         pain=pain,
         submitters=submitters,
-        jobrange=(firstjob, lastjob),
+        jobrange=[firstjob, lastjob],
         summary=summary,
         epoch=epoch
       ))
@@ -490,7 +503,7 @@ class Burst(Reporter, Reportable):
 
     # superclass can handle base case (give me info about the cluster)
     if list(criteria.keys()) == ['cluster']:
-      return super().__class__.view(criteria)
+      return super(Burst, cls).view(criteria)
 
     # check that criteria make sense
     try:
@@ -519,16 +532,19 @@ class Burst(Reporter, Reportable):
       state=State.PENDING, summary=None, other=None):
 
     if id or record:
+      rec = None
       if record:
         # TODO: This is some jankety crap right here
-        record['jobrange'] = (record['firstjob'], record['lastjob'])
-        del record['firstjob']
-        del record['lastjob']
-      super().__init__(id=id, record=record)
+        rec = dict(record)
+        rec['jobrange'] = [record['firstjob'], record['lastjob']]
+        del rec['firstjob']
+        del rec['lastjob']
+      super().__init__(id=id, record=rec)
       self._resource = Resource(self._resource)
       self._state = State(self._state)
       self._summary = json.loads(self._summary) if self._summary else None
     else:
+      get_log().debug("Creating new burst object")
       self._account = account
       self._resource = resource
       self._pain = pain
@@ -538,15 +554,43 @@ class Burst(Reporter, Reportable):
       self._other = other
       super().__init__(cluster=cluster, epoch=epoch, summary=summary)
 
-  def update_existing(self):
-    affected = get_db().execute(
-      SQL_UPDATE_EXISTING, (
-        self._pain, self._jobrange[1], self._submitters, self._cluster,
-        self._account, self._resource, self._jobrange[0]
-      )).rowcount
-    if affected > 1:
-      # TODO: better exception
-      raise BaseException("Wait, what")
+  def find_existing_query(self):
+    return (
+      "account = ?  AND resource = ? AND ? <= lastjob",
+      (self._account, self._resource, self._jobrange[0]),
+      ['account', 'resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
+    )
+
+#  def update_existing(self):
+#    db = get_db()
+#
+#    # find existing record
+#    res = db.execute(SQL_FIND_EXISTING, (
+#      self._cluster, self._account, self._resource, self._jobrange[0]
+#    )).fetchone()
+#    if not res:
+#      return False
+#
+#    # now we have the ID, we can update the parent as well
+#    self._id = res['id']
+#    self._submitters = set(res['submitters'].split()) | set(self._submitters)
+#    affected = db.execute(SQL_UPDATE_BY_ID, (
+#      self._pain, self._jobrange[1], ' '.join(self._submitters), self._id
+#    )).rowcount
+#
+#    if affected != 1:
+#      raise DatabaseError("Expected to update object but couldn't")
+#
+#    return super().update_existing()
+
+  def _update_existing_sub(self, rec):
+    self._state = rec['state']
+    self._jobrange[0] = rec['firstjob']
+    self._submitters = set(rec['submitters'].split()) | set(self._submitters)
+    affected = get_db().execute(SQL_UPDATE_BY_ID, (
+      self._pain, self._jobrange[1], ' '.join(self._submitters), self._id
+    )).rowcount
+
     return affected == 1
 
   def insert_new(self):
@@ -555,6 +599,7 @@ class Burst(Reporter, Reportable):
       self._jobrange[1], self._submitters
     ))
     if not res:
+      get_log.error("Unable to create new Burst record")
       raise BaseException("TODO: Unable to create new Burst record")
 
 ##  else:
@@ -618,6 +663,11 @@ class Burst(Reporter, Reportable):
 ##    except Exception as e:
 ##      raise DatabaseException("Could not {}".format(trying_to)) from e
 
+  def update(self, update, who):
+    if update['datum'] == 'state':
+      update['value'] = State.get(update['value'])
+    super().update(update, who)
+
   @property
   def contact(self):
     """
@@ -635,10 +685,6 @@ class Burst(Reporter, Reportable):
     return self._account
 
   @property
-  def ticks(self):
-    return self._ticks
-
-  @property
   def state(self):
     return self._state
 
@@ -647,26 +693,8 @@ class Burst(Reporter, Reportable):
     return self._resource
 
   @property
-  def ticket_id(self):
-    return self._ticket_id
-
-  @property
-  def ticket_no(self):
-    return self._ticket_no
-
-  @property
-  def claimant(self):
-    return self._claimant
-
-  @property
   def submitters(self):
     return self._submitters
-
-  @property
-  def notes(self):
-    if self._other and 'notes' in self._other:
-      return self._other['notes']
-    return None
 
   @property
   def info(self):
@@ -749,6 +777,5 @@ class Burst(Reporter, Reportable):
 #   range, then the burst must be complete.  The Scheduler must then report the
 #   burst as such to the Manager.
 #   """
-
 
 registry.register('bursts', Burst)
