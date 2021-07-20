@@ -72,12 +72,12 @@ def api_post(client, resource, data):
 
 def test_api_unsigned(client):
 
-  response = client.get('/api/bursts')
+  response = client.get('/api/cases/')
   assert response.status_code == 401
 
 def test_get_bursts_but_there_are_none(client):
 
-  response = api_get(client, '/api/bursts')
+  response = api_get(client, '/api/cases/?report=bursts')
   assert response.status_code == 200
   x = json.loads(response.data)
   assert x is None
@@ -85,7 +85,7 @@ def test_get_bursts_but_there_are_none(client):
 @pytest.mark.dependency(depends=['bursts_created'])
 def test_get_bursts(client):
 
-  response = api_get(client, '/api/bursts')
+  response = api_get(client, '/api/cases')
   assert response.status_code == 200
   x = json.loads(response.data)
   assert x is not None
@@ -93,7 +93,7 @@ def test_get_bursts(client):
 @pytest.mark.dependency(depends=['bursts_created'])
 def test_get_burst(client):
 
-  response = api_get(client, '/api/bursts/11')
+  response = api_get(client, '/api/cases/11')
   assert response.status_code == 200
   x = json.loads(response.data)
   print(x)
@@ -117,21 +117,21 @@ def test_get_burst(client):
 
 def test_post_nothing(client):
 
-  response = api_post(client, '/api/bursts', {})
+  response = api_post(client, '/api/cases/', {})
   assert response.status_code == 400
   assert response.data == b'{"error":"400 Bad Request: API violation: must define \'version\'"}\n'
 
 def test_post_report_without_report(client):
   # In v2 of the API, this is valid
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2
     })
   assert response.status_code == 200
 
 def test_post_report_no_version(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'bursts': [
       {
         'account': 'def-dleske',
@@ -148,7 +148,7 @@ def test_post_report_old_version(client):
   # Note: version 0 of the API used "report" instead of "bursts", so using a
   # correct version 0 API call will trigger the wrong error response (in that
   # it's not the test response we want to test).
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 1,
     'bursts': [
       {
@@ -167,7 +167,7 @@ def test_post_report_old_version(client):
 
 def test_post_incomplete_burst_no_account(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -185,7 +185,7 @@ def test_post_incomplete_burst_no_account(client):
 
 def test_post_incomplete_burst_no_firstjob(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -202,7 +202,7 @@ def test_post_incomplete_burst_no_firstjob(client):
 
 def test_post_incomplete_burst_no_lastjob(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -219,7 +219,7 @@ def test_post_incomplete_burst_no_lastjob(client):
 
 def test_post_incomplete_burst_no_pain(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -236,7 +236,7 @@ def test_post_incomplete_burst_no_pain(client):
 
 def test_post_incomplete_burst_no_resource(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -253,7 +253,7 @@ def test_post_incomplete_burst_no_resource(client):
 
 def test_post_incomplete_burst_no_summary(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -270,7 +270,7 @@ def test_post_incomplete_burst_no_summary(client):
 
 def test_post_incomplete_burst_no_submitters(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -287,7 +287,7 @@ def test_post_incomplete_burst_no_submitters(client):
 
 def test_post_bad_burst_bad_resource(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -308,7 +308,7 @@ def test_post_empty_burst_report(client):
   Tests that a report with no bursts is accepted as valid.
   """
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': []
   })
@@ -316,7 +316,7 @@ def test_post_empty_burst_report(client):
 
 def test_post_burst(client):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -333,7 +333,7 @@ def test_post_burst(client):
 
   # this will actually be blank because this view only returns "ACCEPTED"
   # bursts
-  response = api_get(client, '/api/bursts')
+  response = api_get(client, '/api/cases/?report=bursts&view=adjustor')
   assert response.status_code == 200
   parsed = json.loads(response.data)
   assert parsed is None
@@ -369,7 +369,7 @@ def test_post_burst(client):
           'resource_pretty': 'CPU',
           'state': 'pending',
           'state_pretty': 'Pending',
-          'submitters': 'userQ',
+          'submitters': ['userQ'],
           'summary': {},
           'ticket': None,
           'ticket_id': None,
@@ -383,7 +383,7 @@ def test_post_burst(client):
 @pytest.mark.dependency(name='bursts_posted')
 def test_post_bursts(client, notifier):
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -421,7 +421,7 @@ def test_post_bursts_updated(client, notifier):
   # following update to be of a different epoch than what we did above.
   time.sleep(1)
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -469,7 +469,7 @@ def test_post_bursts_with_updated_submitters(client, notifier):
   Tests that submitters are updated correctly.
   """
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
@@ -500,36 +500,12 @@ def test_post_bursts_with_updated_submitters(client, notifier):
     'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
     'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.']
 
-def test_post_bursts_with_other_updates_old_format(client, notifier):
-  """
-  Tests that state and claimant information in notification is correct.
-  """
-
-  id = 3
-  data = [
-    {
-      'note': 'Hey how are ya',
-      'state': 'rejected',
-      'timestamp':'2019-03-31 10:31 AM'
-    },
-    {
-      'note': 'This is not the way',
-      'claimant': 'tst-003',
-      'timestamp':'2019-03-31 10:35 AM'
-    }
-  ]
-
-  response = client.patch('/xhr/cases/{}'.format(id), json=data, environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
-  print(response.data)
-  assert response.status_code == 400
-  assert json.loads(response.data)['detail'] == "Update requests require fields: ['datum', 'value']"
-
 def test_post_bursts_with_other_updates(client, notifier):
   """
   Tests that state and claimant information in notification is correct.
   """
 
-  id = 3
+  id = 2
   data = [
     {
       'note': 'Hey how are ya',
@@ -549,7 +525,7 @@ def test_post_bursts_with_other_updates(client, notifier):
   print(json.loads(response.data))
   assert response.status_code == 200
 
-  response = api_post(client, '/api/bursts', {
+  response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
       {
