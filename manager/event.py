@@ -1,5 +1,5 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint: disable=wrong-import-position,import-outside-toplevel
+# pylint:
 #
 from flask import current_app
 from .notifier import get_notifiers
@@ -57,33 +57,29 @@ class ReportReceived(Event):
     return True
 
 
-class BurstEvent(Event):
+class CaseEvent(Event):
 
-  def __init__(self, id=None, burstID=None, analyst=None, timestamp=None):
-    self._burstID = burstID
+  def __init__(self, id=None, caseID=None, analyst=None, timestamp=None):
+    self._caseID = caseID
     self._analyst = analyst
     if analyst:
       self._analyst_pretty = get_ldap().get_person_by_cci(analyst)['givenName']
     super().__init__(id, timestamp)
 
 
-class BurstUpdate(BurstEvent):
+class CaseUpdate(CaseEvent):
 
-  def __init__(self, id=None, burstID=None, timestamp=None, burstReportID=None, jobRange=None,
+  def __init__(self, id=None, caseID=None, timestamp=None, caseReportID=None, jobRange=None,
       summary=None):
-    self._burstReportID = burstReportID
+    self._caseReportID = caseReportID
     self._jobRange = jobRange
     self._summary = summary
-    super().__init__(id, burstID, None, timestamp)
+    super().__init__(id, caseID, None, timestamp)
     raise "Not ready to use this yet"
 
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
-
-# import subclasses
-from . import note
-from . import actions
 
 # this is where events are stored
 events = {}
@@ -102,16 +98,3 @@ def report(event):
   if notifiers:
     for notifier in notifiers:
       notifier.notify("{}: {}".format(current_app.config['APPLICATION_TAG'], event))
-
-def get_burst_events(burstID):
-
-  # get all notes with burst_id == burstID
-  notes = note.get_by_burst(burstID) or []
-
-  # get all actions with burst_id == burstID
-  updates = actions.get_by_burst(burstID) or []
-
-  # sort combined events by timestamp
-  events = sorted(notes + updates, key=lambda x : x.timestamp)
-
-  return events
