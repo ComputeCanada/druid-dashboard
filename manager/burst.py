@@ -543,6 +543,7 @@ class Burst(Reporter, Reportable):
       self._resource = Resource(self._resource)
       self._state = State(self._state)
       self._summary = json.loads(self._summary) if self._summary else None
+      self._submitters = self._submitters.split()
     else:
       get_log().debug("Creating new burst object")
       self._account = account
@@ -664,7 +665,7 @@ class Burst(Reporter, Reportable):
 ##      raise DatabaseException("Could not {}".format(trying_to)) from e
 
   def update(self, update, who):
-    if update['datum'] == 'state':
+    if update.get('datum', None) == 'state':
       update['value'] = State.get(update['value'])
     super().update(update, who)
 
