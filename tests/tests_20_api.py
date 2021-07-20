@@ -82,39 +82,6 @@ def test_get_bursts_but_there_are_none(client):
   x = json.loads(response.data)
   assert x is None
 
-@pytest.mark.dependency(depends=['bursts_created'])
-def test_get_bursts(client):
-
-  response = api_get(client, '/api/cases')
-  assert response.status_code == 200
-  x = json.loads(response.data)
-  assert x is not None
-
-@pytest.mark.dependency(depends=['bursts_created'])
-def test_get_burst(client):
-
-  response = api_get(client, '/api/cases/11')
-  assert response.status_code == 200
-  x = json.loads(response.data)
-  print(x)
-  assert x == {
-    'account': 'def-ccc-aa',
-    'resource': 'cpu',
-    'claimant': None,
-    'cluster': 'testcluster2',
-    'epoch': 25,
-    'id': 11,
-    'jobrange': [17, 27],
-    'pain': 2.5,
-    'state': 'pending',
-    'summary': None,
-    'ticket_id': None,
-    'ticket_no': None,
-    'ticks': 0,
-    'submitters': ['userQ'],
-    'other': None
-  }
-
 def test_post_nothing(client):
 
   response = api_post(client, '/api/cases/', {})
@@ -412,6 +379,44 @@ def test_post_bursts(client, notifier):
     'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
     'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
     "beam-dev: ReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
+
+@pytest.mark.dependency(depends=['bursts_posted'])
+def test_get_bursts(client):
+
+  response = api_get(client, '/api/cases/?report=bursts')
+  assert response.status_code == 200
+  x = json.loads(response.data)
+  assert x is not None
+
+def test_get_non_existent_burst(client):
+
+  response = api_get(client, '/api/cases/11')
+  assert response.status_code == 404
+
+@pytest.mark.dependency(depends=['bursts_posted'])
+def test_get_burst(client):
+
+  response = api_get(client, '/api/cases/2')
+  assert response.status_code == 200
+  x = json.loads(response.data)
+  del x['epoch']
+  print(x)
+  assert x == {
+    'account': 'def-dleske-aa',
+    'resource': 'cpu',
+    'claimant': None,
+    'cluster': 'testcluster',
+    'id': 2,
+    'jobrange': [1005, 2005],
+    'pain': 1.0,
+    'state': 'pending',
+    'summary': {},
+    'ticket_id': None,
+    'ticket_no': None,
+    'ticks': 1,
+    'submitters': ['userQ'],
+    'other': {'notes': 0}
+  }
 
 @pytest.mark.dependency(depends=['bursts_posted'])
 def test_post_bursts_updated(client, notifier):
