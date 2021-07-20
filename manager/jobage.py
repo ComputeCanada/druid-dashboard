@@ -191,6 +191,13 @@ class JobAge(Reporter, Reportable):
       raise BaseException("Wait, what")
     return affected == 1
 
+  def _update_existing_sub(self, rec):
+    raise NotImplementedError
+
+  @classmethod
+  def find_existing_query(cls):
+    raise NotImplementedError
+
   def insert_new(self):
     res = get_db().execute(SQL_INSERT_NEW, (
       self._id, self._account, self._submitter, self._resource, self._age
@@ -244,6 +251,5 @@ class JobAge(Reporter, Reportable):
 #    ]
 #    ```
 #  """
-
 
 registry.register('job_age', JobAge)
