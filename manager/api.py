@@ -153,6 +153,9 @@ def api_get_case(id):
 
   get_log().debug("In api.get_case(%d)", id)
   case = Reportable.get(id)
+  if not case:
+    # TODO: fix this; use AJAX error routines
+    return jsonify({"status": "No got one"}), 404
   return jsonify(case)
 
 @bp.route('/cases/', methods=['GET'])
