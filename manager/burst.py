@@ -534,16 +534,17 @@ class Burst(Reporter, Reportable):
     if id or record:
       rec = None
       if record:
-        # TODO: This is some jankety crap right here
         rec = dict(record)
-        rec['jobrange'] = [record['firstjob'], record['lastjob']]
-        del rec['firstjob']
-        del rec['lastjob']
       super().__init__(id=id, record=rec)
       self._resource = Resource(self._resource)
       self._state = State(self._state)
       self._summary = json.loads(self._summary) if self._summary else None
       self._submitters = self._submitters.split()
+
+      # TODO: This is some jankety crap right here
+      self._jobrange = [self._firstjob, self._lastjob]
+      del self.__dict__['_firstjob']
+      del self.__dict__['_lastjob']
     else:
       get_log().debug("Creating new burst object")
       self._account = account
