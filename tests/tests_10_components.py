@@ -3,7 +3,6 @@
 #
 import json
 import pytest
-from tests.tests_20_api import api_get
 
 # ---------------------------------------------------------------------------
 #                                                COMPONENT MANAGEMENT TESTS
@@ -144,42 +143,3 @@ def test_delete_component(client):
      'lastheard': None
     }
   ], key=lambda x: x['id'])
-
-@pytest.mark.dependency(depends=['apikeys_created'])
-def test_get_components_lastheard(client):
-
-  def sort(m):
-    return sorted(m, key=lambda x: x['id'])
-
-  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
-  assert response.status_code == 302
-
-  response = client.get('/xhr/components/')
-  assert response.status_code == 200
-  components = sort(json.loads(response.data))
-
-  # for this test remember the lastheard value
-  previous = components[1]['lastheard']
-
-  # use API key to query API
-  response = api_get(client, '/api/bursts', access='testapikey2_s',
-    secret='GEMr1Ksi7I9G9BXuAhY4IITgMcyAKmHzgjFZ2uBTUpQkT1n3xUda5v+4FQAaBA==')
-  assert response.status_code == 200
-
-  # get components again
-  response = client.get('/xhr/components/')
-  assert response.status_code == 200
-  components = sort(json.loads(response.data))
-
-  # ensure lastheard was updated
-  current = components[1]['lastheard']
-  assert current != previous
-
-  # just in case I guess
-  del components[1]['lastheard']
-  assert components[1] == {
-    'id': 'testcluster2_scheduler',
-    'name': 'Scheduler',
-    'cluster': 'testcluster2',
-    'service': 'scheduler'
-    }
