@@ -17,9 +17,9 @@ from manager.history import History
 
 ## use with `.format(tablename)`
 SQL_LOOKUP = '''
-  SELECT    *, COUNT(N.id) AS notes
+  SELECT    B.*, R.*, COUNT(N.id) AS notes
   FROM      reportables R
-  JOIN      {}
+  JOIN      {} B
   USING     (id)
   LEFT JOIN history N
   ON        (R.id = N.case_id)
@@ -90,7 +90,7 @@ class Reportable:
         return reportercls(id=id)
       except DatabaseException:
         pass
-    raise DatabaseException("Could not find appropriate case with ID {}".format(id))
+    return None
 
   @classmethod
   def get_current(cls, cluster):
@@ -109,10 +109,13 @@ class Reportable:
       rec = get_db().execute(
         SQL_LOOKUP.format(self.__class__._table), (id,)
       ).fetchone()
-      if not rec:
+
+      # TODO: this does not work.  The above returns a row with all Nones and one 0 for the notes count.
+      #if not rec:
+      if not rec['id']:
         # TODO: evaluate if this type of exception should be used here
         raise DatabaseException("Could not find {} record with id {}".format(self.__class__.__name__, id))
-      get_log().debug("In Reportable::__init__(id): notes = %d", rec['notes'])
+      get_log().debug("In Reportable::__init__(%d): notes = %d, epoch = %d ", id, rec['notes'], rec['epoch'])
       self._load_from_rec(dict(rec))
     elif record and not id:
       # factory load
