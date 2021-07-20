@@ -1,5 +1,5 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=raise-missing-from
 #
 import json
 from manager.db import get_db
@@ -9,19 +9,21 @@ from manager.cluster import Cluster
 from manager.otrs import ticket_url
 from manager.reporter import ReporterRegistry
 from manager.exceptions import DatabaseException, BadCall
-from manager.actions import Update
+from manager.history import History
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
 # ---------------------------------------------------------------------------
 
-# use with `.format(tablename)`
+## use with `.format(tablename)`
 SQL_LOOKUP = '''
-  SELECT  *
-  FROM    reportables
-  JOIN    {}
-  USING   (id)
-  WHERE   id = ?
+  SELECT    *, COUNT(N.id) AS notes
+  FROM      reportables R
+  JOIN      {}
+  USING     (id)
+  LEFT JOIN history N
+  ON        (R.id = N.case_id)
+  WHERE     R.id = ?
 '''
 
 SQL_INSERT_NEW = '''
@@ -50,8 +52,8 @@ SQL_GET_CURRENT_FOR_CLUSTER = '''
   FROM      reportables R
   LEFT JOIN {} B
   ON        (R.id = B.id)
-  LEFT JOIN notes N
-  ON        (R.id = N.burst_id)
+  LEFT JOIN history N
+  ON        (R.id = N.case_id)
   WHERE     cluster = ?
     AND     epoch = (SELECT MAX(epoch) FROM reportables WHERE cluster = ? AND id IN (SELECT id FROM {}))
   GROUP BY  R.id, B.id
@@ -110,6 +112,7 @@ class Reportable:
       if not rec:
         # TODO: evaluate if this type of exception should be used here
         raise DatabaseException("Could not find {} record with id {}".format(self.__class__.__name__, id))
+      get_log().debug("In Reportable::__init__(id): notes = %d", rec['notes'])
       self._load_from_rec(dict(rec))
     elif record and not id:
       # factory load
@@ -235,33 +238,40 @@ class Reportable:
 
   def update(self, update, who):
 
-    what = update['datum']
-    if what == 'claimant':
-      table = 'reportables'
-    else:
-      table = self.__class__._table
+    was = None
+    now = None
+    if what := update.get('datum', None):
+      if what == 'claimant':
+        table = 'reportables'
+      else:
+        table = self.__class__._table
 
-    was = self.serialize()[what]
-    now = update['value']
+      was = self.serialize()[what]
+      now = update['value']
+
+      get_log().debug("Updating case %d, %s: %s => %s", self._id, what, was, now)
+
+      # update self locally and persistently
+      self.__dict__['_'+what] = now
+      query = "UPDATE {} SET {} = ? WHERE id = ?".format(table, what)
+      get_log().debug("Going to execute '%s' with (%s, %d)", query, now, self._id)
+      affected = get_db().execute("UPDATE {} SET {} = ? WHERE id = ?".format(table, what), (now, self._id)).rowcount
+      get_db().commit()
+      get_log().debug("Rows affected: %d", affected)
+
     text = update.get('note', None)
     timestamp = update.get('timestamp', None)
 
-    get_log().debug("Updating case %d, %s: %s => %s", self._id, what, was, now)
-
-    # update self locally and persistently
-    self.__dict__['_'+what] = now
-    query = "UPDATE {} SET {} = ? WHERE id = ?".format(table, what)
-    get_log().debug("Going to execute '%s' with (%s, %d)", query, now, self._id)
-    affected = get_db().execute("UPDATE {} SET {} = ? WHERE id = ?".format(table, what), (now, self._id)).rowcount
-    get_db().commit()
-    get_log().debug("Rows affected: %d", affected)
-
     # record update in history
-    Update(caseID=self._id, analyst=who, timestamp=timestamp, text=text, datum=what, was=was, now=now)
+    History(caseID=self._id, analyst=who, timestamp=timestamp, text=text, datum=what, was=was, now=now)
 
   @property
   def id(self):
     return self._id
+
+  @property
+  def cluster(self):
+    return self._cluster
 
   @property
   def epoch(self):
@@ -326,7 +336,7 @@ class Reportable:
         if not person:
           get_log().error("Could not find name for cci '%s'", self._claimant)
         else:
-          dct['claimant_pretty'] = person['givenname']
+          dct['claimant_pretty'] = person['givenName']
 
       # add ticket URL if there's a ticket
       if self._ticket_id:
