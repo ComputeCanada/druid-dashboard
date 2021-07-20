@@ -16,7 +16,7 @@ from manager.component import get_components, add_component, delete_component
 from manager.burst import set_ticket, Burst
 from manager.template import Template
 from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, DatabaseException
-from manager.event import get_burst_events
+from manager.history import History
 from manager.reporter import registry
 from manager.reportable import Reportable
 
@@ -393,9 +393,12 @@ def xhr_update_case(id):
   for item in data:
 
     # check for required fields
-    missing = _must_have(item, ['datum', 'value'])
-    if missing:
-      return xhr_error(400, "Update requests require fields: %s", missing)
+    datum = item.get('datum', None)
+    value = item.get('value', None)
+    note = item.get('note', None)
+
+    if not (datum and value or note):
+      return xhr_error(400, "Update requests require note and/or datum and value")
 
     # sanitize any strings
     for (key, val) in item.items():
@@ -421,7 +424,7 @@ def xhr_update_case(id):
   try:
     # TODO: Require cluster name in update, get from reportable, or return
     # just the updated reportable
-    return xhr_success(200)
+    return jsonify(_reports_by_cluster(case.cluster))
   except Exception as e:
     return xhr_error(500, "Could not get update information: %s", str(e))
 
@@ -430,7 +433,7 @@ def xhr_update_case(id):
 def xhr_get_case_events(id):
 
   get_log().debug("Retrieving events for case %d", id)
-  events = get_case_events(id)
+  events = History.get_events(id)
   return jsonify(events), 200
 
 @bp.route('/bursts/<int:id>/people/', methods=['GET'])
