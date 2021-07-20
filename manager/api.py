@@ -9,7 +9,6 @@ from flask import (
 )
 from manager.log import get_log
 from manager.apikey import ApiKey
-from manager.burst import Burst
 from manager.component import Component
 from manager.event import report, ReportReceived
 from manager.exceptions import InvalidApiCall
@@ -156,24 +155,39 @@ def api_get_case(id):
   case = Reportable.get(id)
   return jsonify(case)
 
-@bp.route('/bursts', methods=['GET'])
+@bp.route('/cases/', methods=['GET'])
 @api_key_required
-def api_get_bursts():
+def api_get_cases():
   """
   Use this API to get list of burst candidates accepted for promotion to the
   burst pool.
   """
 
-  get_log().debug("In api.api_get_bursts")
+  get_log().debug("In api.api_get_cases")
 
   cluster = Component(session['api_component']).cluster
+  criteria = {
+    'cluster': cluster
+  }
 
-  bursts = Burst.view(criteria={'cluster': cluster, 'view': 'adjustor'})
-  return jsonify(bursts), 200
+  reporter = None
+  for k, v in request.args.items():
+    if k == "report":
+      reporter = registry.reporters[v]
+    else:
+      criteria[k] = v
 
-@bp.route('/bursts', methods=['POST'])
+  get_log().debug("Have reporter: %s", reporter)
+  if not reporter:
+    # TODO: fix this; use AJAX error routines
+    return jsonify({"status": "No srry"}), 400
+
+  cases = reporter.view(criteria=criteria)
+  return jsonify(cases), 200
+
+@bp.route('/cases/', methods=['POST'])
 @api_key_required
-def api_post_bursts():
+def api_post_cases():
   """
   Use this API to report on burst candidates and other actionable metrics
   related to users' use of resources.
