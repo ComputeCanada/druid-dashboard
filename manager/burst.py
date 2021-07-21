@@ -172,10 +172,6 @@ def _summarize_burst_report(bursts):
       claimed += 1
 
     by_state[State(burst.state)] += 1
-    get_log().debug(
-      "With burst %d having state %s, updated state counts for burst report: %s",
-      burst.id, burst.state, by_state
-    )
 
   return "{} new record(s) and {} existing.  In total there are {} pending, " \
     "{} accepted, {} rejected.  {} have been claimed.".format(
@@ -532,10 +528,9 @@ class Burst(Reporter, Reportable):
       state=State.PENDING, summary=None, other=None):
 
     if id or record:
-      rec = None
-      if record:
-        rec = dict(record)
-      super().__init__(id=id, record=rec)
+
+      # initialize through base class and then make own interpretations
+      super().__init__(id=id, record=record)
       self._resource = Resource(self._resource)
       self._state = State(self._state)
       self._summary = json.loads(self._summary) if self._summary else None
@@ -545,8 +540,9 @@ class Burst(Reporter, Reportable):
       self._jobrange = [self._firstjob, self._lastjob]
       del self.__dict__['_firstjob']
       del self.__dict__['_lastjob']
+
     else:
-      get_log().debug("Creating new burst object")
+
       self._account = account
       self._resource = resource
       self._pain = pain
@@ -598,10 +594,10 @@ class Burst(Reporter, Reportable):
   def insert_new(self):
     res = get_db().execute(SQL_INSERT_NEW, (
       self._id, self._account, self._resource, self._pain, self._jobrange[0],
-      self._jobrange[1], self._submitters
+      self._jobrange[1], ' '.join(self._submitters)
     ))
     if not res:
-      get_log.error("Unable to create new Burst record")
+      get_log().error("Unable to create new Burst record")
       raise BaseException("TODO: Unable to create new Burst record")
 
 ##  else:
@@ -712,13 +708,11 @@ class Burst(Reporter, Reportable):
     return basic
 
   def serialize(self, pretty=False):
+    serialized = super().serialize(pretty=pretty)
     if pretty:
-      prettified = {
-        'resource_pretty': _(str(self._resource)),
-        'state_pretty': _(str(self._state))
-      }
-      return dict(super().serialize(pretty=True), **prettified)
-    return super().serialize()
+      serialized['resource_pretty'] = _(str(self._resource))
+      serialized['state_pretty'] = _(str(self._state))
+    return serialized
 
 # ---------------------------------------------------------------------------
 #                                                      Burst Reporter class
