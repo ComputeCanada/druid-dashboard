@@ -43,6 +43,8 @@ class History(CaseEvent):
   @classmethod
   def get_events(cls, caseID):
     res = get_db().execute(SQL_GET_HISTORY_BY_CASE, (caseID,)).fetchall()
+    if not res:
+      return None
     return [
       History(id=rec['id'], caseID=caseID,
         analyst=rec['analyst'],
