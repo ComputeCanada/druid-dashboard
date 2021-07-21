@@ -227,9 +227,7 @@ def test_get_no_events(client):
   print(response)
   assert response.status_code == 200
   x = json.loads(response.data)
-
-  print(x)
-  assert x == []
+  assert x is None
 
 def test_update_cases_xhr_no_timestamps(client):
   data = [
