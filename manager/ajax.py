@@ -13,7 +13,7 @@ from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.cluster import Cluster, get_clusters
 from manager.component import get_components, add_component, delete_component
-from manager.burst import set_ticket, Burst
+from manager.burst import Burst
 from manager.template import Template
 from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, DatabaseException
 from manager.history import History
@@ -90,65 +90,6 @@ def _reports_by_cluster(cluster):
       reports[name] = report
 
   return reports
-
-# def _bursts_by_cluster():
-#   """
-#   Convert dict returned by get_bursts(), which is keyed on a tuple and cannot
-#   be jsonified, and key by cluster instead.  Add display values such as
-#   claimant's name.
-#   """
-
-#   ldap = get_ldap()
-
-#   # bursts by cluster
-#   bbc = {}
-
-#   # bursts by cluster and epoch
-#   bbce = get_bursts()
-
-#   # simplify to bursts by cluster
-#   if bbce:
-#     for ce, bursts in bbce.items():
-#       cluster = ce[0]
-#       epoch = ce[1]
-#       if cluster in bbc:
-#         # if this happens, then the data structure returned by get_bursts()
-#         # is semantically broken; probably because somehow two different
-#         # epochs were returned for the same cluster.
-#         raise ImpossibleException("Cluster reported twice in get_bursts()")
-
-#       bbc[cluster] = {}
-#       bbc[cluster]['epoch'] = epoch
-
-#       # serialize bursts individually so as to add attributes
-#       bbc[cluster]['bursts'] = []
-#       for burstObj in bursts:
-#         burst = burstObj.serialize()
-
-#         # add claimant's name
-#         cci = burst['claimant']
-#         if cci:
-#           person = ldap.get_person_by_cci(cci)
-#           if not person:
-#             get_log().error("Could not find name for cci '%s'", burst['claimant'])
-#             prettyname = cci
-#           else:
-#             prettyname = person['givenName']
-#           burst['claimant_pretty'] = prettyname
-
-#         # add ticket URL if there's a ticket
-#         if burstObj.ticket_id:
-#           burst['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
-#             ticket_url(burstObj.ticket_id), burstObj.ticket_no)
-#         else:
-#           burst['ticket_href'] = None
-
-#         # add any prettified fields
-#         burst['state_pretty'] = _(str(burstObj.state))
-#         burst['resource_pretty'] = _(str(burstObj.resource))
-
-#         bbc[cluster]['bursts'].append(burst)
-#   return bbc
 
 def _get_project_pi(account):
 
@@ -527,7 +468,7 @@ def xhr_create_ticket():
      burst_id, account, ticket)
 
   # register the ticket with the burst candidate
-  set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
+  Reportable.set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
 
   return jsonify(dict({
     'burst_id': burst_id,

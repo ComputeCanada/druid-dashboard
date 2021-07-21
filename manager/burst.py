@@ -5,7 +5,7 @@ import json
 from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
-from manager.exceptions import DatabaseException, InvalidApiCall
+from manager.exceptions import InvalidApiCall
 from manager.cluster import Cluster
 from manager.reporter import Reporter, registry, just_job_id
 from manager.reportable import Reportable
@@ -140,12 +140,6 @@ SQL_GET_CLUSTER_BURSTS = '''
   GROUP BY  B.id
 '''
 
-SQL_SET_TICKET = '''
-  UPDATE  bursts
-  SET     ticket_id = ?, ticket_no = ?
-  WHERE   id = ?
-'''
-
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
@@ -178,175 +172,6 @@ def _summarize_burst_report(bursts):
       newbs, existing, by_state[State.PENDING], by_state[State.ACCEPTED],
       by_state[State.REJECTED], claimed
     )
-
-# def _burst_array(db_results):
-#   bursts = []
-#   for row in db_results:
-#     bursts.append(Burst(
-#       id=row['id'],
-#       cluster=row['cluster'],
-#       account=row['account'],
-#       resource=Resource(row['resource']),
-#       pain=row['pain'],
-#       jobrange=(row['firstjob'], row['lastjob']),
-#       submitters=row['submitters'].split(),
-#       state=State(row['state']),
-#       summary=row['summary'],
-#       epoch=row['epoch'],
-#       ticks=row['ticks'],
-#       claimant=row['claimant'],
-#       ticket_id=row['ticket_id'],
-#       ticket_no=row['ticket_no'],
-#       other=dict({
-#         'notes': row['notes']
-#       })
-#     ))
-#   return bursts
-
-# def _bursts_by_cluster_epoch(db_results):
-#   map = {}
-#   for row in db_results:
-#     cluster = row['cluster']
-#     epoch = row['epoch']
-#     if (cluster, epoch) not in map:
-#       map[(cluster, epoch)] = []
-#     map[(cluster, epoch)].append(Burst(
-#       id=row['id'],
-#       cluster=row['cluster'],
-#       account=row['account'],
-#       resource=Resource(row['resource']),
-#       pain=row['pain'],
-#       jobrange=(row['firstjob'], row['lastjob']),
-#       submitters=row['submitters'].split(),
-#       state=State(row['state']),
-#       summary=row['summary'],
-#       epoch=row['epoch'],
-#       ticks=row['ticks'],
-#       claimant=row['claimant'],
-#       ticket_id=row['ticket_id'],
-#       ticket_no=row['ticket_no'],
-#       other=dict({
-#         'notes': row['notes']
-#       })
-#     ))
-#   return map
-
-# def get_cluster_bursts(cluster):
-#   db = get_db()
-
-#   # get cluster's detector
-#   detector = Component(cluster=cluster, service='detector')
-
-#   # TODO: THIS BE BROKEN it assumes only the detector only reports one type of thing ! ! ! ! ! ! ! ! !
-#   epoch = detector.lastheard
-
-#   # get current bursts
-#   res = db.execute(SQL_GET_CLUSTER_BURSTS, (cluster, epoch)).fetchall()
-#   if not res:
-#     return None, None
-#   return epoch, _burst_array(res)
-
-# def get_current_bursts():
-#   db = get_db()
-#   res = db.execute(SQL_GET_CURRENT_BURSTS).fetchall()
-#   if not res:
-#     return None
-#   return _bursts_by_cluster_epoch(res)
-
-# def get_bursts(cluster=None):
-#   if cluster:
-#     return get_cluster_bursts(cluster)
-#   return get_current_bursts()
-
-#def update_bursts(updates, user):
-#  """
-#  Update burst information such as state or claimant.
-#
-#  Args:
-#    updates (list of dict): list of dicts where each dict contains a burst ID
-#      and a new value for state and/or claimant.
-#  """
-#  from manager.actions import StateUpdate, ClaimantUpdate
-#  from manager.note import Note
-#
-#  get_log().debug("In update_bursts()")
-#  if not updates:
-#    get_log().error("update_bursts() called with no updates")
-#    return
-#
-#  db = get_db()
-#  for update in updates:
-#
-#    # get update parameters
-#    try:
-#      id = update['id']
-#      text = update['note']
-#    except KeyError as e:
-#      raise BadCall("Burst update missing required field: {}".format(e))
-#    timestamp = update.get('timestamp', None)
-#
-#    # update state if applicable
-#    if state := update.get('state', None):
-#
-#      s = State.get(state)
-#
-#      # update history
-#      try:
-#        StateUpdate(burstID=id, analyst=user, text=text, timestamp=timestamp,
-#          state=s.value)
-#      except KeyError as e:
-#        error = "Missing required update parameter: {}".format(e)
-#        raise BadCall(error)
-#      except Exception as e:
-#        get_log().error("Exception in creating state update event log: %s", e)
-#        raise AppException(str(e))
-#
-#      # update state
-#      res = db.execute(SQL_UPDATE_STATE, (s.value, id))
-#      if not res:
-#        raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
-#
-#    # update claimant if applicable
-#    elif 'claimant' in update:
-#
-#      # if claimant is empty string, use user instead
-#      if update['claimant'] == '':
-#        claimant = user
-#      else:
-#        claimant = update['claimant']
-#
-#      get_log().debug("Updating burst %d with claimant %s", id, claimant)
-#
-#      # update history
-#      try:
-#        ClaimantUpdate(burstID=id, analyst=user, text=text,
-#          timestamp=timestamp, claimant=claimant)
-#      except Exception as e:
-#        get_log().error("Exception in creating claimant update event log: %s", e)
-#        raise AppException(str(e))
-#
-#      # update claimant
-#      res = db.execute(SQL_UPDATE_CLAIMANT, (claimant, id))
-#      if not res:
-#        raise DatabaseException("Could not update claimant for Burst ID {} to {}".format(id, claimant))
-#
-#    # otherwise, since we already have the text, this must be just a note
-#    else:
-#
-#      try:
-#        Note(burstID=id, analyst=user, text=text, timestamp=timestamp)
-#      except Exception as e:
-#        get_log().error("Exception in creating note: %s", e)
-#        raise AppException(str(e))
-#
-#  db.commit()
-
-def set_ticket(id, ticket_id, ticket_no):
-  db = get_db()
-  res = db.execute(SQL_SET_TICKET, (ticket_id, ticket_no, id))
-  if not res:
-    raise DatabaseException("Could not set ticket information for Burst ID {}".format(id))
-  db.commit()
 
 # ---------------------------------------------------------------------------
 #                                                               burst class
@@ -559,28 +384,6 @@ class Burst(Reporter, Reportable):
       ['account', 'resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
     )
 
-#  def update_existing(self):
-#    db = get_db()
-#
-#    # find existing record
-#    res = db.execute(SQL_FIND_EXISTING, (
-#      self._cluster, self._account, self._resource, self._jobrange[0]
-#    )).fetchone()
-#    if not res:
-#      return False
-#
-#    # now we have the ID, we can update the parent as well
-#    self._id = res['id']
-#    self._submitters = set(res['submitters'].split()) | set(self._submitters)
-#    affected = db.execute(SQL_UPDATE_BY_ID, (
-#      self._pain, self._jobrange[1], ' '.join(self._submitters), self._id
-#    )).rowcount
-#
-#    if affected != 1:
-#      raise DatabaseError("Expected to update object but couldn't")
-#
-#    return super().update_existing()
-
   def _update_existing_sub(self, rec):
     self._state = rec['state']
     self._jobrange[0] = rec['firstjob']
@@ -599,67 +402,6 @@ class Burst(Reporter, Reportable):
     if not res:
       get_log().error("Unable to create new Burst record")
       raise BaseException("TODO: Unable to create new Burst record")
-
-##  else:
-##    # see if there is already a suitable burst--one where the current
-##    # report's starting job falls within the (first, last) range of the
-##    # existing record
-##    get_log().debug("Looking for existing burst")
-##    res = db.execute(SQL_FIND_EXISTING, (cluster, account, resource, jobrange[0])).fetchone()
-##    if res:
-##      # found existing burst
-##      self._id = res['id']
-##      self._state = res['state']
-##      self._claimant = res['claimant']
-##      self._ticket_id = res['ticket_id']
-##      self._ticket_no = res['ticket_no']
-
-##      # get union of current and past submitters on this candidate
-##      self._submitters = set(res['submitters'].split()) | set(submitters)
-
-##      # update as necessary
-##      self._jobrange = [res['firstjob'], jobrange[1]]
-##      self._ticks = res['ticks'] + 1
-##      get_log().debug("Ticks updated from %d to %d", res['ticks'], self._ticks)
-
-##      # update burst for shifting definition:
-##      # As time goes on, the first job reported in a burst may have
-##      # completed, so we want to retain the first job earlier reported.  The
-##      # end job may also shift outwards as new jobs are queued, so we update
-##      # that in the database.  Other burst information, such as pain and
-##      # info, will similarly shift over time, and we'll update that just so
-##      # the Analyst gets current information from the Manager.
-
-##      trying_to = "update existing burst for {}".format(account)
-##      get_log().debug("Trying to %s", trying_to)
-
-##      # update burst record
-##      try:
-##        db.execute(SQL_UPDATE_EXISTING, (
-##          pain, jobrange[1], json.dumps(summary), epoch, self._ticks,
-##          ' '.join(self._submitters), self._id)
-##        )
-##      except Exception as e:
-##        raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
-
-##    else:
-##      # this is a new burst
-##      trying_to = "create burst for {}".format(account)
-##      get_log().debug("Trying to %s", trying_to)
-
-##      # create burst record
-##      try:
-##        db.execute(SQL_CREATE, (
-##          cluster, account, resource, pain, jobrange[0], jobrange[1], ' '.join(submitters),
-##          json.dumps(summary), epoch
-##          )
-##        )
-##      except Exception as e:
-##        raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
-##    try:
-##      db.commit()
-##    except Exception as e:
-##      raise DatabaseException("Could not {}".format(trying_to)) from e
 
   def update(self, update, who):
     if update.get('datum', None) == 'state':
@@ -714,64 +456,5 @@ class Burst(Reporter, Reportable):
       serialized['state_pretty'] = _(str(self._state))
     return serialized
 
-# ---------------------------------------------------------------------------
-#                                                      Burst Reporter class
-# ---------------------------------------------------------------------------
-
-# class BurstReporter(Reporter):
-#   """
-#   Class for reporting bursts: a list of accounts and information about their
-#   current job contexts which constitute potential burst candidates.
-
-#   Burst reports are reported via the reports API and may occur with other
-#   reports of other metrics or appear on their own, so long as the overall
-#   message conforms to the API.
-
-#   Format:
-#     ```
-#     bursts = [
-#       {
-#         'account':  character string representing CC account name,
-#         'resource': type of resource involved in burst (ex. 'cpu', 'gpu'),
-#         'pain':     number indicating pain ratio as defined by Detector,
-#         'firstjob': first job owned by account currently in the system,
-#         'lastjob':  last job owned by account currently in the system,
-#         'submitters': array of user IDs of those submitting jobs,
-#         'summary':  JSON-encoded key-value information about burst context
-#                     which may be of use to analyst in evaluation
-#       },
-#       ...
-#     ]
-#     ```
-
-#   The `jobrange` is used by the Manager and Scheduler to provide a way by
-#   which the Scheduler can decide to "unbless" an account--no longer promote it
-#   or its jobs to the Burst Pool--without the Detector or the Scheduler needing
-#   to maintain independent state.
-
-#   When the Detector signals a potential burst, it reports the first and last
-#   jobs (lowest- and highest-numbered) in every report.  The Manager compares
-#   this to existing burst candidates.  If the new report overlaps with an
-#   existing one, the Manager updates its current understanding with the new upper
-#   range.  (The lower range is not updated as this probably only reflects that
-#   earlier jobs have been completed, although in the case of mass job deletion
-#   this would be misleading, but this range is not intended to be used for any
-#   analyst decisions.)
-
-#   The Detector may report several times a day and so will report the same
-#   burst candidates multiple times.
-
-#   The Scheduler retrieves affirmed Burst candidates from the Manager.  When
-#   a new candidate is pulled, the Scheduler promotes the account to the burst
-#   pool.  That account will be provided on every query by the Scheduler, with
-#   the job range updated as necessary based on information received by the
-#   Manager from the Detector.  Even once the Detector no longer reports this
-#   account as a burst candidate, the Manager will maintain its record.
-
-#   The Scheduler will compare the burst record against jobs currently in the
-#   system.  If no jobs exist owned by the account that fall within the burst
-#   range, then the burst must be complete.  The Scheduler must then report the
-#   burst as such to the Manager.
-#   """
 
 registry.register('bursts', Burst)
