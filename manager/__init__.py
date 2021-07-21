@@ -30,7 +30,7 @@ from . import notifier_slack
 
 # reporters and reportables
 from . import burst
-from . import jobage
+from . import oldjob
 
 # override default JSON encoder to look for `serializable` method
 def json_encoder_override(self, obj):

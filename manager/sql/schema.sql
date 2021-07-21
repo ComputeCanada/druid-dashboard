@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
-DROP TABLE IF EXISTS job_ages;
+DROP TABLE IF EXISTS oldjobs;
 DROP TABLE IF EXISTS reportables;
 DROP TABLE IF EXISTS history;
 
@@ -109,7 +109,7 @@ CREATE TABLE bursts (
 
 -- tables keying to reportables must be declared as WITHOUT ROWID
 -- so that the primary key is not tied to the row ID
-CREATE TABLE job_ages (
+CREATE TABLE oldjobs (
   id INTEGER PRIMARY KEY,
   account VARCHAR(32) NOT NULL,
   submitter VARCHAR(32) NOT NULL,

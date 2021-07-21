@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS notes;
 DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
-DROP TABLE IF EXISTS job_ages;
+DROP TABLE IF EXISTS oldjobs;
 DROP TABLE IF EXISTS history;
 DROP TABLE IF EXISTS reportables;
 DROP TABLE IF EXISTS clusters;
@@ -110,7 +110,7 @@ CREATE TABLE bursts (
   FOREIGN KEY (id) REFERENCES reportables(id)
 );
 
-CREATE TABLE job_ages (
+CREATE TABLE oldjobs (
   id INTEGER PRIMARY KEY,
   account VARCHAR(32) NOT NULL,
   submitter VARCHAR(32) NOT NULL,

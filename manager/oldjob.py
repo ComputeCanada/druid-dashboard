@@ -27,7 +27,7 @@ def json_to_table(str):
     html += '</table>'
   return html
 
-def _summarize_job_age_report(records):
+def _summarize_oldjob_report(records):
   return f"There are {len(records)} records."
 
 # ---------------------------------------------------------------------------
@@ -35,14 +35,14 @@ def _summarize_job_age_report(records):
 # ---------------------------------------------------------------------------
 
 SQL_INSERT_NEW = '''
-  INSERT INTO job_ages
+  INSERT INTO oldjobs
               (id, account, submitter, resource, age)
   VALUES      (?, ?, ?, ?, ?)
 '''
 
 SQL_FIND_EXISTING = '''
   SELECT    id
-  FROM      job_ages
+  FROM      oldjobs
   WHERE     account = ? AND submitter = ? AND resource = ? AND age <= ?
 '''
 
@@ -52,26 +52,26 @@ SQL_FIND_EXISTING = '''
 # isn't good enough--the user might try deleting the oldest few or something.
 # So maybe job range but unlike with bursts, the job range is NOT updated.
 SQL_UPDATE_EXISTING = '''
-  UPDATE    job_ages
+  UPDATE    oldjobs
   SET       age = ?
   FROM      reportables
-  WHERE     reportables.cluster = ? AND job_ages.account = ?
-    AND     job_ages.submitter = ? AND job_ages.resource = ?
-    AND     job_ages.age <= ? AND reportables.id = job_ages.id
+  WHERE     reportables.cluster = ? AND oldjobs.account = ?
+    AND     oldjobs.submitter = ? AND oldjobs.resource = ?
+    AND     oldjobs.age <= ? AND reportables.id = oldjobs.id
 '''
 
 # ---------------------------------------------------------------------------
-#                                                             Job Age class
+#                                                             Old Job class
 # ---------------------------------------------------------------------------
 
-class JobAge(Reporter, Reportable):
+class OldJob(Reporter, Reportable):
 
-  _table = 'job_ages'
+  _table = 'oldjobs'
 
   @classmethod
   def _describe(cls):
     return {
-      'table': 'age',
+      'table': 'oldjobs',
       'title': _('Job age'),
       'metric': 'age',
       'cols': [
@@ -158,7 +158,7 @@ class JobAge(Reporter, Reportable):
         summary=summary))
 
     # report event
-    return _summarize_job_age_report(records)
+    return _summarize_oldjob_report(records)
 
   def __init__(self, id=None, record=None, cluster=None, epoch=None,
       account=None, submitter=None, resource=None, age=None, summary=None
@@ -203,7 +203,7 @@ class JobAge(Reporter, Reportable):
       self._id, self._account, self._submitter, self._resource, self._age
     ))
     if not res:
-      raise BaseException("TODO: Unable to create new JobAge record")
+      raise BaseException("TODO: Unable to create new OldJob record")
 
   @property
   def resource(self):
@@ -237,7 +237,7 @@ class JobAge(Reporter, Reportable):
 #
 #  Format:
 #    ```
-#    job_age = [
+#    oldjob = [
 #      {
 #        'account':  character string representing CC account name,
 #        'submitter': username of submitter,
@@ -252,4 +252,4 @@ class JobAge(Reporter, Reportable):
 #    ```
 #  """
 
-registry.register('job_age', JobAge)
+registry.register('oldjobs', OldJob)
