@@ -17,13 +17,14 @@ from manager.history import History
 
 ## use with `.format(tablename)`
 SQL_LOOKUP = '''
-  SELECT    B.*, R.*, COUNT(N.id) AS notes
+  SELECT    R.ticks, R.cluster, R.epoch, B.*, R.summary, R.claimant, R.ticket_id, R.ticket_no, COUNT(N.id) AS notes
   FROM      reportables R
   JOIN      {} B
   USING     (id)
   LEFT JOIN history N
   ON        (R.id = N.case_id)
   WHERE     R.id = ?
+  GROUP BY  R.id, B.id
 '''
 
 SQL_INSERT_NEW = '''
@@ -109,10 +110,7 @@ class Reportable:
       rec = get_db().execute(
         SQL_LOOKUP.format(self.__class__._table), (id,)
       ).fetchone()
-
-      # TODO: this does not work.  The above returns a row with all Nones and one 0 for the notes count.
-      #if not rec:
-      if not rec['id']:
+      if not rec:
         # TODO: evaluate if this type of exception should be used here
         raise DatabaseException("Could not find {} record with id {}".format(self.__class__.__name__, id))
       get_log().debug("In Reportable::__init__(%d): notes = %d, epoch = %d ", id, rec['notes'], rec['epoch'])
