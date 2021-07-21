@@ -69,6 +69,12 @@ SQL_FIND_EXISTING = '''
   WHERE     R.cluster = ? AND {}
 '''
 
+SQL_SET_TICKET = '''
+  UPDATE  reportables
+  SET     ticket_id = ?, ticket_no = ?
+  WHERE   id = ?
+'''
+
 # ---------------------------------------------------------------------------
 #                                                          reportable class
 # ---------------------------------------------------------------------------
@@ -103,6 +109,14 @@ class Reportable:
     return [
       cls(record=rec) for rec in res
     ]
+
+  @classmethod
+  def set_ticket(cls, id, ticket_id, ticket_no):
+    db = get_db()
+    res = db.execute(SQL_SET_TICKET, (ticket_id, ticket_no, id))
+    if not res:
+      raise DatabaseException("Could not set ticket information for case ID {}".format(id))
+    db.commit()
 
   def __init__(self, id=None, record=None, cluster=None, epoch=None, summary=None):
     if id and not record:
