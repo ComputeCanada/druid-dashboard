@@ -5,8 +5,6 @@ import os
 import re
 import pytest
 from manager.notifier import Notifier, register_notifier, get_notifiers
-from manager.burst import Burst
-from manager.jobage import JobAge
 from manager.reporter import registry
 
 @pytest.fixture(scope='class')
