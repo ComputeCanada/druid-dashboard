@@ -3,20 +3,19 @@ DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
 DROP TABLE IF EXISTS notes;
-DROP TABLE IF EXISTS updates_state;
-DROP TABLE IF EXISTS updates_claimant;
 DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
-DROP TABLE IF EXISTS reportables;
 DROP TABLE IF EXISTS job_ages;
+DROP TABLE IF EXISTS reportables;
+DROP TABLE IF EXISTS history;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210630', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210721', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -76,39 +75,6 @@ CREATE TABLE templates (
   CHECK (language IN ('', 'en', 'fr'))
 );
 
-CREATE TABLE notes (
-  id INTEGER PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  FOREIGN KEY (burst_id) REFERENCES bursts(id)
-);
-
-CREATE TABLE updates_state (
-  id INTEGER PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  old_state CHAR(1),
-  new_state CHAR(1),
-  FOREIGN KEY (burst_id) REFERENCES bursts(id),
-  CHECK (old_state in ('p', 'a', 'r')),
-  CHECK (new_state in ('p', 'a', 'r'))
-);
-
-CREATE TABLE updates_claimant (
-  id INTEGER PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  claimant_was CHAR(7),
-  claimant_now CHAR(7),
-  FOREIGN KEY (burst_id) REFERENCES bursts(id)
-);
-
 CREATE TABLE reportables (
   id INTEGER PRIMARY KEY,
   epoch INTEGER NOT NULL,
@@ -157,8 +123,8 @@ CREATE TABLE history (
   case_id INTEGER NOT NULL,
   analyst CHAR(7),
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  datum TEXT,
   note TEXT,
+  datum TEXT,
   was TEXT,
   now TEXT,
   FOREIGN KEY (case_id) REFERENCES reportables(id)

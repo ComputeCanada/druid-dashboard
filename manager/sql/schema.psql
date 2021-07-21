@@ -1,21 +1,24 @@
+DROP TABLE IF EXISTS updates_state;
+DROP TABLE IF EXISTS updates_claimant;
+DROP TABLE IF EXISTS updates;
 DROP TABLE IF EXISTS schemalog;
 DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
 DROP TABLE IF EXISTS notes;
-DROP TABLE IF EXISTS updates_state;
-DROP TABLE IF EXISTS updates_claimant;
 DROP TABLE IF EXISTS bursts;
-DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
 DROP TABLE IF EXISTS job_ages;
+DROP TABLE IF EXISTS history;
+DROP TABLE IF EXISTS reportables;
+DROP TABLE IF EXISTS clusters;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210630', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210721', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -51,33 +54,6 @@ CREATE TABLE notifications (
   message TEXT NOT NULL
 );
 
-/*
- * state: 'p' = pending/unactioned, 'a' = accepted, 'r' = rejected
- * resource: 'c' = CPU, 'g' = GPU
- * see burst.py::State, burst.py::Resource
- * submitters is an space-separated list of user IDs
- */
-CREATE TABLE bursts (
-  id SERIAL PRIMARY KEY,
-  state CHAR(1) NOT NULL DEFAULT 'p',
-  account VARCHAR(32) NOT NULL,
-  resource CHAR(1) NOT NULL DEFAULT 'c',
-  cluster VARCHAR(16) NOT NULL,
-  pain REAL NOT NULL,
-  firstjob INTEGER NOT NULL,
-  lastjob INTEGER NOT NULL,
-  submitters TEXT NOT NULL,
-  summary TEXT,
-  epoch INTEGER NOT NULL,
-  ticks INTEGER NOT NULL DEFAULT 0,
-  claimant CHAR(7),
-  ticket_id INTEGER,
-  ticket_no VARCHAR(9),
-  CHECK (state in ('p', 'a', 'r')),
-  CHECK (resource in ('c', 'g')),
-  FOREIGN KEY (cluster) REFERENCES clusters(id)
-);
-
 CREATE TABLE notifiers (
   name VARCHAR(32) PRIMARY KEY,
   type VARCHAR(16) NOT NULL,
@@ -102,58 +78,6 @@ CREATE TABLE templates (
   CHECK (language IN ('', 'en', 'fr'))
 );
 
-CREATE TABLE notes (
-  id SERIAL PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  FOREIGN KEY (burst_id) REFERENCES bursts(id)
-);
-
-CREATE TABLE updates_state (
-  id SERIAL PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  old_state CHAR(1),
-  new_state CHAR(1),
-  FOREIGN KEY (burst_id) REFERENCES bursts(id),
-  CHECK (old_state in ('p', 'a', 'r')),
-  CHECK (new_state in ('p', 'a', 'r'))
-);
-
-CREATE TABLE updates_claimant (
-  id SERIAL PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  claimant_was CHAR(7),
-  claimant_now CHAR(7),
-  FOREIGN KEY (burst_id) REFERENCES bursts(id)
-);
-
-CREATE TABLE job_ages (
-  -- must be in here for reportable class
-  id SERIAL PRIMARY KEY,
-  epoch INTEGER NOT NULL,
-  ticks INTEGER NOT NULL DEFAULT 1,
-  cluster VARCHAR(16) NOT NULL,
-  claimant CHAR(7),
-  ticket_id INTEGER,
-  ticket_no VARCHAR(9),
-  state CHAR(1) NOT NULL DEFAULT 'p',
-  summary TEXT,
-  -- job age stuff
-  account VARCHAR(32) NOT NULL,
-  submitter VARCHAR(32) NOT NULL,
-  resource CHAR(1) NOT NULL DEFAULT 'c',
-  age INTEGER NOT NULL,
-  FOREIGN KEY (cluster) REFERENCES clusters(id)
-);
-
 CREATE TABLE reportables (
   id SERIAL PRIMARY KEY,
   epoch INTEGER NOT NULL,
@@ -166,6 +90,26 @@ CREATE TABLE reportables (
   FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
 
+/*
+ * state: 'p' = pending/unactioned, 'a' = accepted, 'r' = rejected
+ * resource: 'c' = CPU, 'g' = GPU
+ * see burst.py::State, burst.py::Resource
+ * submitters is an space-separated list of user IDs
+ */
+CREATE TABLE bursts (
+  id INTEGER PRIMARY KEY,
+  state CHAR(1) NOT NULL DEFAULT 'p',
+  account VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  pain REAL NOT NULL,
+  firstjob INTEGER NOT NULL,
+  lastjob INTEGER NOT NULL,
+  submitters TEXT NOT NULL,
+  CHECK (state in ('p', 'a', 'r')),
+  CHECK (resource in ('c', 'g')),
+  FOREIGN KEY (id) REFERENCES reportables(id)
+);
+
 CREATE TABLE job_ages (
   id INTEGER PRIMARY KEY,
   account VARCHAR(32) NOT NULL,
@@ -174,3 +118,45 @@ CREATE TABLE job_ages (
   age INTEGER NOT NULL,
   FOREIGN KEY (id) REFERENCES reportables(id)
 );
+
+CREATE TABLE history (
+  id SERIAL PRIMARY KEY,
+  case_id INTEGER NOT NULL,
+  analyst CHAR(7),
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  datum TEXT,
+  was TEXT,
+  now TEXT,
+  FOREIGN KEY (case_id) REFERENCES reportables(id)
+);
+
+/* Upgrade:
+
+ALTER TABLE bursts RENAME TO bursts_old;
+CREATE TABLE bursts (
+  id INTEGER PRIMARY KEY,
+  state CHAR(1) NOT NULL DEFAULT 'p',
+  account VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  pain REAL NOT NULL,
+  firstjob INTEGER NOT NULL,
+  lastjob INTEGER NOT NULL,
+  submitters TEXT NOT NULL,
+  CHECK (state in ('p', 'a', 'r')),
+  CHECK (resource in ('c', 'g')),
+  FOREIGN KEY (id) REFERENCES reportables(id)
+);
+INSERT INTO reportables (id, epoch, ticks, cluster, claimant, ticket_id, ticket_no, summary) (
+  SELECT id, epoch, ticks, cluster, claimant, ticket_id, ticket_no, summary FROM bursts_old
+);
+INSERT INTO bursts (id, state, account, resource, pain, firstjob, lastjob, submitters) (
+  SELECT id, state, account, resource, pain, firstjob, lastjob, submitters FROM bursts_old
+);
+INSERT INTO updates (burst_id, analyst, timestamp, note, change) (
+  SELECT burst_id, analyst, timestamp, note, FORMAT('{"field":"state","was":"%s","now":"%s"}', old_state, new_state) AS change FROM updates_state
+);
+INSERT INTO updates (burst_id, analyst, timestamp, note, change) (
+  SELECT burst_id, analyst, timestamp, note, FORMAT('{"field":"claimant","was":"%s","now":"%s"}', claimant_was, claimant_now) AS change FROM updates_claimant
+);
+*/
