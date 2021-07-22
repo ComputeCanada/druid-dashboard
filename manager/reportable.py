@@ -12,6 +12,22 @@ from manager.exceptions import DatabaseException, BadCall
 from manager.history import History
 
 # ---------------------------------------------------------------------------
+#                                                                   helpers
+# ---------------------------------------------------------------------------
+
+def dict_to_table(d):
+  html = ''
+  if d:
+    html += '<table>'
+    for k, v in d.items():
+      html += f"<tr><th>{k}</th><td>{v}</td></tr>"
+    html += '</table>'
+  return html
+
+def json_to_table(str):
+  return dict_to_table(json.loads(str))
+
+# ---------------------------------------------------------------------------
 #                                                               SQL queries
 # ---------------------------------------------------------------------------
 
@@ -56,7 +72,7 @@ SQL_GET_CURRENT_FOR_CLUSTER = '''
   LEFT JOIN history N
   ON        (R.id = N.case_id)
   WHERE     cluster = ?
-    AND     epoch = (SELECT MAX(epoch) FROM reportables WHERE cluster = ? AND id IN (SELECT id FROM {}))
+    AND     epoch = (SELECT MAX(epoch) FROM reportables WHERE cluster = ?) AND R.id IN (SELECT id FROM {})
   GROUP BY  R.id, B.id
 '''
 
@@ -88,24 +104,22 @@ class Reportable:
   def get(cls, id):
     # TODO: this is extreme janketiness
     # try to instantiate reportable's subclass by going through each in turn
-    get_log().debug("Here in %s.get(%d)", cls, id)
     registry = ReporterRegistry.get_registry()
 
+    # pylint: disable=unused-variable
     for (name, reportercls) in registry.reporters.items():
-      get_log().debug("Trying %s/%s for ID %d", name, reportercls, id)
       try:
         return reportercls(id=id)
       except DatabaseException:
         pass
+    get_log().error("Could not find reporter class for case ID %d", id)
     return None
 
   @classmethod
   def get_current(cls, cluster):
     res = get_db().execute(SQL_GET_CURRENT_FOR_CLUSTER.format(cls._table, cls._table), (cluster, cluster)).fetchall()
     if not res:
-      get_log().debug("Did not find any records in %s", cls._table)
       return None
-    get_log().debug("Returning records for %s", cls._table)
     return [
       cls(record=rec) for rec in res
     ]
@@ -127,7 +141,6 @@ class Reportable:
       if not rec:
         # TODO: evaluate if this type of exception should be used here
         raise DatabaseException("Could not find {} record with id {}".format(self.__class__.__name__, id))
-      get_log().debug("In Reportable::__init__(%d): notes = %d, epoch = %d ", id, rec['notes'], rec['epoch'])
       self._load_from_rec(dict(rec))
     elif record and not id:
       # factory load
@@ -140,17 +153,13 @@ class Reportable:
 
       self._epoch = epoch
       self._cluster = cluster
-      self._summary = summary
+      self._summary = json.loads(summary) if summary else None
       db = get_db()
 
       # TODO: to handle updating summary, could add that here
       # i.e. if self.update_existing():... but we don't have the record ID, sigh
       if not self.update_existing():
 
-        get_log().debug(
-          "Creating new reportable with cluster=%s, epoch=%s, summary=%s",
-           cluster, epoch, summary
-        )
         self._ticket_no = None
         self._ticket_id = None
         self._claimant = None
@@ -167,6 +176,8 @@ class Reportable:
         self._other = {
           'notes': v
         }
+      elif k == 'summary':
+        self._summary = json.loads(v) if v else None
       else:
         self.__dict__['_'+k] = v
 
@@ -202,7 +213,6 @@ class Reportable:
 
     # turn list of column names into "B.col1, B.col2, ..."
     columns_str = ", ".join(map(lambda x: "B." + x, columns_list))
-    get_log().debug("Columns to update local object with: '%s'", columns_str)
 
     rec = get_db().execute(
       SQL_FIND_EXISTING.format(columns_str, self.__class__._table, query),
@@ -218,6 +228,8 @@ class Reportable:
     try:
       if not self._update_existing_sub(rec):
         return False
+    except NotImplementedError:
+      raise NotImplementedError("Subclass has not implemented required methods")
     except BaseException as e:
       raise BadCall("Could not update case %d (%s): %s" % (
         self._id, self.__class__.__name__, e.__class__.__name__,)
@@ -358,5 +370,8 @@ class Reportable:
         dct['ticket'] = "<a href='{}' target='_ticket'>{}</a>".format(ticket_url(self._ticket_id), self._ticket_no)
       else:
         dct['ticket'] = None
+
+      # turn summary into table
+      dct['summary_pretty'] = dict_to_table(self._summary)
 
     return dct
