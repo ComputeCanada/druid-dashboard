@@ -142,6 +142,10 @@ if (( test_schema ))
 then
   # create temporary directory for this stuff
   tmpdir=$(mktemp -d /tmp/$(basename $0).XXXXXX) || fail_to create temporary directory
+  if ! (( cleanup ))
+  then
+    echo "Temporary work dir (not cleaned up): $tmpdir"
+  fi
 
   # Schema baselining is disabled; see "configuration" section
   # # get schema versions from git after $SCHEMA_BASELINE (when seed data changed)
