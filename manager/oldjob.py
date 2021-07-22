@@ -1,8 +1,8 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621,raise-missing-from,import-outside-toplevel
 #
-import json
 from flask_babel import _
+from manager.log import get_log
 from manager.db import get_db, DbEnum
 from manager.exceptions import InvalidApiCall
 from manager.reportable import Reportable
@@ -12,23 +12,6 @@ from manager.reporter import Reporter, registry
 class JobResource(DbEnum):
   CPU = 'c'
   GPU = 'g'
-
-# ---------------------------------------------------------------------------
-#                                                                   helpers
-# ---------------------------------------------------------------------------
-
-def json_to_table(str):
-  html = ''
-  d = json.loads(str)
-  if d:
-    html += '<table>'
-    for k, v in d.items():
-      html += f"<tr><th>{k}</th><td>{v}</td></tr>"
-    html += '</table>'
-  return html
-
-def _summarize_oldjob_report(records):
-  return f"There are {len(records)} records."
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -58,6 +41,12 @@ SQL_UPDATE_EXISTING = '''
   WHERE     reportables.cluster = ? AND oldjobs.account = ?
     AND     oldjobs.submitter = ? AND oldjobs.resource = ?
     AND     oldjobs.age <= ? AND reportables.id = oldjobs.id
+'''
+
+SQL_UPDATE_BY_ID = '''
+  UPDATE  oldjobs
+  SET     age = ?, submitter = ?
+  WHERE   id = ?
 '''
 
 # ---------------------------------------------------------------------------
@@ -99,12 +88,6 @@ class OldJob(Reporter, Reportable):
           'type': 'number',
           'title': _('Age'),
           'help': _('Days waiting in system')
-        },
-        { 'datum': 'summary',
-          'searchable': True,
-          'sortable': False,
-          'type': 'text',
-          'title': _('Summary')
         }
       ]
     }
@@ -123,6 +106,22 @@ class OldJob(Reporter, Reportable):
 
     Returns:
       String describing summary of report.
+
+    Format:
+    ```
+    data = [
+      {
+        'account':  character string representing CC account name,
+        'resource': type of resource involved in record (ex. 'cpu', 'gpu'),
+        'age':      number of hours waiting in system, maximal over job
+                    ranges
+        'submitter': username of submitter,
+        'summary':  JSON-encoded key-value information about record context
+                    which may be of use to analyst in evaluation
+      },
+      ...
+    ]
+    ```
     """
 
     # build list of objects from report
@@ -158,7 +157,7 @@ class OldJob(Reporter, Reportable):
         summary=summary))
 
     # report event
-    return _summarize_oldjob_report(records)
+    return cls.summarize_report(records)
 
   def __init__(self, id=None, record=None, cluster=None, epoch=None,
       account=None, submitter=None, resource=None, age=None, summary=None
@@ -167,36 +166,30 @@ class OldJob(Reporter, Reportable):
       super().__init__(id=id, record=record)
     else:
       self._account = account
-      self._submitter = submitter
       self._resource = resource
       self._age = age
+      self._submitter = submitter
       super().__init__(cluster=cluster, epoch=epoch, summary=summary)
 
-  def find_existing(self):
-    res = get_db().execute(
-      SQL_FIND_EXISTING, (
-        self._cluster, self._account, self._submitter,
-        self._resource, self._age
-      )).fetchone()
-    return res.get('id', None)
-
-  # TODO: this should update summary, but that's in the superclass
-  def update_existing(self):
-    affected = get_db().execute(
-      SQL_UPDATE_EXISTING, (
-        self._age, self._cluster, self._account, self._submitter, self._resource, self._age
-      )).rowcount
-    if affected > 1:
-      # TODO: better exception
-      raise BaseException("Wait, what")
-    return affected == 1
+    # now fix up a few special data types
+    self._resource = JobResource(self._resource)
 
   def _update_existing_sub(self, rec):
-    raise NotImplementedError
+    affected = get_db().execute(SQL_UPDATE_BY_ID, (
+      self._age, self._submitter, self._id
+    )).rowcount
 
-  @classmethod
-  def find_existing_query(cls):
-    raise NotImplementedError
+    get_log().debug("Updated oldjob %d with new age %d and submitter %s (%d affected)",
+      self._id, self._age, self._submitter, affected)
+
+    return affected == 1
+
+  def find_existing_query(self):
+    return (
+      "account = ? AND resource = ?",
+      [self._account, self._resource],
+      ('account', 'resource', 'age', 'submitter')
+    )
 
   def insert_new(self):
     res = get_db().execute(SQL_INSERT_NEW, (
@@ -210,46 +203,14 @@ class OldJob(Reporter, Reportable):
     return self._resource
 
   @property
-  def summary(self):
-    return json.loads(self._summary)
-
-  @property
   def contact(self):
     return self._submitter
 
   def serialize(self, pretty=False):
+    serialized = super().serialize(pretty=pretty)
     if pretty:
-      prettified = {
-        'summary_pretty': json_to_table(self._summary),
-        'resource_pretty': str(self._resource)
-      }
-      return dict(super().serialize(pretty=True), **prettified)
-    return super().serialize()
+      serialized['resource_pretty'] = str(self._resource)
+    return serialized
 
-# ---------------------------------------------------------------------------
-#                                                    Job Age Reporter class
-# ---------------------------------------------------------------------------
-
-#class JobAgeReporter(Reporter):
-#  """
-#  Class for reporting job age: a list of accounts and information about their
-#  current jobs with excessive wait times.
-#
-#  Format:
-#    ```
-#    oldjob = [
-#      {
-#        'account':  character string representing CC account name,
-#        'submitter': username of submitter,
-#        'resource': type of resource involved in record (ex. 'cpu', 'gpu'),
-#        'age':      number of hours waiting in system, maximal over job
-#                    ranges
-#        'summary':  JSON-encoded key-value information about record context
-#                    which may be of use to analyst in evaluation
-#      },
-#      ...
-#    ]
-#    ```
-#  """
-
+# register class with reporter registry
 registry.register('oldjobs', OldJob)
