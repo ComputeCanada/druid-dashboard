@@ -165,6 +165,22 @@ class Reporter:
   #  """
 
   @classmethod
+  def summarize_report(cls, cases):
+
+    claimed = 0
+    newbs = 0
+    existing = 0
+
+    for case in cases:
+      if case.claimant is not None:
+        claimed += 1
+      if case.ticks > 1:
+        existing += 1
+      else:
+        newbs += 1
+    return f"There are {len(cases)} cases ({newbs} new and {existing} existing).  {claimed} are claimed."
+
+  @classmethod
   def report(cls, cluster, epoch, data):
     """
     Report potential job and/or account issues.
