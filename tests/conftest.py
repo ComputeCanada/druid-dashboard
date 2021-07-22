@@ -50,9 +50,9 @@ def find_seed_update_scripts(basedir, targetver):
 
 class TestNotifier(Notifier):
 
+  # pylint: disable=unused-argument
   def _config(self, config):
     self._notifications = []
-    self._config = config
 
   def notify(self, message):
     self._notifications.append(message)
