@@ -9,6 +9,7 @@ from werkzeug.exceptions import BadRequest
 from manager.auth import login_required, admin_required
 from manager.log import get_log
 from manager.ldap import get_ldap
+from manager.errors import xhr_error, xhr_success
 from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.cluster import Cluster, get_clusters
@@ -29,38 +30,6 @@ bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 # ---------------------------------------------------------------------------
 #                                                                   HELPERS
 # ---------------------------------------------------------------------------
-
-# Response wrappers for REST calls.
-# See RFC 7807 (https://datatracker.ietf.org/doc/html/rfc7807)
-def xhr_response(status, msg, *args, title=None):
-  response = { 'status': status }
-  if msg:
-    response['detail'] = msg % args
-  if title:
-    response['title'] = title
-  return jsonify(response), status
-
-def xhr_error(status, msg, *args, title=None):
-  response = { 'status': status }
-  if msg:
-    if args:
-      #get_log().error(msg, args)
-      response['detail'] = msg % args
-    else:
-      get_log().error(msg)
-      response['detail'] = msg
-  if title:
-    response['title'] = title
-  return jsonify(response), status
-  # TODO: figure out why I couldn't swap the above with:
-  #return xhr_response(status, msg, args, title)
-  # ...it's something to do about args being reinterpreted or augmented
-
-def xhr_success(status=200, title=None):
-  response = { 'status': status }
-  if title:
-    response['title'] = title
-  return jsonify(response), status
 
 # Given dict and a list of keys, returns list of any keys not occurring in
 # dict.
@@ -363,8 +332,7 @@ def xhr_update_case(id):
     return xhr_error(500, "Unexpected exception: %s", e)
 
   try:
-    # TODO: Require cluster name in update, get from reportable, or return
-    # just the updated reportable
+    # TODO: Would be better to just return the updated reportable
     return jsonify(_reports_by_cluster(case.cluster))
   except Exception as e:
     return xhr_error(500, "Could not get update information: %s", str(e))
