@@ -148,7 +148,10 @@ def test_post_incomplete_burst_no_account(client):
     ]})
   assert response.status_code == 400
   print(response.data)
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'account\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Missing required field: \'account\'",
+    "status":400
+  }
 
 def test_post_incomplete_burst_no_firstjob(client):
 
@@ -165,7 +168,10 @@ def test_post_incomplete_burst_no_firstjob(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'firstjob\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Missing required field: \'firstjob\'",
+    "status":400
+  }
 
 def test_post_incomplete_burst_no_lastjob(client):
 
@@ -182,7 +188,10 @@ def test_post_incomplete_burst_no_lastjob(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'lastjob\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Missing required field: \'lastjob\'",
+    "status":400
+  }
 
 def test_post_incomplete_burst_no_pain(client):
 
@@ -199,7 +208,10 @@ def test_post_incomplete_burst_no_pain(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'pain\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Missing required field: \'pain\'",
+    "status":400
+  }
 
 def test_post_incomplete_burst_no_resource(client):
 
@@ -216,7 +228,10 @@ def test_post_incomplete_burst_no_resource(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'resource\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Missing required field: \'resource\'",
+    "status":400
+  }
 
 def test_post_incomplete_burst_no_summary(client):
 
@@ -233,7 +248,10 @@ def test_post_incomplete_burst_no_summary(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'summary\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Missing required field: \'summary\'",
+    "status":400
+  }
 
 def test_post_incomplete_burst_no_submitters(client):
 
@@ -250,7 +268,10 @@ def test_post_incomplete_burst_no_submitters(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Missing required field: \'submitters\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Missing required field: \'submitters\'",
+    "status":400
+  }
 
 def test_post_bad_burst_bad_resource(client):
 
@@ -268,7 +289,10 @@ def test_post_bad_burst_bad_resource(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type bursts: Invalid resource type: \'ppu\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type bursts: Invalid resource type: \'ppu\'",
+    "status":400
+  }
 
 def test_post_empty_burst_report(client):
   """

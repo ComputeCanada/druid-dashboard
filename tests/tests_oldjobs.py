@@ -31,7 +31,10 @@ def test_post_incomplete_oldjob_no_account(client):
     ]})
   assert response.status_code == 400
   print(response.data)
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type oldjobs: Missing required field: \'account\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type oldjobs: Missing required field: \'account\'",
+    "status": 400
+  }
 
 def test_post_incomplete_oldjob_no_age(client):
 
@@ -46,7 +49,10 @@ def test_post_incomplete_oldjob_no_age(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type oldjobs: Missing required field: \'age\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type oldjobs: Missing required field: \'age\'",
+    "status": 400
+  }
 
 def test_post_incomplete_oldjob_no_resource(client):
 
@@ -61,7 +67,10 @@ def test_post_incomplete_oldjob_no_resource(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type oldjobs: Missing required field: \'resource\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type oldjobs: Missing required field: \'resource\'",
+    "status": 400
+  }
 
 def test_post_incomplete_oldjob_no_summary(client):
 
@@ -76,7 +85,10 @@ def test_post_incomplete_oldjob_no_summary(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type oldjobs: Missing required field: \'summary\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type oldjobs: Missing required field: \'summary\'",
+    "status": 400
+  }
 
 def test_post_incomplete_oldjob_no_submitter(client):
 
@@ -91,7 +103,10 @@ def test_post_incomplete_oldjob_no_submitter(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type oldjobs: Missing required field: \'submitter\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type oldjobs: Missing required field: \'submitter\'",
+    "status": 400
+  }
 
 def test_post_bad_oldjob_bad_resource(client):
 
@@ -107,7 +122,10 @@ def test_post_bad_oldjob_bad_resource(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: Does not conform to API for report type oldjobs: Invalid resource type: \'ppu\'"}\n'
+  assert json.loads(response.data) == {
+    "detail": "Does not conform to API for report type oldjobs: Invalid resource type: 'ppu'",
+    "status": 400
+  }
 
 def test_post_empty_oldjob_report(client):
   """

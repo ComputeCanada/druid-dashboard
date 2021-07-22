@@ -7,6 +7,7 @@ import email.utils
 from flask import (
     Blueprint, request, abort, session, jsonify
 )
+from manager.errors import xhr_error
 from manager.log import get_log
 from manager.apikey import ApiKey
 from manager.component import Component
@@ -150,8 +151,7 @@ def api_get_case(id):
 
   case = Reportable.get(id)
   if not case:
-    # TODO: fix this; use AJAX error routines
-    return jsonify({"status": "No got one"}), 404
+    return xhr_error(404, "No case found matching ID %d", id)
   return jsonify(case)
 
 @bp.route('/cases/', methods=['GET'])
@@ -168,15 +168,18 @@ def api_get_cases():
   }
 
   reporter = None
+  report_specified = False
   for k, v in request.args.items():
     if k == "report":
+      report_specified = True
       reporter = registry.reporters[v]
     else:
       criteria[k] = v
 
+  if not report_specified:
+    return xhr_error(400, "Request did not specify report")
   if not reporter:
-    # TODO: fix this; use AJAX error routines
-    return jsonify({"status": "No srry"}), 400
+    return xhr_error(400, "Requested report not recognized")
 
   cases = reporter.view(criteria=criteria)
   return jsonify(cases), 200
@@ -264,9 +267,7 @@ def api_post_cases():
     try:
       summary = reporter.report(cluster, epoch, report_data)
     except InvalidApiCall as e:
-      errmsg = "Does not conform to API for report type {}: {}".format(report_name, e)
-      get_log().error(errmsg)
-      abort(400, errmsg)
+      return xhr_error(400, "Does not conform to API for report type %s: %s", report_name, e)
 
     # report that, um, report was received
     report(ReportReceived("{} on {}: {}".format(report_name, cluster, summary)))
