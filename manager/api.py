@@ -58,14 +58,11 @@ def api_key_required(view):
   @functools.wraps(view)
   def wrapped_view(**kwargs):
 
-    get_log().debug("In api_key_required()")
-
     # check for authorization header
     if 'Authorization' not in request.headers:
       errmsg = "Missing authorization header"
       get_log().info(errmsg)
       abort(401, errmsg)
-    get_log().debug("Authorization = %s", request.headers['Authorization'])
 
     # parse authorization header
     try:
@@ -136,7 +133,7 @@ def api_key_required(view):
     session['api_version'] = api_version
     session['api_epoch'] = now
 
-    get_log().debug("API key %s successfully authenticated", accesskey)
+    get_log().info("API key %s successfully authenticated", accesskey)
 
     return view(**kwargs)
 
@@ -151,7 +148,6 @@ def api_key_required(view):
 @api_key_required
 def api_get_case(id):
 
-  get_log().debug("In api.get_case(%d)", id)
   case = Reportable.get(id)
   if not case:
     # TODO: fix this; use AJAX error routines
@@ -166,8 +162,6 @@ def api_get_cases():
   burst pool.
   """
 
-  get_log().debug("In api.api_get_cases")
-
   cluster = Component(session['api_component']).cluster
   criteria = {
     'cluster': cluster
@@ -180,7 +174,6 @@ def api_get_cases():
     else:
       criteria[k] = v
 
-  get_log().debug("Have reporter: %s", reporter)
   if not reporter:
     # TODO: fix this; use AJAX error routines
     return jsonify({"status": "No srry"}), 400
@@ -226,11 +219,8 @@ def api_post_cases():
   The Manager still needs to save this with the record.
   """
 
-  get_log().debug("In api.post_bursts()")
-
   epoch = session['api_epoch']
   cluster = Component(session['api_component']).cluster
-  get_log().debug("Receiving report for cluster %s", cluster)
 
   # check basic request validity.  At this stage only verify there is data,
   # that the version is specified and it matches the expected version.
