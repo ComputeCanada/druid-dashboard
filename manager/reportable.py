@@ -265,7 +265,7 @@ class Reportable:
     """
     raise NotImplementedError
 
-  def _interpret_update(self, datum, was, now):
+  def interpret_update(self, datum, was, now):
     """
     Subclasses should implement this for datums they handle specifically.
     Common datums such as claimant and notes can be handled by the base
