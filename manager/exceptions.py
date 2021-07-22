@@ -29,6 +29,11 @@ class ResourceNotFound(AppException):
   Exception raised for when requested resources are not available.
   """
 
+class ResourceNotCreated(AppException):
+  """
+  Exception raised when resource cannot be created as requested.
+  """
+
 class UnsupportedDatabase(AppException):
   """
   Exception raised when application attempts to use unsupported database
