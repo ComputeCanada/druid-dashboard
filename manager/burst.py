@@ -4,7 +4,7 @@
 from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
-from manager.exceptions import InvalidApiCall
+from manager.exceptions import InvalidApiCall, DatabaseException
 from manager.cluster import Cluster
 from manager.reporter import Reporter, registry, just_job_id
 from manager.reportable import Reportable
@@ -42,63 +42,12 @@ SQL_INSERT_NEW = '''
   VALUES      (?, ?, ?, ?, ?, ?, ?)
 '''
 
-# TODO: generalize this into something similar
-SQL_FIND_EXISTING = '''
-  SELECT    B.id, B.submitters
-  FROM      bursts B
-  JOIN      reportables R
-  USING     (id)
-  WHERE     R.cluster = ? AND B.account = ?
-    AND     B.resource = ? AND ? <= B.lastjob
-'''
-
 SQL_UPDATE_BY_ID = '''
   UPDATE    bursts
   SET       pain = ?,
             lastjob = ?,
             submitters = ?
   WHERE     id = ?
-'''
-
-SQL_UPDATE_EXISTING = '''
-  UPDATE    bursts
-  SET       pain = ?,
-            lastjob = ?,
-            submitters = ?
-  FROM      reportables
-  WHERE     reportables.cluster = ? AND bursts.account = ?
-    AND     bursts.resource = ? AND ? <= bursts.lastjob
-'''
-
-
-SQL_UPDATE_STATE = '''
-  UPDATE  bursts
-  SET     state = ?
-  WHERE   id = ?
-'''
-
-SQL_UPDATE_CLAIMANT = '''
-  UPDATE  bursts
-  SET     claimant = ?
-  WHERE   id = ?
-'''
-
-SQL_CREATE = '''
-  INSERT INTO bursts
-              (cluster, account, resource, pain, firstjob, lastjob, submitters, summary, epoch)
-  VALUES      (?, ?, ?, ?, ?, ?, ?, ?, ?)
-'''
-
-SQL_ACCEPT = '''
-  UPDATE  bursts
-  SET     state='a'
-  WHERE   id = ?
-'''
-
-SQL_REJECT = '''
-  UPDATE  bursts
-  SET     state='r'
-  WHERE   id = ?
 '''
 
 SQL_GET_BURSTERS = '''
@@ -114,29 +63,6 @@ SQL_GET_BURSTERS = '''
                 WHERE cluster = ?
                 AND id IN (SELECT id FROM bursts)
             )
-'''
-
-SQL_GET_CURRENT_BURSTS = '''
-  SELECT    B.*, COUNT(N.id) AS notes
-  FROM      bursts B
-  JOIN      (
-              SELECT    cluster, MAX(epoch) AS epoch
-              FROM      bursts
-              GROUP BY  cluster
-            ) J
-  ON        B.cluster = J.cluster AND B.epoch = J.epoch
-  LEFT JOIN notes N
-  ON        (B.id = N.burst_id)
-  GROUP BY  B.id
-'''
-
-SQL_GET_CLUSTER_BURSTS = '''
-  SELECT    B.*, COUNT(N.id) AS notes
-  FROM      bursts B
-  LEFT JOIN notes N
-  ON        (B.id = N.burst_id)
-  WHERE     cluster = ? AND epoch = ? AND state='a'
-  GROUP BY  B.id
 '''
 
 # ---------------------------------------------------------------------------
@@ -360,7 +286,7 @@ class Burst(Reporter, Reportable):
       self._state = State(self._state)
       self._submitters = self._submitters.split()
 
-      # TODO: This is some jankety crap right here
+      # fix base class's interpretation
       self._jobrange = [self._firstjob, self._lastjob]
       del self.__dict__['_firstjob']
       del self.__dict__['_lastjob']
@@ -399,8 +325,9 @@ class Burst(Reporter, Reportable):
       self._jobrange[1], ' '.join(self._submitters)
     ))
     if not res:
-      get_log().error("Unable to create new Burst record")
-      raise BaseException("TODO: Unable to create new Burst record")
+      errmsg = "Unable to create new Burst record"
+      get_log().error(errmsg)
+      raise DatabaseException(errmsg)
 
   def update(self, update, who):
     if update.get('datum', None) == 'state':
