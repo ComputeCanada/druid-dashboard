@@ -1,7 +1,6 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621,raise-missing-from,import-outside-toplevel
 #
-import json
 from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
@@ -144,35 +143,6 @@ SQL_GET_CLUSTER_BURSTS = '''
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
-def _summarize_burst_report(bursts):
-
-  # counts
-  newbs = 0
-  existing = 0
-  claimed = 0
-  by_state = {
-    State.PENDING: 0,
-    State.ACCEPTED: 0,
-    State.REJECTED: 0
-  }
-
-  for burst in bursts:
-    if burst.ticks > 1:
-      existing += 1
-    else:
-      newbs += 1
-
-    if burst.claimant:
-      claimed += 1
-
-    by_state[State(burst.state)] += 1
-
-  return "{} new record(s) and {} existing.  In total there are {} pending, " \
-    "{} accepted, {} rejected.  {} have been claimed.".format(
-      newbs, existing, by_state[State.PENDING], by_state[State.ACCEPTED],
-      by_state[State.REJECTED], claimed
-    )
-
 # ---------------------------------------------------------------------------
 #                                                               burst class
 # ---------------------------------------------------------------------------
@@ -238,6 +208,36 @@ class Burst(Reporter, Reportable):
     }
 
   @classmethod
+  def summarize_report(cls, cases):
+
+    # counts
+    newbs = 0
+    existing = 0
+    claimed = 0
+    by_state = {
+      State.PENDING: 0,
+      State.ACCEPTED: 0,
+      State.REJECTED: 0
+    }
+
+    for burst in cases:
+      if burst.ticks > 1:
+        existing += 1
+      else:
+        newbs += 1
+
+      if burst.claimant:
+        claimed += 1
+
+      by_state[State(burst.state)] += 1
+
+    return "{} new record(s) and {} existing.  In total there are {} pending, " \
+      "{} accepted, {} rejected.  {} have been claimed.".format(
+        newbs, existing, by_state[State.PENDING], by_state[State.ACCEPTED],
+        by_state[State.REJECTED], claimed
+      )
+
+  @classmethod
   def report(cls, cluster, epoch, data):
     """
     Report potential job and/or account issues.
@@ -293,7 +293,7 @@ class Burst(Reporter, Reportable):
       ))
 
     # report event
-    return _summarize_burst_report(bursts)
+    return cls.summarize_report(bursts)
 
   @classmethod
   def view(cls, criteria):
@@ -358,7 +358,6 @@ class Burst(Reporter, Reportable):
       super().__init__(id=id, record=record)
       self._resource = Resource(self._resource)
       self._state = State(self._state)
-      self._summary = json.loads(self._summary) if self._summary else None
       self._submitters = self._submitters.split()
 
       # TODO: This is some jankety crap right here
@@ -456,5 +455,5 @@ class Burst(Reporter, Reportable):
       serialized['state_pretty'] = _(str(self._state))
     return serialized
 
-
+# register class with reporter registry
 registry.register('bursts', Burst)
