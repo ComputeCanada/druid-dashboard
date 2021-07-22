@@ -8,7 +8,7 @@ from manager.ldap import get_ldap
 from manager.cluster import Cluster
 from manager.otrs import ticket_url
 from manager.reporter import ReporterRegistry
-from manager.exceptions import DatabaseException, BadCall
+from manager.exceptions import DatabaseException, BadCall, ResourceNotFound
 from manager.history import History
 
 # ---------------------------------------------------------------------------
@@ -102,15 +102,17 @@ class Reportable:
 
   @classmethod
   def get(cls, id):
-    # TODO: this is extreme janketiness
-    # try to instantiate reportable's subclass by going through each in turn
+
+    # TODO: This could be improved by having a bidirectional link--such as
+    #       storing the subclass report type in the reportables table
+
     registry = ReporterRegistry.get_registry()
 
-    # pylint: disable=unused-variable
-    for (name, reportercls) in registry.reporters.items():
+    # try to instantiate reportable's subclass by going through each in turn
+    for reportercls in registry.reporters.values():
       try:
         return reportercls(id=id)
-      except DatabaseException:
+      except ResourceNotFound:
         pass
     get_log().error("Could not find reporter class for case ID %d", id)
     return None
@@ -139,8 +141,7 @@ class Reportable:
         SQL_LOOKUP.format(self.__class__._table), (id,)
       ).fetchone()
       if not rec:
-        # TODO: evaluate if this type of exception should be used here
-        raise DatabaseException("Could not find {} record with id {}".format(self.__class__.__name__, id))
+        raise ResourceNotFound("Could not find {} record with ID {}".format(self.__class__.__name__, id))
       self._load_from_rec(dict(rec))
     elif record and not id:
       # factory load
@@ -148,16 +149,14 @@ class Reportable:
     else:
       # new report--either a new record or overlaps with existing
       if not epoch or not cluster:
-        # TODO: proper exception
-        raise BaseException("Cannot create or update reportable without cluster and epoch")
+        raise BadCall("Cannot create or update Reportable without cluster and epoch")
 
       self._epoch = epoch
       self._cluster = cluster
       self._summary = json.loads(summary) if summary else None
       db = get_db()
 
-      # TODO: to handle updating summary, could add that here
-      # i.e. if self.update_existing():... but we don't have the record ID, sigh
+      # update existing record if possible, if not...
       if not self.update_existing():
 
         self._ticket_no = None
@@ -183,10 +182,14 @@ class Reportable:
 
   def find_existing_query(self):
     """
-    Returns partial query and terms to complete the SQL_FIND_EXISTING query,
-    above.
+    Returns partial query and terms to complete the SQL_FIND_EXISTING query.
+    Essentially, query and terms are used to complete the WHERE clause begun
+    with `WHERE cluster = ? AND`.
 
-    Returns: (query, terms) where:
+    Subclasses MUST implement this to enable detection of when a reported
+    record matches one already in the database.
+
+    Returns: (query, terms, cols) where:
       query (string) completes the WHERE clauses in SQL_FIND_EXISTING.
       terms (list) lists the search terms in the query,
       cols (list) lists the columns include in the selection
@@ -194,18 +197,30 @@ class Reportable:
     raise NotImplementedError
 
   def _update_existing_sub(self, rec):
+    """
+    Updates the subclass's partial record of an existing case.  Subclasses
+    must implement this to write to the database the appropriate values of
+    a case's latest report.
+
+    Args:
+      rec (dict or dict-like object depending on database type): details
+        about the existing record (NOT the updated data which was used to
+        initialize the case object).  The implementation decides what in the
+        record should update the local object, and updates the persistent
+        object with new data as appropriate.
+    """
     raise NotImplementedError
 
   def update_existing(self):
     """
-    TODO: this documentation is not correct
+    Handle updates to existing records.  This is called on initialization
+    to handle existing cases, as partially defined by subclasses (see
+    `find_exsiting_query()`).  Updates are also handled by subclass (see
+    `_update_existing_sub()`).
 
-    At this point self should be loaded with all the in-DB information.  The
-    only stuff that needs updating is the stuff that can change in the given
-    case.
-
-    Subclasses must implement this method to verify that an existing, current
-    report of a potential issue matching the key data doesn't already exist.
+    At this point this is called, self should be initialized with the
+    details provided, but this may need to be appropriately adjusted with
+    data from the matching case in the database.
 
     Returns: boolean indicating whether there was a record to update
     """
@@ -256,9 +271,11 @@ class Reportable:
     Common datums such as claimant and notes can be handled by the base
     class but others such as state must be handled by the subclass.
     """
-    # TODO: implement
+    # TODO: implement.  As mentioned above this should handle base class data
+    raise NotImplementedError
 
   def get_history(self):
+    # TODO: what is this
     # find all updates relating to this reportable and return... what?
     # printing off "I am self" to avoid lint warning for now
     get_log().debug("Updating history... (not really), I am %s", self.__class__.__name__)
