@@ -105,7 +105,7 @@ def test_post_report_no_version(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': None,
       }
     ]})
   assert response.status_code == 400
@@ -123,7 +123,7 @@ def test_post_report_old_version(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': None,
       }
     ]})
 
@@ -142,7 +142,7 @@ def test_post_incomplete_burst_no_account(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -160,7 +160,7 @@ def test_post_incomplete_burst_no_firstjob(client):
         'resource': 'cpu',
         'pain': 0.0,
         'lastjob': 2000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -177,7 +177,7 @@ def test_post_incomplete_burst_no_lastjob(client):
         'resource': 'cpu',
         'pain': 0.0,
         'firstjob': 1000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -194,7 +194,7 @@ def test_post_incomplete_burst_no_pain(client):
         'resource': 'cpu',
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -211,7 +211,7 @@ def test_post_incomplete_burst_no_resource(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -246,7 +246,7 @@ def test_post_incomplete_burst_no_submitters(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {}
+        'summary': None,
       }
     ]})
   assert response.status_code == 400
@@ -263,7 +263,7 @@ def test_post_bad_burst_bad_resource(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -292,7 +292,7 @@ def test_post_burst(client):
         'pain': 0.0,
         'firstjob': 1000,
         'lastjob': 2000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -337,7 +337,8 @@ def test_post_burst(client):
           'state': 'pending',
           'state_pretty': 'Pending',
           'submitters': ['userQ'],
-          'summary': {},
+          'summary': None,
+          'summary_pretty': '',
           'ticket': None,
           'ticket_id': None,
           'ticket_no': None,
@@ -359,7 +360,7 @@ def test_post_bursts(client, notifier):
         'pain': 1.0,
         'firstjob': 1005,
         'lastjob': 2005,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       },
       {
@@ -368,7 +369,7 @@ def test_post_bursts(client, notifier):
         'pain': 1.5,
         'firstjob': 1015,
         'lastjob': 2015,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -386,6 +387,7 @@ def test_get_bursts(client):
   response = api_get(client, '/api/cases/?report=bursts')
   assert response.status_code == 200
   x = json.loads(response.data)
+  # TODO: test results!
   assert x is not None
 
 def test_get_non_existent_burst(client):
@@ -410,7 +412,7 @@ def test_get_burst(client):
     'jobrange': [1005, 2005],
     'pain': 1.0,
     'state': 'pending',
-    'summary': {},
+    'summary': None,
     'ticket_id': None,
     'ticket_no': None,
     'ticks': 1,
@@ -435,7 +437,7 @@ def test_post_bursts_updated(client, notifier):
         'pain': 1.2,
         'firstjob': 1020,
         'lastjob': 2015,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
@@ -483,7 +485,7 @@ def test_post_bursts_with_updated_submitters(client, notifier):
         'pain': 1.0,
         'firstjob': 1005,
         'lastjob': 3000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       },
       {
@@ -492,7 +494,7 @@ def test_post_bursts_with_updated_submitters(client, notifier):
         'pain': 1.5,
         'firstjob': 1015,
         'lastjob': 2015,
-        'summary': {},
+        'summary': None,
         'submitters': ['userX']
       }
     ]})
@@ -539,7 +541,7 @@ def test_post_bursts_with_other_updates(client, notifier):
         'pain': 1.0,
         'firstjob': 1005,
         'lastjob': 3000,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       },
       {
@@ -548,7 +550,7 @@ def test_post_bursts_with_other_updates(client, notifier):
         'pain': 1.5,
         'firstjob': 1015,
         'lastjob': 2015,
-        'summary': {},
+        'summary': None,
         'submitters': ['userQ']
       }
     ]})
