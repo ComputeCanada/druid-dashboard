@@ -4,14 +4,15 @@
 import os
 import pytest
 from tests_05_clusters import *
+from tests_10_components import *
+from tests_15_apikeys import *
+from tests_20_api import *
 from tests_cli import *
 from tests_status import *
 from tests_app import *
-from tests_15_apikeys import *
-from tests_20_api import *
 from tests_authentication import *
 from tests_bursts import *
-from tests_10_components import *
+from tests_oldjobs import *
 from tests_dashboard import *
 from tests_ajax import *
 from tests.ldapstub import LdapStub
