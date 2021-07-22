@@ -55,6 +55,11 @@ def servererror(error):
 #                                                                    HELPERS
 # ---------------------------------------------------------------------------
 
+def items_except(d, unkeys):
+  for k, v in d.items():
+    if k not in unkeys:
+      yield k, v
+
 def api_key_required(view):
   @functools.wraps(view)
   def wrapped_view(**kwargs):
@@ -144,7 +149,6 @@ def api_key_required(view):
 #                                                                 BURST API
 # ---------------------------------------------------------------------------
 
-# TODO: evaluate necessity hereof
 @bp.route('/cases/<int:id>', methods=['GET'])
 @api_key_required
 def api_get_case(id):
@@ -245,24 +249,12 @@ def api_post_cases():
   status = 200
 
   # run through reports.  For each, invoke appropriate class
-  # TODO: two ways to make this easier to read:
-  # 1. Just delete 'version' from data.  Possibly not as efficient as next,
-  #    but easy to read
-  # 2. Create generator like so:
-  #    >>> def not_three(d):
-  #    ...   for x in d.keys():
-  #    ...     if x != 3:
-  #    ...       yield((x, d[x]))
-  #    Then:
-  #    for (n, s) in not_three(d): etc.
-  for (report_name, report_data) in { x: data[x] for x in data.keys() if x != 'version' }.items():
+  for report_name, report_data in items_except(data, ('version',)):
 
     try:
       reporter = registry.reporters[report_name]
     except KeyError as e:
-      errmsg = "Unrecognized report type: {}".format(report_name)
-      get_log().error(errmsg)
-      abort(400, errmsg)
+      return xhr_error(400, "Unrecognized report type: %s", report_name)
 
     try:
       summary = reporter.report(cluster, epoch, report_data)
