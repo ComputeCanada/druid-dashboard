@@ -16,7 +16,7 @@ from manager.cluster import Cluster, get_clusters
 from manager.component import get_components, add_component, delete_component
 from manager.burst import Burst
 from manager.template import Template
-from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, DatabaseException
+from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, ResourceNotCreated
 from manager.history import History
 from manager.reporter import registry
 from manager.reportable import Reportable
@@ -217,8 +217,7 @@ def xhr_create_clusters():
 
   try:
     Cluster(id=id, name=name)
-  except DatabaseException:
-    # TODO: This assumes the exception is a certain type of database error
+  except ResourceNotCreated:
     return xhr_error(400, "Could not create cluster record")
 
   return xhr_success(201)
@@ -264,10 +263,8 @@ def xhr_delete_component(id):
   get_log().debug("Deleting component %s", id)
   try:
     delete_component(id)
-  except Exception as e:
-    # TODO: Need to differentiate between 400 (unknown component?) or 500
-    # (database failure)
-    return xhr_error(404, "Exception in deleting component: %s", e)
+  except ResourceNotFound as e:
+    return xhr_error(404, "Did not find component with ID %s (%s)", id, e)
 
   return xhr_success(200)
 

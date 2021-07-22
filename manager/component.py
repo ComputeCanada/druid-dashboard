@@ -3,7 +3,7 @@
 #
 from datetime import date
 from manager.db import get_db
-from manager.exceptions import DatabaseException, BadCall
+from manager.exceptions import ResourceNotFound, DatabaseException, BadCall
 from manager.apikey import most_recent_use
 
 # ---------------------------------------------------------------------------
@@ -74,7 +74,7 @@ def delete_component(id):
   db = get_db()
   res = db.execute(SQL_DELETE, (id,))
   if res.rowcount != 1:
-    raise DatabaseException("No such component exists")
+    raise ResourceNotFound("Could not find component with ID %s" % (id,))
   db.commit()
 
 

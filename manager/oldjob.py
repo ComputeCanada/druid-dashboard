@@ -4,7 +4,7 @@
 from flask_babel import _
 from manager.log import get_log
 from manager.db import get_db, DbEnum
-from manager.exceptions import InvalidApiCall
+from manager.exceptions import InvalidApiCall, ResourceNotCreated
 from manager.reportable import Reportable
 from manager.reporter import Reporter, registry
 
@@ -196,7 +196,7 @@ class OldJob(Reporter, Reportable):
       self._id, self._account, self._submitter, self._resource, self._age
     ))
     if not res:
-      raise BaseException("TODO: Unable to create new OldJob record")
+      raise ResourceNotCreated("Unable to create OldJob record")
 
   @property
   def resource(self):

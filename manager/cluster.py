@@ -2,7 +2,7 @@
 # pylint: disable=W0621
 #
 from manager.db import get_db
-from manager.exceptions import ResourceNotFound, DatabaseException
+from manager.exceptions import ResourceNotFound, ResourceNotCreated
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -65,9 +65,7 @@ class Cluster():
       try:
         get_db().execute(SQL_CREATE, (id, name))
       except Exception as e:
-        # TODO: Differentiate between server errors and problems with query
-        # (in this case, duplicate records)
-        raise DatabaseException(e) from e
+        raise ResourceNotCreated(e) from e
       get_db().commit()
       self._id = id
       self._name = name

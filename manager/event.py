@@ -5,6 +5,7 @@ from flask import current_app
 from .notifier import get_notifiers
 from .ldap import get_ldap
 from .log import get_log
+from .exceptions import ImpossibleException
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
@@ -32,7 +33,7 @@ class Event():
   @property
   def id(self):
     if self._id is None:
-      raise Exception('TODO: proper exception (there is no ID defined on this object; was it just created?')
+      raise ImpossibleException('There is no ID defined on this object; was it just created?')
     return self._id
 
   @property

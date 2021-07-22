@@ -54,8 +54,7 @@ class ReporterRegistry:
 
   def register(self, name, reporter):
     if name in self._reporters.keys():
-      # TODO: better exception
-      raise BaseException("A reporter has already been registered with that name: {}".format(name))
+      raise AppException("A reporter has already been registered with that name: {}".format(name))
     self._reporters[name] = reporter
     get_log().info("Registered reporter for %s", name)
 
