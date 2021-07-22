@@ -411,8 +411,75 @@ def test_get_bursts(client):
   response = api_get(client, '/api/cases/?report=bursts')
   assert response.status_code == 200
   x = json.loads(response.data)
-  # TODO: test results!
-  assert x is not None
+  print(x)
+  del x['results'][0]['epoch']
+  del x['results'][1]['epoch']
+  del x['results'][2]['epoch']
+
+  # this returns 3 records even though only two are "current"--though the
+  # epochs may well match, bursts 2 and 3 arrived after 1 and don't overlap
+  assert x['results'] == [
+    {
+      'account': 'def-dleske',
+      'resource': 'cpu',
+      'resource_pretty': 'CPU',
+      'claimant': None,
+      'cluster': 'testcluster',
+      'id': 1,
+      'jobrange': [1000, 2000],
+      'pain': 0.0,
+      'state': 'pending',
+      'state_pretty': 'Pending',
+      'summary': None,
+      'summary_pretty': '',
+      'ticket': None,
+      'ticket_id': None,
+      'ticket_no': None,
+      'ticks': 1,
+      'submitters': ['userQ'],
+      'other': {'notes': 0}
+    },
+    {
+      'account': 'def-dleske-aa',
+      'resource': 'cpu',
+      'resource_pretty': 'CPU',
+      'claimant': None,
+      'cluster': 'testcluster',
+      'id': 2,
+      'jobrange': [1005, 2005],
+      'pain': 1.0,
+      'state': 'pending',
+      'state_pretty': 'Pending',
+      'summary': None,
+      'summary_pretty': '',
+      'ticket': None,
+      'ticket_id': None,
+      'ticket_no': None,
+      'ticks': 1,
+      'submitters': ['userQ'],
+      'other': {'notes': 0}
+    },
+    {
+      'account': 'def-bobaloo-aa',
+      'resource': 'cpu',
+      'resource_pretty': 'CPU',
+      'claimant': None,
+      'cluster': 'testcluster',
+      'id': 3,
+      'jobrange': [1015, 2015],
+      'pain': 1.5,
+      'state': 'pending',
+      'state_pretty': 'Pending',
+      'summary': None,
+      'summary_pretty': '',
+      'ticket': None,
+      'ticket_id': None,
+      'ticket_no': None,
+      'ticks': 1,
+      'submitters': ['userQ'],
+      'other': {'notes': 0}
+    }
+  ]
 
 def test_get_non_existent_burst(client):
 

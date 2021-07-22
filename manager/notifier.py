@@ -40,7 +40,6 @@ def list_notifiers():
   return db.execute(SQL_LIST_NOTIFIERS).fetchall()
 
 def get_notifiers():
-  # TODO: why can't I use g.notifiers for this?
   # pylint: disable=global-statement
   global notifiers_inited
   if not notifiers_inited:
