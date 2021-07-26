@@ -177,9 +177,11 @@ def test_get_events(client):
       'caseID': 2,
       'analyst': 'tst-003',
       'analyst_pretty': 'User 1',
-      'datum': 'state',
-      'was': 'p',
-      'now': 'r',
+      'change': {
+        'datum': 'state',
+        'was': 'pending',
+        'now': 'rejected'
+      },
       'text': 'Hey how are ya',
       'type': 'History'
     },
@@ -190,9 +192,7 @@ def test_get_events(client):
       'analyst_pretty': 'User 1',
       'text': 'I just dinnae aboot this guy',
       'type': 'History',
-      'datum': None,
-      'was': None,
-      'now': None
+      'change': None
     },
     {
       'id': 2,
@@ -200,9 +200,11 @@ def test_get_events(client):
       'analyst': 'tst-003',
       'analyst_pretty': 'User 1',
       'text': 'This is not the way',
-      'datum': 'claimant',
-      'was': None,
-      'now': 'tst-003',
+      'change': {
+        'datum': 'claimant',
+        'was': None,
+        'now': 'tst-003'
+      },
       'type': 'History'
     },
     {
@@ -211,9 +213,11 @@ def test_get_events(client):
       'analyst': 'tst-003',
       'analyst_pretty': 'User 1',
       'text': 'Reverting to &lt;b&gt;pending&lt;/b&gt;',
-      'datum': 'state',
-      'was': 'r',
-      'now': 'p',
+      'change': {
+        'datum': 'state',
+        'was': 'rejected',
+        'now': 'pending'
+      },
       'type': 'History'
     },
   ]
