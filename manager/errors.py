@@ -63,7 +63,7 @@ def xhr_error(status, msg, *args, title=None):
   response = { 'status': status }
   if msg:
     if args:
-      #get_log().error(msg, args)
+      get_log().error(msg, *args)
       response['detail'] = msg % args
     else:
       get_log().error(msg)
