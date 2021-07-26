@@ -2,7 +2,6 @@ DROP TABLE IF EXISTS schemalog;
 DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
-DROP TABLE IF EXISTS notes;
 DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
@@ -124,8 +123,6 @@ CREATE TABLE history (
   analyst CHAR(7),
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   note TEXT,
-  datum TEXT,
-  was TEXT,
-  now TEXT,
+  change TEXT,
   FOREIGN KEY (case_id) REFERENCES reportables(id)
 );
