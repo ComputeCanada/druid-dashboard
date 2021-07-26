@@ -101,7 +101,7 @@ function displayClusters(clusters, stats, jqXHR) {
 function requestReports(cluster) {
   var status_id = status(`Retrieving reports for ${cluster_lookup[cluster]}...`);
   $.ajax({
-    url: `/xhr/reports/?cluster=${cluster}`,
+    url: `/xhr/cases/?cluster=${cluster}`,
     method: 'GET',
     success: function(reports, status, jqXHR) {
       status_clear(status_id);
