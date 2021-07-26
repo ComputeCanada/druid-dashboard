@@ -117,11 +117,11 @@ class Reporter:
       }
     )
     desc['cols'].extend([
-      { 'datum': 'state',
+      { 'datum': 'summary',
         'searchable': True,
-        'sortable': True,
+        'sortable': False,
         'type': 'text',
-        'title': _('State')
+        'title': _('Summary')
       },
       { 'datum': 'claimant',
         'searchable': True,

@@ -124,11 +124,11 @@ class Burst(Reporter, Reportable):
           'title': _('Pain'),
           'help': _('Numerical indicator of hopelessness inherent in certain job contexts')
         },
-        { 'datum': 'summary',
-          'searchable': True,
-          'sortable': False,
-          'type': 'text',
-          'title': _('Summary')
+        { 'datum': 'state',
+            'searchable': True,
+            'sortable': True,
+            'type': 'text',
+            'title': _('State')
         }
       ]
     }
