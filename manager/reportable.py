@@ -153,7 +153,7 @@ class Reportable:
 
       self._epoch = epoch
       self._cluster = cluster
-      self._summary = json.loads(summary) if summary else None
+      self._summary = summary
       db = get_db()
 
       # update existing record if possible, if not...

@@ -445,3 +445,36 @@ def test_post_oldjobs_with_other_updates(client, notifier):
     'beam-dev: ReportReceived: oldjobs on testcluster: There are 1 cases (0 new and 1 existing).  0 are claimed.',
     'beam-dev: ReportReceived: oldjobs on testcluster: There are 2 cases (0 new and 2 existing).  1 are claimed.'
   ]
+
+@pytest.mark.dependency(depends=['oldjobs_posted'])
+def test_post_oldjobs_updated_with_summary(client):
+
+  response = api_post(client, '/api/cases/', {
+    'version': 2,
+    'oldjobs': [
+      {
+        'account': 'def-dleske',
+        'resource': 'cpu',
+        'age': 123,
+        'summary': {
+          'thing': 'thong'
+        },
+        'submitter': 'userQ'
+      }
+    ]})
+  assert response.status_code == 201
+
+  # now login and retrieve oldjob candidates as manager would
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'admin1'})
+  assert response.status_code == 302
+  response = client.get('/xhr/cases/?cluster=testcluster')
+  assert response.status_code == 200
+  parsed = json.loads(response.data)
+  print(parsed)
+
+  # test we see what we should and not what we shouldn't
+  assert parsed['cluster'] == 'testcluster'
+  for oldjob in parsed['oldjobs']['results']:
+    if oldjob['account'] == 'def-dleske':
+      # assert summary is valid
+      assert oldjob['summary'] == { 'thing': 'thong' }
