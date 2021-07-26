@@ -663,3 +663,25 @@ def test_post_bursts_with_other_updates(client, notifier):
     'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.'
   assert notifier.notifications[5] == \
     'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 1 pending, 0 accepted, 1 rejected.  1 have been claimed.'
+
+def test_post_unknown_report_type(client):
+
+  response = api_post(client, '/api/cases/', {
+    'version': 2,
+    'flarb': [
+      {
+        'account': 'def-dleske',
+        'resource': 'ppu',
+        'pain': 0.0,
+        'firstjob': 1000,
+        'lastjob': 2000,
+        'summary': None,
+        'submitters': ['userQ']
+      }
+    ]})
+  assert response.status_code == 400
+  print(json.loads(response.data))
+  assert json.loads(response.data) == {
+    "detail": "Unrecognized report type: flarb",
+    "status": 400
+  }
