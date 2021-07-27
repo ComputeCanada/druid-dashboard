@@ -26,7 +26,7 @@ function displayClusters(clusters, stats, jqXHR) {
   });
 
   // initialize preferences
-  initializePreferences(clusters_sorted);
+  initializeClusterPreferences(clusters_sorted, report_specs);
 
   // get tab parent containers
   var tabsContainer = document.getElementById('tabs_container');
@@ -72,12 +72,12 @@ function displayClusters(clusters, stats, jqXHR) {
     triggerEl.addEventListener('click', function (event) {
       event.preventDefault();
       tabTrigger.show();
+      setActiveCluster(event.target.dataset.cluster);
     });
   });
 
   // display cluster tab from preferences
-  activeCluster = prefs['cluster'];
-
+  activeCluster = getActiveCluster();
   var activeTabId = `${activeCluster}-tab`;
   var activeTab = document.getElementById(activeTabId);
   activeTab.classList.add('active');
@@ -154,7 +154,7 @@ function createReportTable(cluster, report, results) {
   console.log("report = " + report);
 
   // get ordering from preferences
-  var ordering = prefs['clusters'][cluster]['sorting'][report];
+  var ordering = getReportSortOrder(cluster, report);
 
   // create and populate the table
   $(`#collapse-${cluster}-${report}`).html(`
@@ -166,15 +166,13 @@ function createReportTable(cluster, report, results) {
   // set up ordering update handler
   $(`#${report}_table_${cluster}`).on('order.dt', function(event) {
     var order = $(event.target).DataTable().order();
-    prefs['clusters'][cluster]['sorting'][report] = order;
-    updatePreferences();
+    setReportSortOrder(cluster, report, order);
   });
 }
 
 
 function displayReports(reports, status, jqXHR) {
 
-  // we don't go by active tab in case there's a race condition
   var cluster = reports['cluster'];
 
   // get main accordion container
@@ -224,12 +222,12 @@ function displayReports(reports, status, jqXHR) {
     }
 
     // determine which report should be expanded by default
-    var expanded = prefs['clusters'][cluster]['expanded'];
+    var expanded = getActiveReport(cluster);
     if (!expanded || report_names.indexOf(expanded) == -1) {
-      error(`Resetting preferred report because report ${expanded} does not exist for cluster ${cluster_lookup[cluster]}`);
+      // TODO: should we flag this to user?
+      //error(`Resetting preferred report because report ${expanded} does not exist for cluster ${cluster_lookup[cluster]}`);
       expanded = report_names[0];
-      prefs['clusters'][cluster]['expanded'] = expanded;
-      updatePreferences();
+      setActiveReport(cluster, expanded);
     }
 
     // expand that cluster's accordion
@@ -245,8 +243,7 @@ function displayReports(reports, status, jqXHR) {
     accordionParent.addEventListener('show.bs.collapse', function(event) {
       var thisCluster = event.target.dataset.ccfCluster;
       var defaultReport = event.target.dataset.ccfReport;
-      prefs['clusters'][thisCluster]['expanded'] = defaultReport;
-      updatePreferences();
+      setActiveReport(thisCluster, defaultReport);
     });
   }
 }
@@ -307,7 +304,7 @@ function populateReportTable(cluster, report, data, ordering) {
       { visible: false, targets: [idRowIdx] }
     ],
     columns: columnNames,
-    order: prefs['clusters'][cluster]['sorting'][report],
+    order: getReportSortOrder(cluster, report),
     rowId: function(row) { return cluster + "_" + report + "_" + row[idRowIdx] }
   });
 }

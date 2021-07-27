@@ -7,6 +7,7 @@
 {% block extra %}
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
   <script src="{{ url_for('static', filename='alerts.js') }}"></script>
+  <script src="{{ url_for('static', filename='prefs.js') }}"></script>
   <script src="{{ url_for('static', filename='reports.js') }}"></script>
   {# ---- Disabling, but will want to consider at some point
   <script src="{{ url_for('static', filename='notifications.js') }}"></script>
@@ -26,13 +27,6 @@ var report_specs = {{ reports|tojson|safe }};
 // for lookup for cluster names
 var cluster_lookup = {};
 
-// get user preferences
-var prefsJSON = Cookies.get("prefs");
-var prefs = null;
-if (prefsJSON) {
-  prefs = JSON.parse(prefsJSON);
-}
-
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
 var i18n_texts = {
@@ -45,63 +39,6 @@ $("#error").hide();
 $("#error").click(function(e) {
   $("#error").hide();
 });
-
-function initializePreferences(clusters) {
-  /* prefs:
-   *   cluster: graham
-   *   clusters:
-   *     graham:
-   *       expanded: job age
-   *       sorting:
-   *         bursts: [3, 'desc']
-   *         job age: [4, 'desc']
-   *     cedar:
-   *       expanded: bursts
-   *       sorting:
-   *         bursts: [3, 'desc']
-   */
-
-  // only initialize if there weren't any to load previously
-  if (prefs) {
-    return;
-  }
-
-  // basic structure
-  prefs = {
-    'cluster': clusters[0]['id'],
-    'clusters': {}
-  };
-
-  // create lookup map
-  clusters.forEach(function(x) {
-      prefs['clusters'][x['id']] = x;
-    });
-
-  // add each report to sorting list for each cluster
-  Object.keys(report_specs).forEach(function(report_name, i1, a1) {
-
-    var report = report_specs[report_name];
-
-    // by default sort descending on the trouble metric
-    var troubleIdx = report['cols'].findIndex(function(x) {
-      return report['metric'] == x['datum'];
-    });
-    for (const cluster of Object.values(prefs['clusters'])) {
-      if (! cluster['sorting']) {
-        cluster['sorting'] = {};
-      }
-      cluster['sorting'][report_name] = [troubleIdx, 'desc'];
-    }
-  });
-
-  // we don't write the prefs to cookie yet because it'll get updated by other
-  // stuff shortly, so it's okay to just leave in memory
-}
-
-function updatePreferences() {
-  var prefsJSON = JSON.stringify(prefs);
-  Cookies.set('prefs', prefsJSON, { 'SameSite': 'strict' });
-}
 
 function updateTicket(ticket, status, jqXHR) {
   var el_id = `#ticket_${ticket.burst_id}`;
@@ -221,7 +158,7 @@ function updateReport(updates, options = {
   status_id = status(options.action);
   // make request
   $.ajax({
-    url: '/xhr/reports/',
+    url: '/xhr/cases/',
     method: 'PATCH',
     data: JSON.stringify(updates),
     contentType: 'application/json',
@@ -247,13 +184,13 @@ function createNote(id, account) {
   ];
 
   // process update
-  updateBursts(updates, {
+  updateCases(updates, {
     action: "Creating note for candidate...",
     error: "Failed to create note"
   });
 }
 
-function stealBurst(id, account) {
+function stealCase(id, account) {
 
   // set up update request.  'claimant' is set to blank string so it's filled
   // in with logged-in user on server side
@@ -266,13 +203,13 @@ function stealBurst(id, account) {
   ]
 
   // process update
-  updateBursts(updates, {
+  updateCases(updates, {
     action: "Stealing burst candidate...",
     error: "Failed to steal burst candidate"
   });
 }
 
-function claimBurst(id, account) {
+function claimCase(id, account) {
 
   // set up update request.  'claimant' is set to blank string so it's filled
   // in with logged-in user on server side
@@ -285,13 +222,13 @@ function claimBurst(id, account) {
   ]
 
   // process update
-  updateBursts(updates, {
+  updateCases(updates, {
     action: "Claiming burst candidate...",
     error: "Failed to claim burst candidate"
   });
 }
 
-function releaseBurst(id, account) {
+function releaseCase(id, account) {
 
   // set up update request
   var updates = [
@@ -303,13 +240,13 @@ function releaseBurst(id, account) {
   ]
 
   // process update
-  updateBursts(updates, {
+  updateCases(updates, {
     action: "Releasing burst candidate...",
     error: "Failed to claim candidate"
   });
 }
 
-function rejectBurst(id, account) {
+function rejectCase(id, account) {
 
   // set up update request.  'claimant' is set to blank string so it's filled
   // in with logged-in user on server side
@@ -322,13 +259,13 @@ function rejectBurst(id, account) {
   ]
 
   // process update
-  updateBursts(updates, {
+  updateCases(updates, {
     action: "Rejecting burst candidate...",
     error: "Failed to reject candidate"
   });
 }
 
-function acceptBurst(id, account) {
+function acceptCase(id, account) {
 
   // set up update request.  'claimant' is set to blank string so it's filled
   // in with logged-in user on server side
@@ -341,7 +278,7 @@ function acceptBurst(id, account) {
   ]
 
   // process update
-  updateBursts(updates, {
+  updateCases(updates, {
     action: "Accepting burst candidate...",
     error: "Failed to accept candidate"
   });
@@ -410,7 +347,7 @@ function eventsToHtml(events) {
 }
 
 
-function showBurstHistory(burstID) {
+function showCaseHistory(burstID) {
   // show status
   status_id = status("Retrieving events...");
 
@@ -642,7 +579,7 @@ $(document).ready(function() {
                   group, as necessary.',
           textareaRequired: true,
           submit: 'Steal'});
-        fn = 'stealBurst';
+        fn = 'stealCase';
         break;
       case "claim":
         initModal({
@@ -651,7 +588,7 @@ $(document).ready(function() {
                   the analysis of this job set and with the research group, as \
                   necessary.',
           submit: 'Claim'});
-        fn = 'claimBurst';
+        fn = 'claimCase';
         break;
       case "release":
         initModal({
@@ -659,7 +596,7 @@ $(document).ready(function() {
           intro: 'Release the burst candidate so that another analyst knows to\
                   look into it or contact the researcher for followup.',
           submit: 'Release'});
-        fn = 'releaseBurst';
+        fn = 'releaseCase';
         break;
       case 'reject':
         initModal({
@@ -668,7 +605,7 @@ $(document).ready(function() {
                   of interest for bursting.",
           textareaRequired: true,
           submit: 'Reject'});
-        fn = 'rejectBurst';
+        fn = 'rejectCase';
         break;
       case 'accept':
         initModal({
@@ -676,7 +613,7 @@ $(document).ready(function() {
           intro: 'By accepting this burst candidate you are confirming this \
                   account is eligible for elevated access to resources.',
           submit: 'Accept'});
-        fn = 'acceptBurst';
+        fn = 'acceptCase';
         break;
       case 'note':
         initModal({
@@ -707,7 +644,7 @@ $(document).ready(function() {
     modalBodyEl.innerHTML = "<p><i>Loading history...</i></p>";
 
     // update modal
-    showBurstHistory(burst_id);
+    showCaseHistory(burst_id);
   });
 
 });
@@ -719,7 +656,7 @@ $(document).ready(function() {
 -------------------------------------------------------------------------- #}
 {% block title %}{{ _('Dashboard') }}{% endblock %}
 {% block header %}
-  <h1>Burst reports</h1>
+  <h1>Case reports</h1>
 {% endblock %}
 
 {# --------------------------------------------------------------------------
@@ -861,7 +798,7 @@ a note.
   <div class='modal-dialog modal-dialog-centered'>
     <div class='modal-content'>
       <div class='modal-header'>
-        <h5 class='modal-title' id='historyModalLabel'>Burst candidate history</h5>
+        <h5 class='modal-title' id='historyModalLabel'>Case candidate history</h5>
         <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
       </div>
       <div class='modal-body' id='historyModalBody'>
