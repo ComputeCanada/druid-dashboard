@@ -233,7 +233,7 @@ def upgrade_db_command():
     else:
       status_text = "DB schema at {}, code schema at {}, no action taken".format(actual, expected)
     #status_code = 0
-  except exceptions.UnupgradableDatabase as e:
+  except exceptions.ImpossibleSchemaUpgrade as e:
     status_text = str(e)
     #status_code = 1
 
