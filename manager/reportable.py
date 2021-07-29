@@ -366,8 +366,12 @@ class Reportable:
     """
     raise NotImplementedError
 
-  def serialize(self, pretty=False):
-    get_log().debug("Serializing myself: %s (pretty = %s) dict = %s", self.__class__.__name__, pretty, self.__dict__)
+  def serialize(self, pretty=False, options=None):
+
+    #get_log().debug("Serializing myself: %s (pretty = %s) dict = %s",
+    #  self.__class__.__name__, pretty, self.__dict__
+    #)
+
     dct = {
       key.lstrip('_'): val
       for (key, val) in self.__dict__.items()
@@ -389,6 +393,7 @@ class Reportable:
         dct['ticket'] = None
 
       # turn summary into table
-      dct['summary_pretty'] = dict_to_table(self._summary)
+      if self._summary and options is not None and not options.get('skip_summary_prettification', False):
+        dct['summary_pretty'] = dict_to_table(self._summary)
 
     return dct
