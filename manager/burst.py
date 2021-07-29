@@ -7,7 +7,7 @@ from manager.log import get_log
 from manager.exceptions import InvalidApiCall, DatabaseException
 from manager.cluster import Cluster
 from manager.reporter import Reporter, registry, just_job_id
-from manager.reportable import Reportable
+from manager.reportable import Reportable, dict_to_table
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -68,6 +68,20 @@ SQL_GET_BURSTERS = '''
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
+
+def prettify_summary(original):
+  field_prettification = {
+    'num_jobs': _('Job count'),
+    'old_pain': _('Old pain')
+   }
+  value_prettification = {
+    'num_jobs': '%d',
+    'old_pain': '%.2f'
+  }
+  return dict_to_table({
+    field_prettification.get(x, x): value_prettification.get(x, '%s') % (y)
+    for x, y in original.items()
+  })
 
 # ---------------------------------------------------------------------------
 #                                                               burst class
@@ -384,11 +398,20 @@ class Burst(Reporter, Reportable):
       return dict(basic, **self._summary)
     return basic
 
-  def serialize(self, pretty=False):
-    serialized = super().serialize(pretty=pretty)
+  def serialize(self, pretty=False, options=None):
+    # have superclass start serialization but we'll handle the summary
+    serialized = super().serialize(
+      pretty=pretty,
+      options={'skip_summary_prettification': True}
+    )
+
     if pretty:
       serialized['resource_pretty'] = _(str(self._resource))
       serialized['state_pretty'] = _(str(self._state))
+      serialized['pain_pretty'] = "%.2f" % (self._pain)
+      if self._summary:
+        serialized['summary_pretty'] = prettify_summary(self._summary)
+
     return serialized
 
 # register class with reporter registry
