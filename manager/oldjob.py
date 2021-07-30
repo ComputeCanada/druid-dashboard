@@ -23,12 +23,6 @@ SQL_INSERT_NEW = '''
   VALUES      (?, ?, ?, ?, ?)
 '''
 
-SQL_FIND_EXISTING = '''
-  SELECT    id
-  FROM      oldjobs
-  WHERE     account = ? AND submitter = ? AND resource = ? AND age <= ?
-'''
-
 # TODO: if a report comes in for this account, submitter and resource with
 # age greater than what's already in the database, it will look like the same
 # stuff.  Need to use a job range, or something else.  Using the oldest job
@@ -192,10 +186,14 @@ class OldJob(Reporter, Reportable):
     )
 
   def insert_new(self):
-    res = get_db().execute(SQL_INSERT_NEW, (
-      self._id, self._account, self._submitter, self._resource, self._age
-    ))
-    if not res:
+    try:
+      get_db().execute(SQL_INSERT_NEW, (
+        self._id, self._account, self._submitter, self._resource, self._age
+      ))
+    # TODO: develop normalized exceptions for different database types
+    #       except UniqueViolation:
+    except Exception:
+      get_log().debug("Could not create OldJob record: %s", self.__dict__)
       raise ResourceNotCreated("Unable to create OldJob record")
 
   def interpret_update(self, datum, was, now):
@@ -215,8 +213,8 @@ class OldJob(Reporter, Reportable):
   def contact(self):
     return self._submitter
 
-  def serialize(self, pretty=False):
-    serialized = super().serialize(pretty=pretty)
+  def serialize(self, pretty=False, options=None):
+    serialized = super().serialize(pretty=pretty, options=options)
     if pretty:
       serialized['resource_pretty'] = str(self._resource)
     return serialized
