@@ -9,8 +9,8 @@ import pytest
 #                                                  CLUSTER MANAGEMENT TESTS
 # ---------------------------------------------------------------------------
 
-def test_get_no_clusters(client):
-
+def test_get_no_clusters(empty_client):
+  client = empty_client
   # log in
   response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
   assert response.status_code == 200
