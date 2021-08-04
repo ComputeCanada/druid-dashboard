@@ -401,8 +401,7 @@ def test_post_oldjobs_with_other_updates(client, notifier):
   data = [
     {
       'note': 'This is not the way',
-      'datum': 'claimant',
-      'value': 'tst-003',
+      'claimant': 'tst-003',
       'timestamp':'2019-03-31 10:35 AM'
     }
   ]

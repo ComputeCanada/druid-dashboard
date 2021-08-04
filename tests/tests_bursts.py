@@ -55,6 +55,7 @@ def test_get_cases_xhr(client):
         },
         {
           'account': 'def-bobaloo-aa',
+          'actions': [{'id': 'reject', 'label': 'Reject'}],
           'claimant': None,
           'cluster': 'testcluster',
           'id': 3,
@@ -81,8 +82,7 @@ def test_update_case_xhr(client):
   data = [
     {
       'note': 'Reverting to <b>pending</b>',
-      'datum': 'state',
-      'value': 'pending',
+      'state': 'pending',
       'timestamp':'2019-03-31 10:37 AM'
     },
     {
@@ -108,6 +108,7 @@ def test_update_case_xhr(client):
       'results': [
         {
           'account': 'def-dleske-aa',
+          'actions': [{'id': 'reject', 'label': 'Reject'}],
           'claimant': 'tst-003',
           'claimant_pretty': 'User 1',
           'cluster': 'testcluster',
@@ -129,6 +130,7 @@ def test_update_case_xhr(client):
         },
         {
           'account': 'def-bobaloo-aa',
+          'actions': [{'id': 'reject', 'label': 'Reject'}],
           'claimant': None,
           'cluster': 'testcluster',
           'id': 3,
@@ -241,18 +243,15 @@ def test_update_cases_xhr_no_timestamps(client):
   data = [
     {
       'note': 'Stupid note',
-      'datum': 'state',
-      'value': 'rejected',
+      'state': 'rejected',
     },
     {
       'note': 'Reverting to pending again',
-      'datum': 'state',
-      'value': 'pending',
+      'state': 'pending',
     },
     {
       'note': 'This is not the way of the leaf',
-      'datum': 'claimant',
-      'value': 'tst-003',
+      'claimant': 'tst-003',
     },
     {
       'note': 'I just do not ascertain this chap',

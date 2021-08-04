@@ -350,6 +350,7 @@ def test_post_burst(client):
       'results': [
         {
           'account': 'def-dleske',
+          'actions': [{'id': 'reject', 'label': 'Reject'}],
           'claimant': None,
           'cluster': 'testcluster',
           'id': 1,
@@ -421,6 +422,7 @@ def test_get_bursts(client):
   assert x['results'] == [
     {
       'account': 'def-dleske',
+      'actions': [{'id': 'reject', 'label': 'Reject'}],
       'resource': 'cpu',
       'resource_pretty': 'CPU',
       'claimant': None,
@@ -441,6 +443,7 @@ def test_get_bursts(client):
     },
     {
       'account': 'def-dleske-aa',
+      'actions': [{'id': 'reject', 'label': 'Reject'}],
       'resource': 'cpu',
       'resource_pretty': 'CPU',
       'claimant': None,
@@ -461,6 +464,7 @@ def test_get_bursts(client):
     },
     {
       'account': 'def-bobaloo-aa',
+      'actions': [{'id': 'reject', 'label': 'Reject'}],
       'resource': 'cpu',
       'resource_pretty': 'CPU',
       'claimant': None,
@@ -607,14 +611,12 @@ def test_post_bursts_with_other_updates(client, notifier):
   data = [
     {
       'note': 'Hey how are ya',
-      'datum': 'state',
-      'value': 'rejected',
+      'state': 'rejected',
       'timestamp':'2019-03-31 10:31 AM'
     },
     {
       'note': 'This is not the way',
-      'datum': 'claimant',
-      'value': 'tst-003',
+      'claimant': 'tst-003',
       'timestamp':'2019-03-31 10:35 AM'
     }
   ]
