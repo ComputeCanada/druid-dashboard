@@ -297,15 +297,12 @@ def xhr_update_case(id):
     return xhr_error(400, "Could not parse request data: %s", e)
 
   # verify/validate/sanitize individual updates
+  # note: For historical reasons this is an array although current UI workflow
+  #       does not support this.  Since both the client-side JS and this code
+  #       work together already there doesn't seem to be much reason to
+  #       update anything.
+  updates = []
   for item in data:
-
-    # check for required fields
-    datum = item.get('datum', None)
-    value = item.get('value', None)
-    note = item.get('note', None)
-
-    if not (datum and value or note):
-      return xhr_error(400, "Update requests require note and/or datum and value")
 
     # sanitize any strings
     for (key, val) in item.items():
@@ -316,10 +313,32 @@ def xhr_update_case(id):
           get_log().info("Client tried to send in HTML for key %s: '%s'",
             key, sanitized)
 
+    # verify/fill in as necessary
+    verified = False
+    update = {}
+    for k, v in item.items():
+      if k == 'note':
+        update[k] = v
+        verified = True
+      elif k == 'timestamp':
+        update[k] = v
+      else:
+        if k == 'claimant' and v == '':
+          v = g.user['cci']
+        update['datum'] = k
+        update['value'] = v
+        verified = True
+
+    if not verified:
+      return xhr_error(400, "Update requests require note and/or key value")
+
+    updates.append(update)
+
   try:
     case = Reportable.get(id)
-    get_log().debug("Found case of type %s for ID %d", case.__class__.__name__, id)
-    for item in data:
+    for item in updates:
+      get_log().debug("Updating case %d with datum = %s, value = %s, note = %s", id,
+        item.get('datum', '<blank>'), item.get('value', '<blank>'), item.get('note', '<blank>'))
       case.update(item, g.user['cci'])
   except BadCall as e:
     return xhr_error(400, "Client error: %s", e)
