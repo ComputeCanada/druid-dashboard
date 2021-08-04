@@ -412,6 +412,18 @@ class Burst(Reporter, Reportable):
       if self._summary:
         serialized['summary_pretty'] = prettify_summary(self._summary)
 
+      # determine actions
+      if self._state == State.PENDING:
+        serialized['actions'] = [{
+          'id': 'reject',
+          'label': _('Reject')
+        }]
+        if self._ticket_id:
+          serialized['actions'].append({
+            'id': 'accept',
+            'label': _('Accept')
+          })
+
     return serialized
 
 # register class with reporter registry
