@@ -263,7 +263,9 @@ class Burst(Reporter, Reportable):
     """
 
     # superclass can handle base case (give me info about the cluster)
-    if list(criteria.keys()) == ['cluster']:
+    # if nothing other than pretty and cluster are in keys, we're good
+    # cluster is required, pretty may be included
+    if set(criteria.keys()) - {'pretty'} == {'cluster'}:
       return super(Burst, cls).view(criteria)
 
     # check that criteria make sense

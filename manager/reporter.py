@@ -235,7 +235,8 @@ class Reporter:
       ```
     """
 
-    if list(criteria.keys()) != ['cluster']:
+    # 'cluster' required, 'pretty' optional, nothing else handled
+    if set(criteria.keys()) - {'pretty'} != {'cluster'}:
       raise NotImplementedError
 
     records = cls.get_current(criteria['cluster'])
@@ -243,9 +244,11 @@ class Reporter:
       return None
     epoch = records[0].epoch
 
+    pretty = criteria.get('pretty', False)
+
     # serialize records individually so as to add attributes
     serialized = [
-      rec.serialize(pretty=True) for rec in records
+      rec.serialize(pretty=pretty) for rec in records
     ]
 
     return {

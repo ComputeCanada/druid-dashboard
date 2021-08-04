@@ -305,7 +305,7 @@ def test_post_empty_burst_report(client):
   })
   assert response.status_code == 201
 
-def test_post_burst(client):
+def test_post_burst(client, notifier):
 
   response = api_post(client, '/api/cases/', {
     'version': 2,
@@ -373,6 +373,12 @@ def test_post_burst(client):
     }
   }
 
+  print(notifier.notifications)
+  assert notifier.notifications == [
+    'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+  ]
+
 @pytest.mark.dependency(name='bursts_posted')
 def test_post_bursts(client, notifier):
 
@@ -400,13 +406,19 @@ def test_post_bursts(client, notifier):
     ]})
   assert response.status_code == 201
 
+  # note: notifications show 2 new records and 0 existing in the last
+  #       notification because the report just posted did not update the
+  #       existing burst, so it was shunted aside.  (So the notification could
+  #       say "1 retired" I suppose, but that would be difficult to track.)
   print(notifier.notifications)
   assert notifier.notifications == [
     'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
     'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
     "beam-dev: ReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
 
+# TODO: fails occasionally on Postgres on index out of range on the last result
 @pytest.mark.dependency(depends=['bursts_posted'])
+#@pytest.mark.skip
 def test_get_bursts(client):
 
   response = api_get(client, '/api/cases/?report=bursts')
@@ -422,19 +434,14 @@ def test_get_bursts(client):
   assert x['results'] == [
     {
       'account': 'def-dleske',
-      'actions': [{'id': 'reject', 'label': 'Reject'}],
       'resource': 'cpu',
-      'resource_pretty': 'CPU',
       'claimant': None,
       'cluster': 'testcluster',
       'id': 1,
       'jobrange': [1000, 2000],
       'pain': 0.0,
-      'pain_pretty': '0.00',
       'state': 'pending',
-      'state_pretty': 'Pending',
       'summary': None,
-      'ticket': None,
       'ticket_id': None,
       'ticket_no': None,
       'ticks': 1,
@@ -443,19 +450,14 @@ def test_get_bursts(client):
     },
     {
       'account': 'def-dleske-aa',
-      'actions': [{'id': 'reject', 'label': 'Reject'}],
       'resource': 'cpu',
-      'resource_pretty': 'CPU',
       'claimant': None,
       'cluster': 'testcluster',
       'id': 2,
       'jobrange': [1005, 2005],
       'pain': 1.0,
-      'pain_pretty': '1.00',
       'state': 'pending',
-      'state_pretty': 'Pending',
       'summary': None,
-      'ticket': None,
       'ticket_id': None,
       'ticket_no': None,
       'ticks': 1,
@@ -464,19 +466,14 @@ def test_get_bursts(client):
     },
     {
       'account': 'def-bobaloo-aa',
-      'actions': [{'id': 'reject', 'label': 'Reject'}],
       'resource': 'cpu',
-      'resource_pretty': 'CPU',
       'claimant': None,
       'cluster': 'testcluster',
       'id': 3,
       'jobrange': [1015, 2015],
       'pain': 1.5,
-      'pain_pretty': '1.50',
       'state': 'pending',
-      'state_pretty': 'Pending',
       'summary': None,
-      'ticket': None,
       'ticket_id': None,
       'ticket_no': None,
       'ticks': 1,

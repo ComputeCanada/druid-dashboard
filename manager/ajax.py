@@ -54,7 +54,7 @@ def _reports_by_cluster(cluster):
   get_log().debug("Starting to look through reports for cluster %s", cluster)
   for name, reporter in registry.reporters.items():
     get_log().debug("Getting view from %s reporter", name)
-    report = reporter.view({'cluster':cluster})
+    report = reporter.view({'cluster':cluster, 'pretty': True})
     if report:
       reports[name] = report
 
@@ -275,7 +275,6 @@ def xhr_delete_component(id):
 @bp.route('/cases/', methods=['GET'])
 @login_required
 def xhr_get_cases():
-  print("In xhr_get_cases()")
   get_log().debug("Retrieving cases")
   if 'cluster' not in request.args:
     return xhr_error(400, "No cluster specified when requesting reports")
