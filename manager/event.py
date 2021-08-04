@@ -64,7 +64,11 @@ class CaseEvent(Event):
     self._caseID = caseID
     self._analyst = analyst
     if analyst:
-      self._analyst_pretty = get_ldap().get_person_by_cci(analyst)['givenName']
+      ldap_person = get_ldap().get_person_by_cci(analyst)
+      if not ldap_person:
+        get_log().error("Could not find given name for user ID %s in LDAP", analyst)
+      else:
+        self._analyst_pretty = ldap_person['givenName']
     super().__init__(id, timestamp)
 
 
