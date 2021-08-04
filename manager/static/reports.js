@@ -151,8 +151,6 @@ function makeTableBlank(cluster, report) {
 
 function createReportTable(cluster, report, results) {
 
-  console.log("report = " + report);
-
   // get ordering from preferences
   var ordering = getReportSortOrder(cluster, report);
 
@@ -279,7 +277,8 @@ function refreshReports(reports) {
   }
   else {
     for (var i=0; i < report_names.length; i++) {
-      createReportTable(cluster, report_names[i], reports[report]['results']);
+      var report = report_names[i];
+      createReportTable(cluster, report, reports[report]['results']);
     }
   }
 }
