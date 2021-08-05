@@ -393,7 +393,7 @@ class Reportable:
         dct['ticket'] = None
 
       # turn summary into table
-      if self._summary and options is not None and not options.get('skip_summary_prettification', False):
+      if self._summary and (options is None or not options.get('skip_summary_prettification', False)):
         dct['summary_pretty'] = dict_to_table(self._summary)
 
     return dct
