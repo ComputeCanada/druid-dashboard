@@ -284,7 +284,8 @@ class Reportable:
 
     was = None
     now = None
-    if what := update.get('datum', None):
+    what = update.get('datum', None)
+    if what:
       if what == 'claimant':
         table = 'reportables'
       else:
