@@ -55,7 +55,9 @@ def empty_app(request):
   app = create_app({
     'TESTING': True,
     'DATABASE_URI': request.param['uri'],
-    'CONFIG': 'tests/app.conf'
+    'CONFIG': 'tests/app.conf',
+    'LDAP_STUB': LdapStub(),
+    'OTRS_STUB': OtrsStub()
   })
 
   with app.app_context():

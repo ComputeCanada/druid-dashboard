@@ -68,15 +68,17 @@ def empty_app(request):
   app = create_app({
     'TESTING': True,
     'DATABASE_URI': uri,
-    'CONFIG': 'tests/app.conf'
+    'CONFIG': 'tests/app.conf',
+    'LDAP_STUB': LdapStub(),
+    'OTRS_STUB': OtrsStub()
   })
 
   with app.app_context():
     init_db()
 
-    # this fixture is for testing a brand-new auction site or one with no
-    # current activity, but minimal seeding is still required, such as for
-    # testing API keys
+    # this fixture is for testing a brand-new instance with no current
+    # activity, but minimal seeding is still required, such as for testing
+    # API keys
     get_db().execute("""
       INSERT INTO apikeys (access, secret, component)
       VALUES ('testapikey', 'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ==', 'testcluster_detector')
