@@ -382,6 +382,17 @@ def test_post_burst(client, notifier):
 @pytest.mark.dependency(name='bursts_posted')
 def test_post_bursts(client, notifier):
 
+  # This sleep is necessary so that these aren't the same epoch as the
+  # previous test on virtual every SQLite run and 90% of Postgres runs, which
+  # results in failures of get_bursts (unless it's incorrectly expecting three
+  # bursts, which is what it was doing previously, knowing this report was of
+  # the same epoch).
+  #
+  # We could get around this sleep by:
+  # (1) Not using cumulative testing
+  # (2) Using something other than UNIX epoch as epoch, such as a report
+  #     sequence number.
+  time.sleep(1)
   response = api_post(client, '/api/cases/', {
     'version': 2,
     'bursts': [
@@ -416,7 +427,6 @@ def test_post_bursts(client, notifier):
     'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
     "beam-dev: ReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
 
-# TODO: fails occasionally on Postgres on index out of range on the last result
 @pytest.mark.dependency(depends=['bursts_posted'])
 #@pytest.mark.skip
 def test_get_bursts(client):
@@ -427,27 +437,10 @@ def test_get_bursts(client):
   print(x)
   del x['results'][0]['epoch']
   del x['results'][1]['epoch']
-  del x['results'][2]['epoch']
 
   # this returns 3 records even though only two are "current"--though the
   # epochs may well match, bursts 2 and 3 arrived after 1 and don't overlap
   assert x['results'] == [
-    {
-      'account': 'def-dleske',
-      'resource': 'cpu',
-      'claimant': None,
-      'cluster': 'testcluster',
-      'id': 1,
-      'jobrange': [1000, 2000],
-      'pain': 0.0,
-      'state': 'pending',
-      'summary': None,
-      'ticket_id': None,
-      'ticket_no': None,
-      'ticks': 1,
-      'submitters': ['userQ'],
-      'other': {'notes': 0}
-    },
     {
       'account': 'def-dleske-aa',
       'resource': 'cpu',
