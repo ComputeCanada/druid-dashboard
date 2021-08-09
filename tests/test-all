@@ -39,8 +39,8 @@ usage()
 Usage: $(basename $0) [options]
 Options:
   --no-sqlite:    Don't test SQLite (default to test SQLite)
-  --pgsql:        Test Postgres (default true if container running)
-  --ldap:         Test LDAP integration (default true if container running)
+  --pgsql:        Test Postgres
+  --ldap:         Test LDAP integration
   --selenium:     Execute Selenium testing (default false)
   -a|--all:       Test all above if containers available
   --no-cleanup:   Do not clean up temporary directories
@@ -181,6 +181,8 @@ then
     fi
   }
   trap cleanup EXIT
+else
+  echo "NOTE: Not cleaning up temporary data.  Location: $tmpdir"
 fi
 
 export PYTHONPATH=.:$PYTHONPATH
