@@ -5,6 +5,9 @@ variables:
   GIT_SUBMODULE_STRATEGY: normal
   PYLINTRC: tests/linting/extras/pylintrc
   PYTHONPATH: ${PYTHONPATH}:.
+  # Click command tests fail in Python 3.6 environments without the following
+  # https://click.palletsprojects.com/en/8.0.x/unicode-support/
+  LANG: C.UTF-8
   #
   # image names
   TEST_IMAGE: "${CI_REGISTRY_IMAGE}:test"
