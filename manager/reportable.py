@@ -265,22 +265,21 @@ class Reportable:
     """
     raise NotImplementedError
 
-  def interpret_update(self, datum, was, now):
-    """
-    Subclasses should implement this for datums they handle specifically.
-    Common datums such as claimant and notes can be handled by the base
-    class but others such as state must be handled by the subclass.
-    """
-    # TODO: implement.  As mentioned above this should handle base class data
-    raise NotImplementedError
-
-  def get_history(self):
-    # TODO: what is this
-    # find all updates relating to this reportable and return... what?
-    # printing off "I am self" to avoid lint warning for now
-    get_log().debug("Updating history... (not really), I am %s", self.__class__.__name__)
-
   def update(self, update, who):
+    """
+    Updates the appropriate record for a new note, change to claimant, etc.
+    Subclasses can implement this to intercept the change, such as to make a
+    value database-friendly, but should pass the execution back to the super
+    class which will execute the SQL statement.
+
+    A history record is created for the update.
+
+    Args:
+      update: A dict with `note` and/or `datum` and `value` defined describing
+        the update.
+      who: The CCI of the individual carrying out the change, that is, the
+        logged-in user.
+    """
 
     was = None
     now = None
