@@ -1,6 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621,raise-missing-from,import-outside-toplevel
 #
+from flask import current_app
 from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
@@ -68,6 +69,15 @@ SQL_GET_BURSTERS = '''
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
+
+def make_graphs_links(account, resource):
+  cumulative_base = current_app.config['BURSTS_GRAPHS_CUMULATIVE_URI']
+  cumulative = cumulative_base.format(account=account, resource=resource)
+  instant_base = current_app.config['BURSTS_GRAPHS_INSTANT_URI']
+  instant = instant_base.format(account=account, resource=resource)
+  return f'''<a target="beamplot" href="{cumulative}">{_("Cumulative")}</a>
+    <br/>
+    <a target="beamplot" href="{instant}">{_("Instant")}</a>'''
 
 def prettify_summary(original):
   field_prettification = {
@@ -402,6 +412,8 @@ class Burst(Reporter, Reportable):
       serialized['resource_pretty'] = _(str(self._resource))
       serialized['state_pretty'] = _(str(self._state))
       serialized['pain_pretty'] = "%.2f" % (self._pain)
+      serialized['usage_pretty'] = make_graphs_links(
+        self._account, str(self._resource).lower())
       if self._summary:
         serialized['summary_pretty'] = prettify_summary(self._summary)
 
