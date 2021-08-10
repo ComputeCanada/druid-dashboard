@@ -196,15 +196,6 @@ class OldJob(Reporter, Reportable):
       get_log().debug("Could not create OldJob record: %s", self.__dict__)
       raise ResourceNotCreated("Unable to create OldJob record")
 
-  def interpret_update(self, datum, was, now):
-    """
-    Subclasses should implement this for datums they handle specifically.
-    Common datums such as claimant and notes can be handled by the base
-    class but others such as state must be handled by the subclass.
-    """
-    # TODO: implement
-    raise NotImplementedError
-
   @property
   def resource(self):
     return self._resource

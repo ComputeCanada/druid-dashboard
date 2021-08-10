@@ -345,15 +345,6 @@ class Burst(Reporter, Reportable):
       get_log().error(errmsg)
       raise DatabaseException(errmsg)
 
-  def interpret_update(self, datum, was, now):
-    """
-    Subclasses should implement this for datums they handle specifically.
-    Common datums such as claimant and notes can be handled by the base
-    class but others such as state must be handled by the subclass.
-    """
-    # TODO: implement.
-    raise NotImplementedError
-
   def update(self, update, who):
     if update.get('datum', None) == 'state':
       update['value'] = State.get(update['value'])
