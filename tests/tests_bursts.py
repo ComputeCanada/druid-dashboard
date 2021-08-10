@@ -1,5 +1,5 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=line-too-long
 #
 import json
 
@@ -51,7 +51,8 @@ def test_get_cases_xhr(client):
           'ticket': None,
           'ticket_id': None,
           'ticket_no': None,
-          'ticks': 4
+          'ticks': 4,
+          'usage_pretty': '<a target="beamplot" href="https://localhost/plots/def-dleske-aa_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/def-dleske-aa_cpu_instant.html">Instant</a>'
         },
         {
           'account': 'def-bobaloo-aa',
@@ -72,7 +73,8 @@ def test_get_cases_xhr(client):
           'ticket': None,
           'ticket_id': None,
           'ticket_no': None,
-          'ticks': 3
+          'ticks': 3,
+          'usage_pretty': '<a target="beamplot" href="https://localhost/plots/def-bobaloo-aa_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/def-bobaloo-aa_cpu_instant.html">Instant</a>'
         }
       ]
     },
@@ -126,7 +128,8 @@ def test_update_case_xhr(client):
           'ticket': None,
           'ticket_id': None,
           'ticket_no': None,
-          'ticks': 4
+          'ticks': 4,
+          'usage_pretty': '<a target="beamplot" href="https://localhost/plots/def-dleske-aa_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/def-dleske-aa_cpu_instant.html">Instant</a>'
         },
         {
           'account': 'def-bobaloo-aa',
@@ -147,7 +150,8 @@ def test_update_case_xhr(client):
           'ticket': None,
           'ticket_id': None,
           'ticket_no': None,
-          'ticks': 3
+          'ticks': 3,
+          'usage_pretty': '<a target="beamplot" href="https://localhost/plots/def-bobaloo-aa_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/def-bobaloo-aa_cpu_instant.html">Instant</a>'
         }
       ]
     },
