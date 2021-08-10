@@ -6,6 +6,13 @@
 
 {% block extra %}
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
+  <script src="{{ url_for('static', filename='alerts.js') }}"></script>
+  <script src="{{ url_for('static', filename='prefs.js') }}"></script>
+  <script src="{{ url_for('static', filename='reports.js') }}"></script>
+  <script src="{{ url_for('static', filename='bursts.js') }}"></script>
+  {# ---- Disabling, but will want to consider at some point
+  <script src="{{ url_for('static', filename='notifications.js') }}"></script>
+  ----- #}
 {% endblock %}
 
 {# --------------------------------------------------------------------------
@@ -15,6 +22,12 @@
 {% block scriptage %}
   <script>
 
+// need the report specifications to create tables and interpret data
+var report_specs = {{ reports|tojson|safe }};
+
+// for lookup for cluster names
+var cluster_lookup = {};
+
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
 var i18n_texts = {
@@ -22,235 +35,26 @@ var i18n_texts = {
   "Update": "{{ _('Update') }}"
 };
 
-var toasts = [];
-
-function error(msg) {
-  toast = makeToast("error", msg, {autohide: false});
-  toast.show();
-  toasts.push(toast);
-  return toasts.length - 1;
-}
-
-function status(msg) {
-  toast = makeToast("info", msg, {autohide: false, noClose: true});
-  toast.show();
-  toasts.push(toast);
-  return toasts.length - 1;
-}
-
-function status_clear(id) {
-  /* I would expect toasts[id].dispose() to replace the next three lines but
-   * instead it always throws an exception that _element is NULL, which is
-   * what removing the DOM element manually presumably does.
-   */
-  var parent = document.getElementById('toast-container');
-  parent.removeChild(toasts[id]._element);
-  toasts[id].hide();
-  delete toasts[id];
-}
-
 $("#notification").hide();
 $("#error").hide();
 $("#error").click(function(e) {
   $("#error").hide();
 });
 
-function requestBursts() {
-  status_id = status("Retrieving burst reports...")
-  $.ajax({
-    url: '/xhr/bursts/',
-    method: 'GET',
-    success: function(reports, status, jqXHR) {
-      status_clear(status_id);
-      displayBursts(reports, status, jqXHR);
-    },
-    error: function() {
-      status_clear(status_id);
-      error("Failed to retrieve burst reports");
-    }
-  });
-}
-
-function makeTableBlank(cluster) {
-  return `
-            <table id='bursts_table_${cluster}' class='bursts' style='width: 100%'>
-              <thead>
-                <tr>
-                  <th class='number'         ><img
-                          src='static/icons/ticks.svg' height='18' width='20'
-                          alt='Times reported' title='Times reported'
-                          /></th>
-                  <th                        >{{ _('Account') }}</th>
-                  <th class='nosearch nosort'>{{ _('Usage') }}</th>
-                  <th class='number'         >{{ _('Pain') }}</th>
-                  <th class='nosort'         >{{ _('Summary') }}</th>
-                  <th                        >{{ _('State') }}</th>
-                  <th                        >{{ _('Analyst') }}</th>
-                  <th                        >{{ _('Ticket') }}</th>
-                  <th class='number'         >{{ _('Notes') }}</th>
-                  <th class='nosearch nosort'>{{ _('Action') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
-  `;
-}
-
-
-function displayBursts(reports, status, jqXHR) {
-
-  // used to track clusters
-  var clusters = [];
-
-  // get main accordion container
-  var accordionParent = document.getElementById('bursts_accordion');
-
-  // burst reports are organized by cluster
-  if (Object.keys(reports).length > 0) {
-
-    // get ordering
-    var orderingJSON = Cookies.get("ordering");
-    if (orderingJSON) {
-      var ordering = JSON.parse(orderingJSON);
-    } else {
-      var ordering = [[3, 'desc']];
-    }
-
-    for (var cluster in reports) {
-
-      clusters.push(cluster);
-
-      // TODO: i18n
-      var title = `${cluster} - reported ${epoch_to_local_time(reports[cluster]['epoch'])}`;
-
-      // create accordian for this
-      var accordion = document.createElement('div');
-      accordion.innerHTML = `<div class="accordion-item">
-        <h2 class="accordion-header" id="heading-${cluster}">
-          <button id="collapse-button-${cluster}" class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${cluster}" aria-expanded="false" aria-controls="collapse-${cluster}">
-            ${title}
-          </button>
-        </h2>
-        <div id="collapse-${cluster}" class="accordion-collapse collapse" aria-labelledby="heading-${cluster}" data-bs-parent="#bursts_accordion" data-ccf-cluster='${cluster}'>
-          <div class="accordion-body">
-            ${makeTableBlank(cluster)}
-          </div>
-        </div>
-      </div>`;
-
-      // add to parent and so to the DOM
-      accordionParent.appendChild(accordion);
-
-      // create the table
-      populateBurstTable(cluster, reports[cluster], ordering);
-
-      // set up ordering update handler
-      $(`#bursts_table_${cluster}`).on('order.dt', function(event) {
-        var order = $(event.target).DataTable().order();
-        Cookies.set("ordering", JSON.stringify(order));
-      });
-
-    }
-
-    // determine which cluster should be expanded by default
-    var expand_cluster = Cookies.get("default-cluster");
-    if (!expand_cluster || clusters.indexOf(expand_cluster) == -1) {
-      expand_cluster = clusters[0];
-      Cookies.set("default-cluster", expand_cluster);
-    }
-
-    // expand that cluster's accordion
-    // There are two ways to do this: send a button-click message to the
-    // accordion button, or manipulate the classes of the accordion button
-    // and the accordioned division.  The latter eliminates the animation,
-    // which is too much fancy for a basic page load
-    //$(`#collapse-button-${expand_cluster}`).click();
-    $(`#collapse-button-${expand_cluster}`).removeClass('collapsed');
-    $(`#collapse-${expand_cluster}`).addClass('show');
-
-    // add listener for saving user's preference
-    accordionParent.addEventListener('show.bs.collapse', function(event) {
-      defaultCluster = event.target.dataset.ccfCluster;
-      Cookies.set("default-cluster", defaultCluster);
-    });
-  } else {
-    accordionParent.innerHTML = "<p>{{ _('There are currently no bursts defined.') }}</p>";
-  }
-}
-
-function refreshBursts(reports, status, jqXHR) {
-
-  // burst reports are organized by cluster
-  if (Object.keys(reports).length == 0) {
-    //TODO: remove accordions and data tables and paste a message of some kind
-  }
-  else {
-
-    // get ordering
-    var orderingJSON = Cookies.get("ordering");
-    if (orderingJSON) {
-      var ordering = JSON.parse(orderingJSON);
-    } else {
-      var ordering = [[3, 'desc']];
-    }
-
-    for (var cluster in reports) {
-
-      // clear out the accordion
-      $(`#collapse-${cluster}`).html(`
-          <div class="accordion-body">
-            ${makeTableBlank(cluster)}
-          </div>`);
-
-      // create the table
-      populateBurstTable(cluster, reports[cluster], ordering);
-    }
-  }
-}
-
-function populateBurstTable(cluster, report, ordering) {
-  $(`#bursts_table_${cluster}`).dataTable({
-    "autoWidth": false,
-    "data": renderTableData(report['bursts']),
-    "columnDefs": [
-      { searchable: false, targets: 'nosearch' },
-      { orderable: false, targets: 'nosort' },
-      { className: 'number', targets: 'number' },
-      { visible: false, targets: [10] }
-    ],
-    columns: [
-      { "name": "ticks" },
-      { "name": "account" },
-      { "name": "usage" },
-      { "name": "pain" },
-      { "name": "summary" },
-      { "name": "state" },
-      { "name": "analyst" },
-      { "name": "ticket" },
-      { "name": "notes" },
-      { "name": "action" },
-      { "name": "id" },
-    ],
-    order: ordering,
-    rowId: function(row) { return "burst_" + row[10] }
-  });
-}
-
 function updateTicket(ticket, status, jqXHR) {
-  var el_id = `#ticket_${ticket.burst_id}`;
+  var el_id = `#ticket_${ticket.case_id}`;
   var href = `<a href='${ticket.url}' target='_ticket'>${ticket.ticket_no}</a>`;
   $(el_id).html(href);
 }
 
-function showTicketComposition(template, burst_id, account_id) {
+function showTicketComposition(template, caseID) {
 
   var modalEl = document.getElementById('ticketCompositionModal');
 
   // reset form
   var modalForm = modalEl.querySelector('.modal-form');
   modalForm.reset();
-  modalForm.action = `javascript:createTicket(${burst_id}, '${template.recipient}', '${template.email}')`;
+  modalForm.action = `javascript:createTicket(${caseID}, '${template.recipient}', '${template.email}')`;
 
   // populate form
   var titleEl = document.getElementById('ticketCreationTitle');
@@ -261,7 +65,6 @@ function showTicketComposition(template, burst_id, account_id) {
   // override reset button
   var resetEl = document.getElementById('ticketCompositionReset');
   resetEl.addEventListener('click', function() {
-    console.log("Clicked on resetEl");
     titleEl.value = template.title;
     bodyEl.value = template.body;
   });
@@ -272,7 +75,7 @@ function showTicketComposition(template, burst_id, account_id) {
 }
 
 // ticket creation, step 1: trigger composition
-function triggerTicketComposition(id, account) {
+function triggerTicketComposition(id) {
 
   // close "create ticket" modal
   var myModal = bootstrap.Modal.getInstance(document.getElementById('ticketCreationModal'));
@@ -282,7 +85,7 @@ function triggerTicketComposition(id, account) {
   var ticket_type = $('#outreach-type')[0].value;
 
   // determine URL
-  var url = `/xhr/templates/${ticket_type}?burst_id=${id}`;
+  var url = `/xhr/templates/${ticket_type}?case_id=${id}`;
 
   // add recipient if appropriate
   if (recipientSelectable(ticket_type)) {
@@ -297,7 +100,7 @@ function triggerTicketComposition(id, account) {
     method: 'GET',
     success: function(template, status, jqXHR) {
       status_clear(status_id);
-      showTicketComposition(template, id, account);
+      showTicketComposition(template, id);
     },
     error: function() {
       status_clear(status_id);
@@ -321,8 +124,8 @@ function createTicket(id, recipient, email) {
   $.ajax({
     url: '/xhr/tickets/',
     method: 'POST',
-    data: { 
-      burst_id: id,
+    data: {
+      case_id: id,
       recipient: recipient,
       email: email,
       title: title,
@@ -344,7 +147,7 @@ function createTicket(id, recipient, email) {
   });
 }
 
-function updateBursts(updates, options = {
+function updateCase(id, updates, options = {
     action: "Updating...",
     error: "Failed to update"
   }) {
@@ -356,13 +159,13 @@ function updateBursts(updates, options = {
   status_id = status(options.action);
   // make request
   $.ajax({
-    url: '/xhr/bursts/',
+    url: `/xhr/cases/${id}`,
     method: 'PATCH',
     data: JSON.stringify(updates),
     contentType: 'application/json',
     success: function(reports, status, jqXHR) {
       status_clear(status_id);
-      refreshBursts(reports, status, jqXHR);
+      refreshReports(reports, status, jqXHR);
     },
     error: function() {
       status_clear(status_id);
@@ -376,109 +179,67 @@ function createNote(id, account) {
   // set up update request
   var updates = [
     {
-      'id': id,
       'note': $('#noteModalTextarea')[0].value
     }
   ];
 
   // process update
-  updateBursts(updates, {
+  updateCase(id, updates, {
     action: "Creating note for candidate...",
     error: "Failed to create note"
   });
 }
 
-function stealBurst(id, account) {
+function stealCase(id, account) {
 
   // set up update request.  'claimant' is set to blank string so it's filled
   // in with logged-in user on server side
   var updates = [
     {
-      'id': id,
       'claimant': '',
       'note': $('#noteModalTextarea')[0].value
     }
   ]
 
   // process update
-  updateBursts(updates, {
-    action: "Stealing burst candidate...",
-    error: "Failed to steal burst candidate"
+  updateCase(id, updates, {
+    action: "Stealing case...",
+    error: "Failed to steal case"
   });
 }
 
-function claimBurst(id, account) {
+function claimCase(id, account) {
 
   // set up update request.  'claimant' is set to blank string so it's filled
   // in with logged-in user on server side
   var updates = [
     {
-      'id': id,
       'claimant': '',
       'note': $('#noteModalTextarea')[0].value
     }
   ]
 
   // process update
-  updateBursts(updates, {
-    action: "Claiming burst candidate...",
-    error: "Failed to claim burst candidate"
+  updateCase(id, updates, {
+    action: "Claiming case...",
+    error: "Failed to claim case"
   });
 }
 
-function releaseBurst(id, account) {
+function releaseCase(id, account) {
 
   // set up update request
   var updates = [
     {
-      'id': id,
       'claimant': null,
       'note': $('#noteModalTextarea')[0].value
     }
   ]
 
   // process update
-  updateBursts(updates, {
-    action: "Releasing burst candidate...",
-    error: "Failed to claim candidate"
-  });
-}
-
-function rejectBurst(id, account) {
-
-  // set up update request.  'claimant' is set to blank string so it's filled
-  // in with logged-in user on server side
-  var updates = [
-    {
-      'id': id,
-      'state': 'rejected',
-      'note': $('#noteModalTextarea')[0].value
-    }
-  ]
-
-  // process update
-  updateBursts(updates, {
-    action: "Rejecting burst candidate...",
-    error: "Failed to reject candidate"
-  });
-}
-
-function acceptBurst(id, account) {
-
-  // set up update request.  'claimant' is set to blank string so it's filled
-  // in with logged-in user on server side
-  var updates = [
-    {
-      'id': id,
-      'state': 'accepted',
-      'note': $('#noteModalTextarea')[0].value
-    }
-  ]
-
-  // process update
-  updateBursts(updates, {
-    action: "Accepting burst candidate...",
-    error: "Failed to accept candidate"
+  updateCase(id, updates, {
+    action: "Releasing case...",
+    error: "Failed to claim case"
   });
 }
 
@@ -500,40 +261,32 @@ function eventsToHtml(events) {
   var title;
   var details;
 
-  if (events.length == 0) {
-    return "<p>No events recorded for this burst candidate.</p>";
+  if (!events || events.length == 0) {
+    return "<p>No events recorded for this case.</p>";
   }
 
   for (var i=0, ien=events.length; i<ien; i++) {
     details = '';
     event = events[i];
-    switch (event.type) {
-      case "Note":
-        title = 'Note';
-        break;
-      case "ClaimantUpdate":
-        title = 'Claimant update';
-        if (!event.claimant_was_pretty) {
-          details = `Claimed by ${event.claimant_now_pretty}`;
-        }
-        else {
-          details = `Stolen by ${event.claimant_now_pretty} from ${event.claimant_was_pretty}`;
-        }
-        break;
-      case "StateUpdate":
-        title = 'State update';
-        details = `From ${event.old_state} to ${event.new_state}`;
-        break;
-      default:
-        title = `Unknown type of event (${event.type})`;
-        details = '<dl>';
-        for (key in event) {
-          details += `<dt>${key}</dt><dd>${event[key]}</dd>`;
-        }
-        details += '</dl>';
-        break;
+    if (event.change) {
+      datum = event.change.datum;
+      was = event.change.was;
+      now = event.change.now;
+      if (was && now) {
+        details = `Updated from <strong>${was}</strong> to <strong>${now}</strong>`;
+      } else if (was) {
+        details = `Cleared (was <strong>${was}</strong>)`;
+      } else {
+        details = `Set to <strong>${now}</strong>`;
+      }
+      title = `Update to ${datum}`;
     }
-    html += `<h6>${title} by ${event.analyst_pretty}, ${timestamp_to_local_time(event.timestamp)}</h6>`;
+    else {
+      title = 'Note';
+    }
+
+    var analyst = event.analyst_pretty || event.analyst;
+    html += `<h6>${title} by ${analyst}, ${timestamp_to_local_time(event.timestamp)}</h6>`;
     if (details) {
       html += `<p>${details}</p>`;
     }
@@ -545,12 +298,12 @@ function eventsToHtml(events) {
 }
 
 
-function showBurstHistory(burstID) {
+function showCaseHistory(caseID) {
   // show status
   status_id = status("Retrieving events...");
 
   $.ajax({
-    url: `/xhr/bursts/${burstID}/events/`,
+    url: `/xhr/cases/${caseID}/events/`,
     method: 'GET',
     success: function(events, status, jqXHR) {
       status_clear(status_id);
@@ -566,166 +319,78 @@ function showBurstHistory(burstID) {
     },
     error: function() {
       status_clear(status_id);
-      error("Failed to retrieve burst events");
+      error("Failed to retrieve case events");
     }
   });
 }
 
 
-{# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * DISABLING NOTIFICATIONS MECHANISM.
- *
- * Currently unused and it creates zombie threads (?) that are not cleaned up,
- * causing an effective DOS.
- *
-// NOTIFICATIONS
-// This mechanism adapted from
-// https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API
-
-function handleNoNotifications(msg) {
-  console.log("No notifications: " + msg);
-
-  // show "refresh <stuff>" link
-  var link = document.getElementById("refresh_content_link");
-  link.style.display = "block";
-}
-
-function handlePermission(permission) {
-
-  // make sure Chrome stores the information
-  if (!('permission' in Notification)) {
-    Notification.permission = permission;
-  }
-
-  if (Notification.permission === 'denied' || Notification.permission === 'default') {
-    handleNoNotifications("Denied by user.");
-  } else {
-    // set up notifications listener
-    var targetContainer = document.getElementById("notification");
-    var eventSource = new EventSource("/notifications");
-
-    eventSource.onmessage = function(e) {
-
-      // "refresh" notification needs no other processing, just refresh
-      if (e.data != "refresh") {
-        // if window is in focus or notifications are disabled
-        if (document.hasFocus() || Notification.permission != "granted") {
-          // TODO: really mixing jQuery and vanilla JS here
-          $("#notification").show();
-          targetContainer.innerHTML = e.data;
-        }
-        else {
-          var notification = new Notification(e.data)
-          notification.onshow = function() { setTimeout(notification.close, 15000) }
-        }
-      }
-      refresh_content();
-    };
-  }
-}
-
-function checkNotificationPromise() {
-  try {
-    Notification.requestPermission().then();
-  } catch(e) {
-    return false;
-  }
-  return true;
-}
-
-// set up notifications...
-// first check if browser supports them
-if (!('Notification' in window)) {
-  handleNoNotifications("Browser does not suppoert");
-} else {
-  if (checkNotificationPromise()) {
-    Notification.requestPermission().then((permission) => {
-      handlePermission(permission);
-    })
-  } else {
-    Notification.requestPermission(function(permission) {
-      handlePermission(permission);
-    });
-  }
-}
-* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * #}
-
 function jsonToTable(json) {
   var summary = JSON.parse(json);
   var summaryHTML = '';
   for (key in summary) {
-    if (key == "old_pain") {
-      value = summary[key].toFixed(2);
-    }
-    else {
-      value = summary[key];
-    }
-    summaryHTML += `<tr><th>${key}</th><td>${value}</td></tr>`;
+    summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
   }
   return `<table class='not-table'>${summaryHTML}</table>`;
 
 }
 
-function renderActionMenu(burst) {
+function renderActionMenu(caseObj) {
 
-  function makeActionButton(burstID, account, action, target, label) {
+  function makeActionButton(caseID, account, action, target, label) {
     return `
-        <li><button class='dropdown-item' type='button' id='action_${action}_${burstID}'
+        <li><button class='dropdown-item' type='button' id='action_${action}_${caseID}'
               data-bs-toggle='modal' data-bs-target='${target}'
-              data-burst-id='${burstID}' data-account-id='${account}'
+              data-case-id='${caseID}' data-account-id='${account}'
               data-action='${action}'
             >${label}</button></li>`;
   }
 
-  function makeButton(burstID, account, target, label) {
+  function makeButton(caseID, account, target, label) {
     return `
         <li><button class='dropdown-item' type='button'
               data-bs-toggle='modal' data-bs-target='${target}'
-              data-burst-id='${burstID}' data-account-id='${account}'
+              data-case-id='${caseID}' data-account-id='${account}'
             >${label}</button></li>`;
   }
 
   // "History" menu item
-  var items = makeActionButton(burst.id, burst.account, 'history', '#historyModal', 'History');
+  var items = makeActionButton(caseObj.id, caseObj.account, 'history', '#historyModal', 'History');
 
   // "Claim" menu item
   // only available if no claimant
-  if (!burst.claimant) {
-    items += makeActionButton(burst.id, burst.account, 'claim', '#noteModal', 'Claim');
+  if (!caseObj.claimant) {
+    items += makeActionButton(caseObj.id, caseObj.account, 'claim', '#noteModal', 'Claim');
   }
   else {
-    if (burst.claimant != "{{ session['cci'] }}") {
-      items += makeActionButton(burst.id, burst.account, 'steal', '#noteModal', 'Steal');
+    if (caseObj.claimant != "{{ session['cci'] }}") {
+      items += makeActionButton(caseObj.id, caseObj.account, 'steal', '#noteModal', 'Steal');
     }
     else {
-      items += makeActionButton(burst.id, burst.account, 'release', '#noteModal', 'Release');
+      items += makeActionButton(caseObj.id, caseObj.account, 'release', '#noteModal', 'Release');
     }
   }
 
   // "Create ticket" menu item
   // only available if no ticket already associated
-  if (!burst.ticket_href) {
-    items += makeButton(burst.id, burst.account, '#ticketCreationModal', 'Create ticket');
+  if (!caseObj.ticket_href) {
+    items += makeButton(caseObj.id, caseObj.account, '#ticketCreationModal', 'Create ticket');
   }
 
   // "Make note" menu item
-  items += makeActionButton(burst.id, burst.account, 'note', '#noteModal', 'Make note');
+  items += makeActionButton(caseObj.id, caseObj.account, 'note', '#noteModal', 'Make note');
 
-  // "Reject" menu item
-  // only available if state is pending
-  if (burst.state == 'pending') {
-    items += makeActionButton(burst.id, burst.account, 'reject', '#noteModal', 'Reject');
-  }
-
-  // "Accept" menu item
-  // only available if state is pending and there is an associated ticket
-  if (burst.state == 'pending' && burst.ticket_id) {
-    items += makeActionButton(burst.id, burst.account, 'accept', '#noteModal', 'Accept');
+  // add any actions specific to case
+  if (caseObj.actions) {
+    for (var i=0, size=caseObj.actions.length; i<size; i++) {
+      var action = caseObj.actions[i];
+      items += makeActionButton(caseObj.id, caseObj.account, action.id, '#noteModal', action.label);
+    }
   }
 
   return `
     <div class='dropdown'>
-      <button class='btn btn-secondary dropdown-toggle' type='button' id='actionMenuButton_${burst.id}' data-bs-toggle='dropdown'>
+      <button class='btn btn-secondary dropdown-toggle' type='button' id='actionMenuButton_${caseObj.id}' data-bs-toggle='dropdown'>
         {{ _("Action") }}
       </button>
       <ul class='dropdown-menu'>${ items }
@@ -733,38 +398,7 @@ function renderActionMenu(burst) {
     </div>`;
 }
 
-function renderTableData(bursts) {
-
-  var id, account, resource;
-
-  bycols = [];
-  for (var i=0, ien=bursts.length; i<ien; i++) {
-
-    id = bursts[i].id;
-    account = bursts[i].account;
-    resource = bursts[i].resource;
-
-    bycols[i] = [
-      bursts[i].ticks,
-      bursts[i].account,
-      `<a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_cumu_plot.html">Cumulative</a><br/>
-       <a target="beamplot" href="https://static.frak.c3.ca/usage-graphs/${account}_${resource}_insta_plot.html">Instant</a>`,
-      bursts[i].pain.toFixed(2),
-      jsonToTable(bursts[i].summary),
-      bursts[i].state_pretty,
-      bursts[i].claimant_pretty || "-",
-      `<span id='ticket_${id}' data-burst-id='${id}'>${ bursts[i].ticket_href || "-" }</span>`,
-      bursts[i].other['notes'],
-      renderActionMenu(bursts[i]),
-      id
-    ];
-  }
-
-  return bycols;
-}
-
 function recipientSelectable(outreach) {
-  console.log("Evaluating outreach type: " + outreach);
   switch (outreach) {
     case "impossible":
     case "empty":
@@ -776,8 +410,8 @@ function recipientSelectable(outreach) {
 
 $(document).ready(function() {
 
-  // load bursts
-  requestBursts();
+  // retrieve clusters
+  requestClusters();
 
   // initialize the create-ticket modal
   var createTicketModal = document.getElementById('ticketCreationModal');
@@ -786,7 +420,7 @@ $(document).ready(function() {
     var button = event.relatedTarget;
 
     // extra information about button
-    var burst_id = button.getAttribute('data-burst-id');
+    var case_id = button.getAttribute('data-case-id');
     var account_id = button.getAttribute('data-account-id');
 
     // by default hide the recipient selector
@@ -794,14 +428,14 @@ $(document).ready(function() {
     recipientSelector.style.display = 'none';
 
     // show status
-    status_id = status("Retrieving burst info...");
+    status_id = status("Retrieving case info...");
 
     // get recipient selection element
     var recipients = $('#ticketRecipient');
     recipients.empty();
 
     $.ajax({
-      url: `/xhr/bursts/${burst_id}/people/`,
+      url: `/xhr/cases/${case_id}/people/`,
       method: 'GET',
       success: function(people, status, jqXHR) {
         status_clear(status_id);
@@ -818,14 +452,14 @@ $(document).ready(function() {
       },
       error: function() {
         status_clear(status_id);
-        error("Failed to retrieve burst info");
+        error("Failed to retrieve case info");
       }
     });
 
     // update modal
     var modalForm = createTicketModal.querySelector('.modal-form');
     modalForm.reset();
-    modalForm.action = `javascript:triggerTicketComposition(${burst_id}, '${account_id}')`;
+    modalForm.action = `javascript:triggerTicketComposition(${case_id})`;
   });
 
   // initialize the choose-a-template selection
@@ -872,7 +506,7 @@ $(document).ready(function() {
     var button = event.relatedTarget;
 
     // extra information about button
-    var burst_id = button.getAttribute('data-burst-id');
+    var case_id = button.getAttribute('data-case-id');
     var account_id = button.getAttribute('data-account-id');
     var action = button.getAttribute('data-action');
 
@@ -881,30 +515,31 @@ $(document).ready(function() {
       case "steal":
         initModal({
           title: 'Steal',
-          intro: 'By stealing this burst candidate you indicate you will follow \
+          intro: 'By stealing this case you indicate you will follow \
                   up with the analysis of this job set and with the research \
                   group, as necessary.',
           textareaRequired: true,
           submit: 'Steal'});
-        fn = 'stealBurst';
+        fn = 'stealCase';
         break;
       case "claim":
         initModal({
           title: 'Claim',
-          intro: 'By claiming this burst you indicate you will follow up with \
+          intro: 'By claiming this case you indicate you will follow up with \
                   the analysis of this job set and with the research group, as \
                   necessary.',
           submit: 'Claim'});
-        fn = 'claimBurst';
+        fn = 'claimCase';
         break;
       case "release":
         initModal({
           title: 'Release',
-          intro: 'Release the burst candidate so that another analyst knows to\
+          intro: 'Release the case so that another analyst knows to\
                   look into it or contact the researcher for followup.',
           submit: 'Release'});
-        fn = 'releaseBurst';
+        fn = 'releaseCase';
         break;
+      /* TODO burst-specific ------------ */
       case 'reject':
         initModal({
           title: 'Reject',
@@ -922,10 +557,11 @@ $(document).ready(function() {
           submit: 'Accept'});
         fn = 'acceptBurst';
         break;
+      /* END burst-specific ------------ */
       case 'note':
         initModal({
           title: 'Note',
-          intro: 'This note will become part of the burst candidate history.',
+          intro: 'This note will become part of the case history.',
           textareaRequired: true,
           submit: 'Note'});
         fn = 'createNote';
@@ -935,7 +571,7 @@ $(document).ready(function() {
     // update modal
     var modalForm = noteModal.querySelector('.modal-form');
     modalForm.reset();
-    modalForm.action = `javascript:${fn}(${burst_id}, '${account_id}')`;
+    modalForm.action = `javascript:${fn}(${case_id}, '${account_id}')`;
   });
 
   var historyModal = document.getElementById('historyModal');
@@ -944,14 +580,14 @@ $(document).ready(function() {
     var button = event.relatedTarget;
 
     // extra information about button
-    var burst_id = button.getAttribute('data-burst-id');
+    var case_id = button.getAttribute('data-case-id');
 
     // clear body
     var modalBodyEl = document.getElementById('historyModalBody');
     modalBodyEl.innerHTML = "<p><i>Loading history...</i></p>";
 
     // update modal
-    showBurstHistory(burst_id);
+    showCaseHistory(case_id);
   });
 
 });
@@ -963,7 +599,7 @@ $(document).ready(function() {
 -------------------------------------------------------------------------- #}
 {% block title %}{{ _('Dashboard') }}{% endblock %}
 {% block header %}
-  <h1>Burst reports</h1>
+  <h1>Case reports</h1>
 {% endblock %}
 
 {# --------------------------------------------------------------------------
@@ -976,7 +612,9 @@ $(document).ready(function() {
 <div id='error'>
 </div>
 
-<div class='accordion' id='bursts_accordion'>
+<ul class='nav nav-tabs' id='tabs_container' role='tablist'>
+</ul>
+<div class='tab-content' id='panes_container'>
 </div>
 
 {# --------------------------------------------------------------------------
@@ -1103,7 +741,7 @@ a note.
   <div class='modal-dialog modal-dialog-centered'>
     <div class='modal-content'>
       <div class='modal-header'>
-        <h5 class='modal-title' id='historyModalLabel'>Burst candidate history</h5>
+        <h5 class='modal-title' id='historyModalLabel'>Case history</h5>
         <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
       </div>
       <div class='modal-body' id='historyModalBody'>

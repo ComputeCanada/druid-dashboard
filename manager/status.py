@@ -15,27 +15,33 @@ bp = Blueprint('status', __name__, url_prefix='/status')
 #                                                                    HELPERS
 # ---------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------
-#                                                                     ROUTES
-# ---------------------------------------------------------------------------
+def _check_status_app(statuses):
 
-@bp.route('/', methods=['GET'])
-def get_status():
+  # this is trivial
+  statuses.append("I'm: Okay")
+  return 200
 
-  statuses = []
+def _check_status_db(statuses):
+
   status = 200
 
-  # run some tests
-  # TODO...
-  statuses.append("I'm okay")
+  # get schema version from database
+  try:
+    (actual, expected) = get_schema_version()
+  except Exception as e:
+    statuses.append("DB: Caught exception: {}".format(str(e).rstrip()))
+    status = 500
+  else:
+    if actual == expected:
+      statuses.append("DB: Okay (schema version {})".format(actual))
+    else:
+      statuses.append("DB: Schema version mismatch: {}, expected {}".format(actual, expected))
+      status = 500
 
-  status_all = "\n".join(statuses)
-  return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
+  return status
 
-@bp.route('/services', methods=['GET'])
-def get_services_status():
+def _check_status_ldap(statuses):
 
-  statuses = []
   status = 200
 
   # try to get an LDAP record
@@ -51,18 +57,11 @@ def get_services_status():
     else:
       statuses.append("LDAP: Okay")
 
-  # get schema version from database
-  try:
-    (actual, expected) = get_schema_version()
-  except Exception as e:
-    statuses.append("DB: Caught exception: {}".format(str(e).rstrip()))
-    status = 500
-  else:
-    if actual == expected:
-      statuses.append("DB: Okay (schema version {})".format(actual))
-    else:
-      statuses.append("DB: Schema version mismatch: {}, expected {}".format(actual, expected))
-      status = 500
+  return status
+
+def _check_status_otrs(statuses):
+
+  status = 200
 
   # test we have an OTRS client
   otrs = get_otrs()
@@ -70,8 +69,74 @@ def get_services_status():
     statuses.append("OTRS: could not create client session")
     status = 500
   else:
-    print("OTRS: {}".format(otrs))
     statuses.append("OTRS: Okay")
+
+  return status
+
+# ---------------------------------------------------------------------------
+#                                                                     ROUTES
+# ---------------------------------------------------------------------------
+
+@bp.route('/', methods=['GET'])
+def get_status():
+  """
+  Reports app health apart from external dependencies.  This is so limited
+  in order that it can be used as a liveness probe in Kubernetes.  Failing
+  this would then result in restarts of the container, and basing that on
+  the connections to LDAP, OTRS, etc. does not make sense.
+  """
+
+  statuses = []
+  status = 200
+
+  # run some tests
+  status = _check_status_app(statuses)
+
+  status_all = "\n".join(statuses)
+  return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
+
+@bp.route('/services/ldap', methods=['GET'])
+def get_services_status_ldap():
+
+  statuses = []
+  status = 200
+
+  status = max(status, _check_status_ldap(statuses))
+
+  status_all = "\n".join(statuses)
+  return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
+
+@bp.route('/services/otrs', methods=['GET'])
+def get_services_status_otrs():
+
+  statuses = []
+  status = 200
+
+  status = max(status, _check_status_otrs(statuses))
+
+  status_all = "\n".join(statuses)
+  return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
+
+@bp.route('/services/db', methods=['GET'])
+def get_services_status_db():
+
+  statuses = []
+  status = 200
+
+  status = max(status, _check_status_db(statuses))
+
+  status_all = "\n".join(statuses)
+  return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}
+
+@bp.route('/services', methods=['GET'])
+def get_services_status():
+
+  statuses = []
+  status = 200
+
+  status = max(status, _check_status_ldap(statuses))
+  status = max(status, _check_status_db(statuses))
+  status = max(status, _check_status_otrs(statuses))
 
   status_all = "\n".join(statuses)
   return status_all, status, {'Content-type': 'text/plain; charset=utf-8'}

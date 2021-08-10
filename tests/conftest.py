@@ -5,9 +5,11 @@ import os
 import re
 import pytest
 from manager.notifier import Notifier, register_notifier, get_notifiers
+from manager.reporter import registry
 
 @pytest.fixture(scope='class')
 def client(seeded_app):
+  print("Registry (%s) has %d registered reporters" % (registry, len(registry.reporters)))
   return seeded_app.test_client()
 
 
@@ -48,9 +50,9 @@ def find_seed_update_scripts(basedir, targetver):
 
 class TestNotifier(Notifier):
 
+  # pylint: disable=unused-argument
   def _config(self, config):
     self._notifications = []
-    self._config = config
 
   def notify(self, message):
     self._notifications.append(message)

@@ -3,7 +3,7 @@
 #
 import sys
 import traceback
-from flask import render_template
+from flask import render_template, jsonify
 from manager.log import get_log
 
 
@@ -26,6 +26,10 @@ def generic_exception(exception):
   get_log().debug("Traceback: %s", traceback.format_tb(sys.exc_info()[2]))
   return render_template('500.html'), 500
 
+# ---------------------------------------------------------------------------
+#                                         Error response templates
+# ---------------------------------------------------------------------------
+
 # bad request
 def error_400(e):
   return render_template('400.html'), 400
@@ -41,3 +45,38 @@ def error_404(e):
 # we done mucked up
 def error_500(e):
   return render_template('500.html'), 500
+
+# ---------------------------------------------------------------------------
+#                                         Response wrappers for REST calls
+# See RFC 7807 (https://datatracker.ietf.org/doc/html/rfc7807)
+# ---------------------------------------------------------------------------
+
+def xhr_response(status, msg, *args, title=None):
+  response = { 'status': status }
+  if msg:
+    response['detail'] = msg % args
+  if title:
+    response['title'] = title
+  return jsonify(response), status
+
+def xhr_error(status, msg, *args, title=None):
+  response = { 'status': status }
+  if msg:
+    if args:
+      get_log().error(msg, *args)
+      response['detail'] = msg % args
+    else:
+      get_log().error(msg)
+      response['detail'] = msg
+  if title:
+    response['title'] = title
+  return jsonify(response), status
+  # TODO: figure out why I couldn't swap the above with:
+  #return xhr_response(status, msg, args, title)
+  # ...it's something to do about args being reinterpreted or augmented
+
+def xhr_success(status=200, title=None):
+  response = { 'status': status }
+  if title:
+    response['title'] = title
+  return jsonify(response), status

@@ -29,6 +29,11 @@ class ResourceNotFound(AppException):
   Exception raised for when requested resources are not available.
   """
 
+class ResourceNotCreated(AppException):
+  """
+  Exception raised when resource cannot be created as requested.
+  """
+
 class UnsupportedDatabase(AppException):
   """
   Exception raised when application attempts to use unsupported database
@@ -69,4 +74,10 @@ class ImpossibleException(AppException):
   Exception raised when something that should be impossible has occurred.
   These are the type of situation where it might make sense to not even try
   to detect it in the first place; that's how impossible it is, or should be.
+  """
+
+class InvalidApiCall(AppException):
+  """
+  Exception raised for invalid use of the API, such as message does not
+  conform to report specifications.
   """

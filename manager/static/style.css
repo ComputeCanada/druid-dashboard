@@ -1,7 +1,7 @@
 html {
   font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
   background: #eee;
-  padding: 1rem;
+  padding: 2rem;
 }
 
 body {
@@ -67,7 +67,7 @@ footer {
 }
 
 .content > header {
-  border-bottom: 1px solid lightgray;
+  padding-bottom: 1rem;
   display: flex;
   align-items: flex-end;
 }
@@ -312,4 +312,43 @@ input:active + .toggle {
   border: 2px solid;
   padding: 1px 3px;
   background-color: #999999;
+}
+
+/* --------------------------------------------------------------------------
+                                                            toasts
+--------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+                                                            accordions
+--------------------------------------------------------------------------- */
+
+/* with tab panes we don't need additional border around accordions */
+.accordion-item {
+  border: 0px;
+}
+
+.accordion-button {
+  border-radius: calc(.25rem - 1px);
+}
+
+/* collapsed accordion doesn't need line under header */
+.accordion-button:not(.collapsed) {
+  box-shadow: none;
+}
+
+/* leave a little colour in collapsed accordion header */
+.accordion-button.collapsed {
+  background-color: #e0eaf8;
+}
+
+/* --------------------------------------------------------------------------
+                                                            tabs and panes
+--------------------------------------------------------------------------- */
+
+#panes_container {
+  border: 1px solid lightgrey;
+  border-bottom-left-radius: .25rem;
+  border-bottom-right-radius: .25rem;
+  border-top: 0px;
+  padding: 1rem;
 }

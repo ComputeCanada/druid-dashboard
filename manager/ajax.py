@@ -4,19 +4,22 @@
 import html
 
 from flask import Blueprint, jsonify, request, g, session
-from flask_babel import _
 from werkzeug.exceptions import BadRequest
 
 from manager.auth import login_required, admin_required
 from manager.log import get_log
 from manager.ldap import get_ldap
+from manager.errors import xhr_error, xhr_success
 from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
+from manager.cluster import Cluster, get_clusters
 from manager.component import get_components, add_component, delete_component
-from manager.burst import get_bursts, update_bursts, set_ticket, Burst
+from manager.burst import Burst
 from manager.template import Template
-from manager.exceptions import ImpossibleException, ResourceNotFound, BadCall, AppException, LdapException
-from manager.event import get_burst_events
+from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, ResourceNotCreated
+from manager.history import History
+from manager.reporter import registry
+from manager.reportable import Reportable
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
@@ -28,64 +31,34 @@ bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 #                                                                   HELPERS
 # ---------------------------------------------------------------------------
 
-def _bursts_by_cluster():
+# Given dict and a list of keys, returns list of any keys not occurring in
+# dict.
+def _must_have(dct, keys):
+  missing = [
+    key
+    for key in keys if key not in dct
+  ]
+  return missing or None
+
+def _reports_by_cluster(cluster):
   """
-  Convert dict returned by get_bursts(), which is keyed on a tuple and cannot
-  be jsonified, and key by cluster instead.  Add display values such as
-  claimant's name.
+  Collect reports available for given cluster.
   """
 
-  ldap = get_ldap()
+  # trivial response structure
+  reports = {
+    'cluster': cluster
+  }
 
-  # bursts by cluster
-  bbc = {}
+  # add reports
+  get_log().debug("Starting to look through reports for cluster %s", cluster)
+  for name, reporter in registry.reporters.items():
+    get_log().debug("Getting view from %s reporter", name)
+    report = reporter.view({'cluster':cluster, 'pretty': True})
+    if report:
+      reports[name] = report
 
-  # bursts by cluster and epoch
-  bbce = get_bursts()
-
-  # simplify to bursts by cluster
-  if bbce:
-    for ce, bursts in bbce.items():
-      cluster = ce[0]
-      epoch = ce[1]
-      if cluster in bbc:
-        # if this happens, then the data structure returned by get_bursts()
-        # is semantically broken; probably because somehow two different
-        # epochs were returned for the same cluster.
-        raise ImpossibleException("Cluster reported twice in get_bursts()")
-
-      bbc[cluster] = {}
-      bbc[cluster]['epoch'] = epoch
-
-      # serialize bursts individually so as to add attributes
-      bbc[cluster]['bursts'] = []
-      for burstObj in bursts:
-        burst = burstObj.serialize()
-
-        # add claimant's name
-        cci = burst['claimant']
-        if cci:
-          person = ldap.get_person_by_cci(cci)
-          if not person:
-            get_log().error("Could not find name for cci '%s'", burst['claimant'])
-            prettyname = cci
-          else:
-            prettyname = person['givenName']
-          burst['claimant_pretty'] = prettyname
-
-        # add ticket URL if there's a ticket
-        if burstObj.ticket_id:
-          burst['ticket_href'] = "<a href='{}' target='_ticket'>{}</a>".format(
-            ticket_url(burstObj.ticket_id), burstObj.ticket_no)
-        else:
-          burst['ticket_href'] = None
-
-        # add any prettified fields
-        burst['state_pretty'] = _(str(burstObj.state))
-        burst['resource_pretty'] = _(str(burstObj.resource))
-
-        bbc[cluster]['bursts'].append(burst)
-  return bbc
+  return reports
 
 def _get_project_pi(account):
 
@@ -215,27 +188,122 @@ def xhr_delete_apikey(access):
   return jsonify({'status': 'OK'}), 200
 
 # ---------------------------------------------------------------------------
-#                                                           ROUTES - bursts
+#                                                         ROUTES - clusters
 # ---------------------------------------------------------------------------
 
-@bp.route('/bursts/', methods=['GET'])
+@bp.route('/clusters/', methods=['GET'])
 @login_required
-def xhr_get_bursts():
-  return jsonify(_bursts_by_cluster())
+def xhr_get_clusters():
+  return jsonify(get_clusters())
 
-@bp.route('/bursts/', methods=['PATCH'])
+@bp.route('/clusters/<string:id>', methods=['GET'])
 @login_required
-def xhr_update_bursts():
+def xhr_get_cluster(id):
+  try:
+    return jsonify(Cluster(id=id))
+  except ResourceNotFound as e:
+    return xhr_error(404, str(e))
+
+@bp.route('/clusters/', methods=['POST'])
+@admin_required
+def xhr_create_clusters():
+  missing_args = _must_have(request.form, ['id', 'name'])
+  if missing_args:
+    return xhr_error(400,
+      "Must specify %s when creating cluster", ', '.join(missing_args))
+
+  id = request.form['id']
+  name = request.form['name']
+
+  try:
+    Cluster(id=id, name=name)
+  except ResourceNotCreated:
+    return xhr_error(400, "Could not create cluster record")
+
+  return xhr_success(201)
+
+# ---------------------------------------------------------------------------
+#                                                       ROUTES - components
+# ---------------------------------------------------------------------------
+
+@bp.route('/components/', methods=('GET',))
+@admin_required
+def xhr_get_components():
+
+  #components = get_components(get_last_heard=True)
+  #print(components)
+  #return jsonify(components), 200
+  return jsonify(get_components(get_last_heard=True)), 200
+
+@bp.route('/components/', methods=('POST',))
+@admin_required
+def xhr_add_component():
+
+  missing_args = _must_have(request.form, ['name', 'cluster', 'service'])
+  if missing_args:
+    return xhr_error(400,
+      "Must specify %s when creating component", ', '.join(missing_args))
+
+  name = request.form['name']
+  cluster = request.form['cluster']
+  service = request.form['service']
+  id = request.form.get('id', cluster + '_' + service)
+
+  get_log().debug("Adding component (%s)", id)
+  try:
+    add_component(id, name, cluster, service)
+  except Exception as e:
+    return xhr_error(400, "Unable to add component %s: %s", id, e)
+  return xhr_success(200)
+
+@bp.route('/components/<string:id>', methods=('DELETE',))
+@admin_required
+def xhr_delete_component(id):
+
+  get_log().debug("Deleting component %s", id)
+  try:
+    delete_component(id)
+  except ResourceNotFound as e:
+    return xhr_error(404, "Did not find component with ID %s (%s)", id, e)
+
+  return xhr_success(200)
+
+# ---------------------------------------------------------------------------
+#                                                           ROUTES - cases
+# ---------------------------------------------------------------------------
+
+@bp.route('/cases/', methods=['GET'])
+@login_required
+def xhr_get_cases():
+  get_log().debug("Retrieving cases")
+  if 'cluster' not in request.args:
+    return xhr_error(400, "No cluster specified when requesting reports")
+
+  # get cluster information
+  cluster = request.args['cluster']
+  return jsonify(_reports_by_cluster(cluster))
+
+@bp.route('/cases/<int:id>', methods=['PATCH'])
+@login_required
+def xhr_update_case(id):
+
+  get_log().debug("In xhr_update_case(%d)", id)
 
   # parse request
   try:
     data = request.get_json()
   except BadRequest as e:
-    get_log().error("Could not parse request data: %s", e)
-    return jsonify({'error': str(e)}), 400
+    return xhr_error(400, "Could not parse request data: %s", e)
 
-  # sanitize any strings
+  # verify/validate/sanitize individual updates
+  # note: For historical reasons this is an array although current UI workflow
+  #       does not support this.  Since both the client-side JS and this code
+  #       work together already there doesn't seem to be much reason to
+  #       update anything.
+  updates = []
   for item in data:
+
+    # sanitize any strings
     for (key, val) in item.items():
       if isinstance(val, str):
         sanitized = html.escape(val)
@@ -244,30 +312,52 @@ def xhr_update_bursts():
           get_log().info("Client tried to send in HTML for key %s: '%s'",
             key, sanitized)
 
+    # verify/fill in as necessary
+    verified = False
+    update = {}
+    for k, v in item.items():
+      if k == 'note':
+        update[k] = v
+        verified = True
+      elif k == 'timestamp':
+        update[k] = v
+      else:
+        if k == 'claimant' and v == '':
+          v = g.user['cci']
+        update['datum'] = k
+        update['value'] = v
+        verified = True
+
+    if not verified:
+      return xhr_error(400, "Update requests require note and/or key value")
+
+    updates.append(update)
+
   try:
-    update_bursts(data, user=g.user['cci'])
+    case = Reportable.get(id)
+    for item in updates:
+      get_log().debug("Updating case %d with datum = %s, value = %s, note = %s", id,
+        item.get('datum', '<blank>'), item.get('value', '<blank>'), item.get('note', '<blank>'))
+      case.update(item, g.user['cci'])
   except BadCall as e:
-    get_log().info("Client error: %s", e)
-    return jsonify({'error': str(e)}), 400
+    return xhr_error(400, "Client error: %s", e)
   except AppException as e:
-    get_log().error(e)
-    return jsonify({'error': str(e)}), 500
+    return xhr_error(500, "Application error: %s", e)
   except Exception as e:
-    get_log().error(e)
-    return jsonify({'error': str(e)}), 500
+    return xhr_error(500, "Unexpected exception: %s", e)
 
   try:
-    return jsonify(_bursts_by_cluster())
+    # TODO: Would be better to just return the updated reportable
+    return jsonify(_reports_by_cluster(case.cluster))
   except Exception as e:
-    get_log().error(e)
-    return jsonify({'error': str(e)}), 500
+    return xhr_error(500, "Could not get update information: %s", str(e))
 
-@bp.route('/bursts/<int:id>/events/', methods=['GET'])
+@bp.route('/cases/<int:id>/events/', methods=['GET'])
 @login_required
-def xhr_get_burst_events(id):
+def xhr_get_case_events(id):
 
-  get_log().debug("Retrieving events for burst %d", id)
-  events = get_burst_events(id)
+  get_log().debug("Retrieving events for case %d", id)
+  events = History.get_events(id)
   return jsonify(events), 200
 
 @bp.route('/bursts/<int:id>/people/', methods=['GET'])
@@ -361,59 +451,13 @@ def xhr_create_ticket():
      burst_id, account, ticket)
 
   # register the ticket with the burst candidate
-  set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
+  Reportable.set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
 
   return jsonify(dict({
     'burst_id': burst_id,
     'url': ticket_url(ticket['ticket_id'])
   }, **ticket))
 
-# ---------------------------------------------------------------------------
-#                                          ROUTES - clusters and components
-# ---------------------------------------------------------------------------
-
-@bp.route('/components/', methods=('GET',))
-@admin_required
-def xhr_get_components():
-
-  return jsonify(get_components(get_last_heard=True))
-
-@bp.route('/components/', methods=('POST',))
-@admin_required
-def xhr_add_component():
-
-  name = request.form['name']
-  cluster = request.form['cluster']
-  service = request.form['service']
-  id = cluster + '_' + service
-
-  get_log().debug("Adding component (%s)", id)
-  try:
-    add_component(id, name, cluster, service)
-  except Exception as e:
-    get_log().error(
-      "Exception in adding component %s (%s)", id, e)
-    return None
-  return jsonify({'status': 'OK'}), 200
-
-
-@bp.route('/components/<string:id>', methods=('DELETE',))
-@admin_required
-def xhr_delete_component(id):
-
-  get_log().debug("Deleting component %s", id)
-  try:
-    delete_component(id)
-  except Exception as e:
-    get_log.error("Exception in deleting component: %s", e)
-
-    # I cannot figure out how to respond in such a way that indicates error, except
-    # not to respond at all.  Have not tried using 4xx HTTP response status because
-    # that is not necessarily appropriate
-    #return jsonify({'status': 'error'}), 200
-    return None
-
-  return jsonify({'status': 'OK'}), 200
 
 # ---------------------------------------------------------------------------
 #                                               ROUTES - site configuration

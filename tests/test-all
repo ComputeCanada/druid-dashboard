@@ -39,8 +39,8 @@ usage()
 Usage: $(basename $0) [options]
 Options:
   --no-sqlite:    Don't test SQLite (default to test SQLite)
-  --pgsql:        Test Postgres (default true if container running)
-  --ldap:         Test LDAP integration (default true if container running)
+  --pgsql:        Test Postgres
+  --ldap:         Test LDAP integration
   --selenium:     Execute Selenium testing (default false)
   -a|--all:       Test all above if containers available
   --no-cleanup:   Do not clean up temporary directories
@@ -142,6 +142,10 @@ if (( test_schema ))
 then
   # create temporary directory for this stuff
   tmpdir=$(mktemp -d /tmp/$(basename $0).XXXXXX) || fail_to create temporary directory
+  if ! (( cleanup ))
+  then
+    echo "Temporary work dir (not cleaned up): $tmpdir"
+  fi
 
   # Schema baselining is disabled; see "configuration" section
   # # get schema versions from git after $SCHEMA_BASELINE (when seed data changed)
@@ -177,6 +181,8 @@ then
     fi
   }
   trap cleanup EXIT
+else
+  echo "NOTE: Not cleaning up temporary data.  Location: $tmpdir"
 fi
 
 export PYTHONPATH=.:$PYTHONPATH

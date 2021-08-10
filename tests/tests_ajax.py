@@ -10,12 +10,13 @@ with all the other burst stuff.
 """
 
 import json
-
+import pytest
 
 # ---------------------------------------------------------------------------
 #                                                           TEMPLATES TESTS
 # ---------------------------------------------------------------------------
 
+@pytest.mark.dependency(depends=['bursts_created'])
 def test_get_template(client):
 
   # log in
@@ -57,6 +58,7 @@ def test_create_ticket_bad_call_xhr(client):
   })
   assert response.status_code == 400
 
+@pytest.mark.dependency(depends=['bursts_created'])
 def test_create_ticket_xhr(client):
   """
   Use the OTRS Stub to ensure the ticket creation AJAX call sets up the

@@ -2,19 +2,19 @@ DROP TABLE IF EXISTS schemalog;
 DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
-DROP TABLE IF EXISTS notes;
-DROP TABLE IF EXISTS updates_state;
-DROP TABLE IF EXISTS updates_claimant;
 DROP TABLE IF EXISTS bursts;
 DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
 DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS oldjobs;
+DROP TABLE IF EXISTS reportables;
+DROP TABLE IF EXISTS history;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210417', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20210721', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -50,33 +50,6 @@ CREATE TABLE notifications (
   message TEXT NOT NULL
 );
 
-/*
- * state: 'p' = pending/unactioned, 'a' = accepted, 'r' = rejected
- * resource: 'c' = CPU, 'g' = GPU
- * see burst.py::State, burst.py::Resource
- * submitters is an space-separated list of user IDs
- */
-CREATE TABLE bursts (
-  id INTEGER PRIMARY KEY,
-  state CHAR(1) NOT NULL DEFAULT 'p',
-  account VARCHAR(32) NOT NULL,
-  resource CHAR(1) NOT NULL DEFAULT 'c',
-  cluster VARCHAR(16) NOT NULL,
-  pain REAL NOT NULL,
-  firstjob INTEGER NOT NULL,
-  lastjob INTEGER NOT NULL,
-  submitters TEXT NOT NULL,
-  summary TEXT,
-  epoch INTEGER NOT NULL,
-  ticks INTEGER NOT NULL DEFAULT 0,
-  claimant CHAR(7),
-  ticket_id INTEGER,
-  ticket_no VARCHAR(9),
-  CHECK (state in ('p', 'a', 'r')),
-  CHECK (resource in ('c', 'g')),
-  FOREIGN KEY (cluster) REFERENCES clusters(id)
-);
-
 CREATE TABLE notifiers (
   name VARCHAR(32) PRIMARY KEY,
   type VARCHAR(16) NOT NULL,
@@ -101,35 +74,55 @@ CREATE TABLE templates (
   CHECK (language IN ('', 'en', 'fr'))
 );
 
-CREATE TABLE notes (
+CREATE TABLE reportables (
   id INTEGER PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  FOREIGN KEY (burst_id) REFERENCES bursts(id)
+  epoch INTEGER NOT NULL,
+  ticks INTEGER NOT NULL DEFAULT 1,
+  cluster VARCHAR(16) NOT NULL,
+  claimant CHAR(7),
+  ticket_id INTEGER,
+  ticket_no VARCHAR(9),
+  summary TEXT,
+  FOREIGN KEY (cluster) REFERENCES clusters(id)
 );
 
-CREATE TABLE updates_state (
+/*
+ * state: 'p' = pending/unactioned, 'a' = accepted, 'r' = rejected
+ * resource: 'c' = CPU, 'g' = GPU
+ * see burst.py::State, burst.py::Resource
+ * submitters is an space-separated list of user IDs
+ */
+CREATE TABLE bursts (
   id INTEGER PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
-  analyst CHAR(7),
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  note TEXT,
-  old_state CHAR(1),
-  new_state CHAR(1),
-  FOREIGN KEY (burst_id) REFERENCES bursts(id),
-  CHECK (old_state in ('p', 'a', 'r')),
-  CHECK (new_state in ('p', 'a', 'r'))
-);
+  state CHAR(1) NOT NULL DEFAULT 'p',
+  account VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  pain REAL NOT NULL,
+  firstjob INTEGER NOT NULL,
+  lastjob INTEGER NOT NULL,
+  submitters TEXT NOT NULL,
+  CHECK (state in ('p', 'a', 'r')),
+  CHECK (resource in ('c', 'g')),
+  FOREIGN KEY (id) REFERENCES reportables(id)
+) WITHOUT ROWID;
 
-CREATE TABLE updates_claimant (
+-- tables keying to reportables must be declared as WITHOUT ROWID
+-- so that the primary key is not tied to the row ID
+CREATE TABLE oldjobs (
   id INTEGER PRIMARY KEY,
-  burst_id INTEGER NOT NULL,
+  account VARCHAR(32) NOT NULL,
+  submitter VARCHAR(32) NOT NULL,
+  resource CHAR(1) NOT NULL DEFAULT 'c',
+  age INTEGER NOT NULL,
+  FOREIGN KEY (id) REFERENCES reportables(id)
+) WITHOUT ROWID;
+
+CREATE TABLE history (
+  id INTEGER PRIMARY KEY,
+  case_id INTEGER NOT NULL,
   analyst CHAR(7),
   timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   note TEXT,
-  claimant_was CHAR(7),
-  claimant_now CHAR(7),
-  FOREIGN KEY (burst_id) REFERENCES bursts(id)
+  change TEXT,
+  FOREIGN KEY (case_id) REFERENCES reportables(id)
 );

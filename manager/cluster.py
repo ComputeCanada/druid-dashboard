@@ -2,17 +2,40 @@
 # pylint: disable=W0621
 #
 from manager.db import get_db
-from manager.exceptions import DatabaseException
+from manager.exceptions import ResourceNotFound, ResourceNotCreated
 
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
 # ---------------------------------------------------------------------------
+
+SQL_CREATE = '''
+  INSERT INTO clusters
+              (id, name)
+  VALUES      (?, ?)
+'''
 
 SQL_GET_BY_ID = '''
   SELECT  *
   FROM    clusters
   WHERE   id = ?
 '''
+
+SQL_GET_ALL = '''
+  SELECT  *
+  FROM    clusters
+'''
+
+# ---------------------------------------------------------------------------
+#                                                             helpers
+# ---------------------------------------------------------------------------
+
+def get_clusters():
+  res = get_db().execute(SQL_GET_ALL).fetchall()
+  if not res:
+    return None
+  return [
+    Cluster(rec=row) for row in res
+  ]
 
 # ---------------------------------------------------------------------------
 #                                                             cluster class
@@ -27,18 +50,36 @@ class Cluster():
     _name: proper name of cluster
   """
 
-  def __init__(self, id, name=None):
+  def __init__(self, id=None, name=None, rec=None):
 
-    self._id = id
-    self._name = name
-
-    if self._id and not self._name:
+    if rec:
+      self.deserialize(rec)
+    elif id and not name:
       # lookup
-      res = get_db().execute(SQL_GET_BY_ID, (self._id,)).fetchone()
+      res = get_db().execute(SQL_GET_BY_ID, (id,)).fetchone()
       if not res:
-        raise DatabaseException('Could not retrieve cluster {}'.format(self._id))
-      self._name = res['name']
+        raise ResourceNotFound('Could not retrieve cluster "{}"'.format(id))
+      self.deserialize(res)
+    else:
+      # creation
+      try:
+        get_db().execute(SQL_CREATE, (id, name))
+      except Exception as e:
+        raise ResourceNotCreated(e) from e
+      get_db().commit()
+      self._id = id
+      self._name = name
 
   @property
   def name(self):
     return self._name
+
+  def deserialize(self, rec):
+    for key in rec.keys():
+      self.__dict__['_'+key] = rec[key]
+
+  def serialize(self):
+    return {
+      key.lstrip('_'): val
+      for (key, val) in self.__dict__.items()
+    }

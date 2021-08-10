@@ -20,16 +20,10 @@ bp = Blueprint('admin', __name__, url_prefix='/admin')
 #                                                                     ROUTES
 # ---------------------------------------------------------------------------
 
-# This is the admin dashboard
+# This is the admin dashboard.  Everything is loaded through AJAX
 @bp.route('/')
 @admin_required
 def admin():
-
-  # TODO: load authorizations from Grouper
-  # TODO: load API keys
-  # TODO: load site configuration
-  # TODO: decide whether to do the above and also use AJAX, or skip and just
-  #       do AJAX
 
   # remember to come back to admin view
   session['admin_view'] = True

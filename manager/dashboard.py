@@ -11,6 +11,7 @@ from manager.auth import login_required
 from manager.notification import get_latest_notifications
 from manager.db import close_db
 from manager.log import get_log
+from manager.reporter import registry
 
 bp = Blueprint('dashboard', __name__)
 
@@ -23,7 +24,7 @@ bp = Blueprint('dashboard', __name__)
 # ---------------------------------------------------------------------------
 
 def notification_handler_todo(notification):
-  print(notification)
+  get_log().debug("Notification handler TODO: %s", notification)
 
 # notification handler map
 notification_handler = {
@@ -42,7 +43,7 @@ def index():
   # redirect admin to admin dashboard if that's the view they want
   if session.get('admin_view'):
     return redirect(url_for('admin.admin'))
-  return render_template('dashboard/index.html')
+  return render_template('dashboard/index.html', reports=registry.descriptions)
 
 # this is for getting at the user dashboard if you're an admin
 @bp.route('/user')

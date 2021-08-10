@@ -1,12 +1,13 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=W0621,raise-missing-from,import-outside-toplevel
 #
-import json
+from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
-from manager.exceptions import DatabaseException, BadCall, AppException
-from manager.component import Component
+from manager.exceptions import InvalidApiCall, DatabaseException
 from manager.cluster import Cluster
+from manager.reporter import Reporter, registry, just_job_id
+from manager.reportable import Reportable, dict_to_table
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -35,254 +36,58 @@ SQL_GET = '''
   WHERE     id = ?
 '''
 
-SQL_FIND_EXISTING = '''
-  SELECT  *
-  FROM    bursts
-  WHERE   cluster = ?
-    AND   account = ?
-    AND   resource = ?
-    AND   ? <= lastjob
-'''
-
-SQL_UPDATE_EXISTING = '''
-  UPDATE  bursts
-  SET     pain = ?,
-          lastjob = ?,
-          summary = ?,
-          epoch = ?,
-          ticks = ?,
-          submitters = ?
-  WHERE   id = ?
-'''
-
-SQL_UPDATE_STATE = '''
-  UPDATE  bursts
-  SET     state = ?
-  WHERE   id = ?
-'''
-
-SQL_UPDATE_CLAIMANT = '''
-  UPDATE  bursts
-  SET     claimant = ?
-  WHERE   id = ?
-'''
-
-SQL_CREATE = '''
+SQL_INSERT_NEW = '''
   INSERT INTO bursts
-              (cluster, account, resource, pain, firstjob, lastjob, submitters, summary, epoch)
-  VALUES      (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (id, account, resource, pain, firstjob, lastjob, submitters)
+  VALUES      (?, ?, ?, ?, ?, ?, ?)
 '''
 
-SQL_ACCEPT = '''
-  UPDATE  bursts
-  SET     state='a'
-  WHERE   id = ?
+SQL_UPDATE_BY_ID = '''
+  UPDATE    bursts
+  SET       pain = ?,
+            lastjob = ?,
+            submitters = ?
+  WHERE     id = ?
 '''
 
-SQL_REJECT = '''
-  UPDATE  bursts
-  SET     state='r'
-  WHERE   id = ?
-'''
-
-SQL_GET_CURRENT_BURSTS = '''
-  SELECT    B.*, COUNT(N.id) AS notes
-  FROM      bursts B
-  JOIN      (
-              SELECT    cluster, MAX(epoch) AS epoch
-              FROM      bursts
-              GROUP BY  cluster
-            ) J
-  ON        B.cluster = J.cluster AND B.epoch = J.epoch
-  LEFT JOIN notes N
-  ON        (B.id = N.burst_id)
-  GROUP BY  B.id
-'''
-
-SQL_GET_CLUSTER_BURSTS = '''
-  SELECT  *
-  FROM    bursts
-  WHERE   cluster = ? AND epoch = ? AND state='a'
-'''
-
-SQL_SET_TICKET = '''
-  UPDATE  bursts
-  SET     ticket_id = ?, ticket_no = ?
-  WHERE   id = ?
+SQL_GET_BURSTERS = '''
+  SELECT    R.cluster, B.account, B.resource, B.pain
+  FROM      reportables R
+  JOIN      bursts B
+  USING     (id)
+  WHERE     R.cluster = ?
+    AND     B.state = 'a'
+    AND     R.epoch = (
+              SELECT MAX(epoch)
+                FROM reportables
+                WHERE cluster = ?
+                AND id IN (SELECT id FROM bursts)
+            )
 '''
 
 # ---------------------------------------------------------------------------
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
-def _burst_array(db_results):
-  bursts = []
-  for row in db_results:
-    bursts.append(Burst(
-      id=row['id'],
-      cluster=row['cluster'],
-      account=row['account'],
-      resource=Resource(row['resource']),
-      pain=row['pain'],
-      jobrange=(row['firstjob'], row['lastjob']),
-      submitters=row['submitters'].split(),
-      state=State(row['state']),
-      summary=row['summary'],
-      epoch=row['epoch'],
-      ticks=row['ticks'],
-      claimant=row['claimant'],
-      ticket_id=row['ticket_id'],
-      ticket_no=row['ticket_no']
-    ))
-  return bursts
-
-def _bursts_by_cluster_epoch(db_results):
-  map = {}
-  for row in db_results:
-    cluster = row['cluster']
-    epoch = row['epoch']
-    if (cluster, epoch) not in map:
-      map[(cluster, epoch)] = []
-    map[(cluster, epoch)].append(Burst(
-      id=row['id'],
-      cluster=row['cluster'],
-      account=row['account'],
-      resource=Resource(row['resource']),
-      pain=row['pain'],
-      jobrange=(row['firstjob'], row['lastjob']),
-      submitters=row['submitters'].split(),
-      state=State(row['state']),
-      summary=row['summary'],
-      epoch=row['epoch'],
-      ticks=row['ticks'],
-      claimant=row['claimant'],
-      ticket_id=row['ticket_id'],
-      ticket_no=row['ticket_no'],
-      other=dict({
-        'notes': row['notes']
-      })
-    ))
-  return map
-
-def get_cluster_bursts(cluster):
-  db = get_db()
-
-  # get cluster's detector
-  detector = Component(cluster=cluster, service='detector')
-
-  # get current bursts
-  res = db.execute(SQL_GET_CLUSTER_BURSTS, (cluster, detector.lastheard)).fetchall()
-  if not res:
-    return None
-  return _burst_array(res)
-
-def get_current_bursts():
-  db = get_db()
-  res = db.execute(SQL_GET_CURRENT_BURSTS).fetchall()
-  if not res:
-    return None
-  return _bursts_by_cluster_epoch(res)
-
-def get_bursts(cluster=None):
-  if cluster:
-    return get_cluster_bursts(cluster)
-  return get_current_bursts()
-
-def update_bursts(updates, user):
-  """
-  Update burst information such as state or claimant.
-
-  Args:
-    updates (list of dict): list of dicts where each dict contains a burst ID
-      and a new value for state and/or claimant.
-  """
-  from manager.actions import StateUpdate, ClaimantUpdate
-  from manager.note import Note
-
-  get_log().debug("In update_bursts()")
-  if not updates:
-    get_log().error("update_bursts() called with no updates")
-    return
-
-  db = get_db()
-  for update in updates:
-
-    # get update parameters
-    try:
-      id = update['id']
-      text = update['note']
-    except KeyError as e:
-      raise BadCall("Burst update missing required field: {}".format(e))
-    timestamp = update.get('timestamp', None)
-
-    # update state if applicable
-    if state := update.get('state', None):
-
-      s = State.get(state)
-
-      # update history
-      try:
-        StateUpdate(burstID=id, analyst=user, text=text, timestamp=timestamp,
-          state=s.value)
-      except KeyError as e:
-        error = "Missing required update parameter: {}".format(e)
-        raise BadCall(error)
-      except Exception as e:
-        get_log().error("Exception in creating state update event log: %s", e)
-        raise AppException(str(e))
-
-      # update state
-      res = db.execute(SQL_UPDATE_STATE, (s.value, id))
-      if not res:
-        raise DatabaseException("Could not update state for Burst ID {} to {}".format(id, state))
-
-    # update claimant if applicable
-    elif 'claimant' in update:
-
-      # if claimant is empty string, use user instead
-      if update['claimant'] == '':
-        claimant = user
-      else:
-        claimant = update['claimant']
-
-      get_log().debug("Updating burst %d with claimant %s", id, claimant)
-
-      # update history
-      try:
-        ClaimantUpdate(burstID=id, analyst=user, text=text,
-          timestamp=timestamp, claimant=claimant)
-      except Exception as e:
-        get_log().error("Exception in creating claimant update event log: %s", e)
-        raise AppException(str(e))
-
-      # update claimant
-      res = db.execute(SQL_UPDATE_CLAIMANT, (claimant, id))
-      if not res:
-        raise DatabaseException("Could not update claimant for Burst ID {} to {}".format(id, claimant))
-
-    # otherwise, since we already have the text, this must be just a note
-    else:
-
-      try:
-        Note(burstID=id, analyst=user, text=text, timestamp=timestamp)
-      except Exception as e:
-        get_log().error("Exception in creating note: %s", e)
-        raise AppException(str(e))
-
-  db.commit()
-
-def set_ticket(id, ticket_id, ticket_no):
-  db = get_db()
-  res = db.execute(SQL_SET_TICKET, (ticket_id, ticket_no, id))
-  if not res:
-    raise DatabaseException("Could not set ticket information for Burst ID {}".format(id))
-  db.commit()
+def prettify_summary(original):
+  field_prettification = {
+    'num_jobs': _('Job count'),
+    'old_pain': _('Old pain')
+   }
+  value_prettification = {
+    'num_jobs': '%d',
+    'old_pain': '%.2f'
+  }
+  return dict_to_table({
+    field_prettification.get(x, x): value_prettification.get(x, '%s') % (y)
+    for x, y in original.items()
+  })
 
 # ---------------------------------------------------------------------------
 #                                                               burst class
 # ---------------------------------------------------------------------------
 
-class Burst():
+class Burst(Reporter, Reportable):
   """
   Represents a burst candidate.
 
@@ -291,10 +96,11 @@ class Burst():
     _cluster: cluster ID referencing entry in cluster table
     _account: account name (such as 'def-dleske-ab')
     _resource: resource type (type burst.Resource)
-    _pain: pain
+    _pain: pain metric used as initial indicator of burst candidacy
     _jobrange: tuple of first and last job IDs in burst
     _submitters: submitters associated with the jobs
     _state: state of burst (type burst.State)
+    # Common Reportables stuff
     _summary: summary information about burst and jobs (JSON)
     _epoch: epoch timestamp of last report
     _ticks: number of times reported
@@ -303,136 +109,262 @@ class Burst():
     _ticket_no: associated ticket's number
   """
 
-  def __init__(self, id=None, cluster=None, account=None,
-      resource=Resource.CPU, pain=None, jobrange=None, submitters=None,
-      state=State.PENDING, summary=None, epoch=None, ticks=0, claimant=None,
-      ticket_id=None, ticket_no=None, other=None):
+  # class variables
+  _table = 'bursts'
 
-    self._id = id
-    self._cluster = cluster
-    self._account = account
-    self._resource = resource
-    self._pain = pain
-    self._jobrange = jobrange
-    self._submitters = submitters
-    self._state = state
-    self._summary = summary
-    self._epoch = epoch
-    self._ticks = ticks
-    self._claimant = claimant
-    self._ticket_id = ticket_id
-    self._ticket_no = ticket_no
-    self._other = other
+  @classmethod
+  def _describe(cls):
+    return {
+      'table': 'bursts',
+      'title': _('Burst candidates'),
+      'metric': 'pain',
+      'cols': [
+        { 'datum': 'account',
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('Account')
+        },
+        { 'datum': 'usage',
+          'searchable': False,
+          'sortable': False,
+          'type': 'text',
+          'title': _('Usage')
+        },
+        { 'datum': 'pain',
+          'searchable': True,
+          'sortable': True,
+          'type': 'number',
+          'title': _('Pain'),
+          'help': _('Numerical indicator of hopelessness inherent in certain job contexts')
+        },
+        { 'datum': 'state',
+            'searchable': True,
+            'sortable': True,
+            'type': 'text',
+            'title': _('State')
+        }
+      ]
+    }
 
-    # handle instantiation by factory
-    # pylint: disable=too-many-boolean-expressions
-    # "pain is not None" etc because they are numbers
-    if id and cluster and account and jobrange and summary and \
-        pain is not None and epoch is not None:
+  @classmethod
+  def summarize_report(cls, cases):
 
-      return
+    # counts
+    newbs = 0
+    existing = 0
+    claimed = 0
+    by_state = {
+      State.PENDING: 0,
+      State.ACCEPTED: 0,
+      State.REJECTED: 0
+    }
 
-    # verify initialized correctly
-    if not (id or (cluster and account and pain is not None and jobrange)):
-      get_log().error(
-        "Missing either id (%s) or one or more of cluster (%s), account (%s),"
-        " pain (%s) or jobrange (%s)",
-        id, cluster, account, pain, jobrange
+    for burst in cases:
+      if burst.ticks > 1:
+        existing += 1
+      else:
+        newbs += 1
+
+      if burst.claimant:
+        claimed += 1
+
+      by_state[State(burst.state)] += 1
+
+    return "{} new record(s) and {} existing.  In total there are {} pending, " \
+      "{} accepted, {} rejected.  {} have been claimed.".format(
+        newbs, existing, by_state[State.PENDING], by_state[State.ACCEPTED],
+        by_state[State.REJECTED], claimed
       )
-      raise BadCall("Must specify either ID or all burst parameters")
 
-    # creating or retrieving?
-    db = get_db()
-    if id:
-      # lookup operation
-      res = db.execute(SQL_GET, (id,)).fetchone()
-      if res:
-        self._id = id
-        self._cluster = res['cluster']
-        self._account = res['account']
-        self._resource = Resource(res['resource'])
-        self._pain = res['pain']
-        self._jobrange = (res['firstjob'], res['lastjob'])
-        self._submitters = res['submitters'].split()
-        self._state = State(res['state'])
-        self._summary = json.loads(res['summary']) if res['summary'] else None
-        self._epoch = res['epoch']
-        self._ticks = res['ticks']
-        self._claimant = res['claimant']
-        self._ticket_id = res['ticket_id']
-        self._ticket_no = res['ticket_no']
-      else:
-        raise ValueError(
-          "Could not load burst with id '{}'".format(id)
-        )
-    else:
-      # see if there is already a suitable burst--one where the current
-      # report's starting job falls within the (first, last) range of the
-      # existing record
-      get_log().debug("Looking for existing burst")
-      res = db.execute(SQL_FIND_EXISTING, (cluster, account, resource, jobrange[0])).fetchone()
-      if res:
-        # found existing burst
-        self._id = res['id']
-        self._state = res['state']
-        self._claimant = res['claimant']
-        self._ticket_id = res['ticket_id']
-        self._ticket_no = res['ticket_no']
+  @classmethod
+  def report(cls, cluster, epoch, data):
+    """
+    Report potential job and/or account issues.
 
-        # get union of current and past submitters on this candidate
-        self._submitters = set(res['submitters'].split()) | set(submitters)
+    Args:
+      cluster: reporting cluster
+      epoch: epoch of report (UTC)
+      data: list of dicts describing current instances of potential account
+            or job pain or other metrics, as appropriate for the type of
+            report.
 
-        # update as necessary
-        self._jobrange = [res['firstjob'], jobrange[1]]
-        self._ticks = res['ticks'] + 1
-        get_log().debug("Ticks updated from %d to %d", res['ticks'], self._ticks)
+    Returns:
+      String describing summary of report.
+    """
 
-        # update burst for shifting definition:
-        # As time goes on, the first job reported in a burst may have
-        # completed, so we want to retain the first job earlier reported.  The
-        # end job may also shift outwards as new jobs are queued, so we update
-        # that in the database.  Other burst information, such as pain and
-        # info, will similarly shift over time, and we'll update that just so
-        # the Analyst gets current information from the Manager.
+    # build list of burst objects from report
+    bursts = []
+    for burst in data:
 
-        trying_to = "update existing burst for {}".format(account)
-        get_log().debug("Trying to %s", trying_to)
-
-        # update burst record
-        try:
-          db.execute(SQL_UPDATE_EXISTING, (
-            pain, jobrange[1], json.dumps(summary), epoch, self._ticks,
-            ' '.join(self._submitters), self._id)
-          )
-        except Exception as e:
-          raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
-
-      else:
-        # this is a new burst
-        trying_to = "create burst for {}".format(account)
-        get_log().debug("Trying to %s", trying_to)
-
-        # create burst record
-        try:
-          db.execute(SQL_CREATE, (
-            cluster, account, resource, pain, jobrange[0], jobrange[1], ' '.join(submitters),
-            json.dumps(summary), epoch
-            )
-          )
-        except Exception as e:
-          raise DatabaseException("Could not {} ({})".format(trying_to, e)) from e
+      # get the submitted data
       try:
-        db.commit()
-      except Exception as e:
-        raise DatabaseException("Could not {}".format(trying_to)) from e
+        # pull the others
+        res_raw = burst['resource']
+        account = burst['account']
+        pain = burst['pain']
+        summary = burst['summary']
+        submitters = burst['submitters']
+
+        # strip job array ID component, if present
+        firstjob = just_job_id(burst['firstjob'])
+        lastjob = just_job_id(burst['lastjob'])
+
+      except KeyError as e:
+        # client not following API
+        raise InvalidApiCall("Missing required field: {}".format(e))
+
+      # convert from JSON representations
+      try:
+        resource = Resource.get(res_raw)
+      except KeyError as e:
+        raise InvalidApiCall("Invalid resource type: {}".format(e))
+
+      # create burst and append to list
+      bursts.append(cls(
+        cluster=cluster,
+        account=account,
+        resource=resource,
+        pain=pain,
+        submitters=submitters,
+        jobrange=[firstjob, lastjob],
+        summary=summary,
+        epoch=epoch
+      ))
+
+    # report event
+    return cls.summarize_report(bursts)
+
+  @classmethod
+  def view(cls, criteria):
+    """
+    Return dict describing view of data reported.
+
+    Args:
+      criteria: dict of criteria for selecting data for view.  Accepted by the
+                Burst class are `cluster` and `view`.
+
+    Returns:
+      Dict describing view of data reported, formatted depending on the
+      requested view.  For basic cluster view, in the format:
+      ```
+      epoch: <seconds since epoch>
+      results:
+        - obj1.attribute1
+        - obj1.attribute2
+        - ..
+        - obj2.attribute1
+        - obj2.attribute2
+        - ..
+      ```
+      For "adjustor" view:
+      ```
+      ```
+    """
+
+    # superclass can handle base case (give me info about the cluster)
+    # if nothing other than pretty and cluster are in keys, we're good
+    # cluster is required, pretty may be included
+    if set(criteria.keys()) - {'pretty'} == {'cluster'}:
+      return super(Burst, cls).view(criteria)
+
+    # check that criteria make sense
+    try:
+      cluster = criteria['cluster']
+      view = criteria['view']
+    except KeyError:
+      raise NotImplementedError
+    if view != 'adjustor':
+      raise NotImplementedError
+
+    # this view is for reporting accounts deemed burstable by analysts
+    res = get_db().execute(SQL_GET_BURSTERS, (cluster, cluster)).fetchall()
+    if not res:
+      return None
+    return [
+      {
+        'account': rec['account'],
+        'pain': rec['pain'],
+        'resource': Resource(rec['resource'])
+      }
+      for rec in res
+    ]
+
+  def __init__(self, id=None, record=None, cluster=None, epoch=None,
+      account=None, resource=Resource.CPU, pain=None, jobrange=None, submitters=None,
+      state=State.PENDING, summary=None, other=None):
+
+    if id or record:
+
+      # initialize through base class and then make own interpretations
+      super().__init__(id=id, record=record)
+      self._resource = Resource(self._resource)
+      self._state = State(self._state)
+      self._submitters = self._submitters.split()
+
+      # fix base class's interpretation
+      self._jobrange = [self._firstjob, self._lastjob]
+      del self.__dict__['_firstjob']
+      del self.__dict__['_lastjob']
+
+    else:
+
+      self._account = account
+      self._resource = resource
+      self._pain = pain
+      self._jobrange = jobrange
+      self._submitters = submitters
+      self._state = state
+      self._other = other
+      super().__init__(cluster=cluster, epoch=epoch, summary=summary)
+
+  def find_existing_query(self):
+    return (
+      "account = ?  AND resource = ? AND ? <= lastjob",
+      (self._account, self._resource, self._jobrange[0]),
+      ['account', 'resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
+    )
+
+  def _update_existing_sub(self, rec):
+    self._state = rec['state']
+    self._jobrange[0] = rec['firstjob']
+    self._submitters = set(rec['submitters'].split()) | set(self._submitters)
+    affected = get_db().execute(SQL_UPDATE_BY_ID, (
+      self._pain, self._jobrange[1], ' '.join(self._submitters), self._id
+    )).rowcount
+
+    return affected == 1
+
+  def insert_new(self):
+    res = get_db().execute(SQL_INSERT_NEW, (
+      self._id, self._account, self._resource, self._pain, self._jobrange[0],
+      self._jobrange[1], ' '.join(self._submitters)
+    ))
+    if not res:
+      errmsg = "Unable to create new Burst record"
+      get_log().error(errmsg)
+      raise DatabaseException(errmsg)
+
+  def update(self, update, who):
+    if update.get('datum', None) == 'state':
+      update['value'] = State.get(update['value'])
+    super().update(update, who)
+
+  @property
+  def contact(self):
+    """
+    Return contact information for this potential issue.  This can depend on
+    the type of issue: a PI is responsible for use of the account, so the PI
+    should be the contact for questions of resource allocation.  For a
+    misconfigured job, the submitting user is probably more appropriate.
+
+    Returns: username of contact.
+    """
+    return self._account
 
   @property
   def account(self):
     return self._account
-
-  @property
-  def ticks(self):
-    return self._ticks
 
   @property
   def state(self):
@@ -443,26 +375,8 @@ class Burst():
     return self._resource
 
   @property
-  def ticket_id(self):
-    return self._ticket_id
-
-  @property
-  def ticket_no(self):
-    return self._ticket_no
-
-  @property
-  def claimant(self):
-    return self._claimant
-
-  @property
   def submitters(self):
     return self._submitters
-
-  @property
-  def notes(self):
-    if self._other and 'notes' in self._other:
-      return self._other['notes']
-    return None
 
   @property
   def info(self):
@@ -477,8 +391,33 @@ class Burst():
       return dict(basic, **self._summary)
     return basic
 
-  def serialize(self):
-    return {
-      key.lstrip('_'): val
-      for (key, val) in self.__dict__.items()
-    }
+  def serialize(self, pretty=False, options=None):
+    # have superclass start serialization but we'll handle the summary
+    serialized = super().serialize(
+      pretty=pretty,
+      options={'skip_summary_prettification': True}
+    )
+
+    if pretty:
+      serialized['resource_pretty'] = _(str(self._resource))
+      serialized['state_pretty'] = _(str(self._state))
+      serialized['pain_pretty'] = "%.2f" % (self._pain)
+      if self._summary:
+        serialized['summary_pretty'] = prettify_summary(self._summary)
+
+      # determine actions
+      if self._state == State.PENDING:
+        serialized['actions'] = [{
+          'id': 'reject',
+          'label': _('Reject')
+        }]
+        if self._ticket_id:
+          serialized['actions'].append({
+            'id': 'accept',
+            'label': _('Accept')
+          })
+
+    return serialized
+
+# register class with reporter registry
+registry.register('bursts', Burst)
