@@ -368,7 +368,7 @@ def test_post_burst(client, notifier):
           'ticket_id': None,
           'ticket_no': None,
           'ticks': 1,
-          'usage_pretty': '<a target="beamplot" href="https://localhost/plots/def-dleske_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/def-dleske_cpu_instant.html">Instant</a>'
+          'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-dleske_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-dleske_cpu_instant.html">Instant</a>'
         }
       ]
     }

@@ -70,11 +70,11 @@ SQL_GET_BURSTERS = '''
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
-def make_graphs_links(account, resource):
+def make_graphs_links(cluster, account, resource):
   cumulative_base = current_app.config['BURSTS_GRAPHS_CUMULATIVE_URI']
-  cumulative = cumulative_base.format(account=account, resource=resource)
+  cumulative = cumulative_base.format(cluster=cluster, account=account, resource=resource)
   instant_base = current_app.config['BURSTS_GRAPHS_INSTANT_URI']
-  instant = instant_base.format(account=account, resource=resource)
+  instant = instant_base.format(cluster=cluster, account=account, resource=resource)
   return f'''<a target="beamplot" href="{cumulative}">{_("Cumulative")}</a>
     <br/>
     <a target="beamplot" href="{instant}">{_("Instant")}</a>'''
@@ -413,7 +413,7 @@ class Burst(Reporter, Reportable):
       serialized['state_pretty'] = _(str(self._state))
       serialized['pain_pretty'] = "%.2f" % (self._pain)
       serialized['usage_pretty'] = make_graphs_links(
-        self._account, str(self._resource).lower())
+        self._cluster, self._account, str(self._resource).lower())
       if self._summary:
         serialized['summary_pretty'] = prettify_summary(self._summary)
 

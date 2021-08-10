@@ -65,8 +65,8 @@ defaults = {
   'OTRS_PASSWORD': '',
   'OTRS_QUEUE': 'Test',
   'OTRS_TICKET_STATE': 'new',
-  'BURSTS_GRAPHS_CUMULATIVE_URI': 'https://localhost/plots/{account}_{resource}_cumulative.html',
-  'BURSTS_GRAPHS_INSTANT_URI': 'https://localhost/plots/{account}_{resource}_instant.html'
+  'BURSTS_GRAPHS_CUMULATIVE_URI': 'https://localhost/plots/{cluster}/{account}_{resource}_cumulative.html',
+  'BURSTS_GRAPHS_INSTANT_URI': 'https://localhost/plots/{cluster}/{account}_{resource}_instant.html'
 }
 
 # optional that may appear in environment or configuration
