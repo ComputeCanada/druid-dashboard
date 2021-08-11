@@ -123,7 +123,7 @@ class Burst(Reporter, Reportable):
   _table = 'bursts'
 
   @classmethod
-  def _describe(cls):
+  def describe_me(cls):
     return {
       'table': 'bursts',
       'title': _('Burst candidates'),
@@ -149,10 +149,10 @@ class Burst(Reporter, Reportable):
           'help': _('Numerical indicator of hopelessness inherent in certain job contexts')
         },
         { 'datum': 'state',
-            'searchable': True,
-            'sortable': True,
-            'type': 'text',
-            'title': _('State')
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('State')
         }
       ]
     }

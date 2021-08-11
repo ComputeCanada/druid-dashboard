@@ -28,6 +28,8 @@ SQL_INSERT_NEW = '''
 # stuff.  Need to use a job range, or something else.  Using the oldest job
 # isn't good enough--the user might try deleting the oldest few or something.
 # So maybe job range but unlike with bursts, the job range is NOT updated.
+#
+# TODO: also this isn't actually used :)
 SQL_UPDATE_EXISTING = '''
   UPDATE    oldjobs
   SET       age = ?
@@ -52,7 +54,7 @@ class OldJob(Reporter, Reportable):
   _table = 'oldjobs'
 
   @classmethod
-  def _describe(cls):
+  def describe_me(cls):
     return {
       'table': 'oldjobs',
       'title': _('Job age'),
