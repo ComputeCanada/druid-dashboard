@@ -30,7 +30,6 @@ def test_get_cases_xhr(client):
   assert interpreted == {
     'cluster': 'testcluster',
     'bursts': {
-      'actions': None,
       'results': [
         {
           'account': 'def-dleske-aa',
@@ -106,7 +105,6 @@ def test_update_case_xhr(client):
   assert interpreted == {
     'cluster': 'testcluster',
     'bursts': {
-      'actions': None,
       'results': [
         {
           'account': 'def-dleske-aa',

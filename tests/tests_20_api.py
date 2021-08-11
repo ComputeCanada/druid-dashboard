@@ -346,7 +346,6 @@ def test_post_burst(client, notifier):
   assert parsed == {
     'cluster': 'testcluster',
     'bursts': {
-      'actions': None,
       'results': [
         {
           'account': 'def-dleske',

@@ -169,7 +169,6 @@ def test_post_oldjob(client):
   del parsed['epoch']
   del parsed['results'][0]['epoch']
   assert parsed == {
-    'actions': None,
     'results': [
       {
         'id': 4,
@@ -205,7 +204,6 @@ def test_post_oldjob(client):
 
   # test just oldjobs results
   assert parsed['oldjobs'] == {
-    'actions': None,
     'results': [
       {
         'account': 'def-dleske',
@@ -259,7 +257,6 @@ def test_post_oldjobs(client, notifier):
   del parsed['results'][0]['epoch']
   del parsed['results'][1]['epoch']
   assert parsed == {
-    'actions': None,
     'results': [
       {
         'id': 4,
