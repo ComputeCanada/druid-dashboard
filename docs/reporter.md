@@ -1,0 +1,433 @@
+---
+description: |
+    API documentation for modules: manager.reporter.
+
+lang: en
+
+classoption: oneside
+geometry: margin=1in
+papersize: a4
+
+linkcolor: blue
+links-as-notes: true
+...
+
+
+    
+# Module `manager.reporter` {#manager.reporter}
+
+Reporter and ReporterRegistry classes.
+
+Subclass the Reporter class to support a new type of reportable problem
+metrics.  The original use case for this was burst candidates: accounts with
+significant short-term need that can't be readily met by the resources
+typically available without a RAC.
+
+Use the ReporterRegistry class to register new reporter classes so that the
+application is aware of them: knows to query them for data to display on the
+dashboard and can serve them appropriately via the REST API.
+
+
+
+
+    
+## Functions
+
+
+    
+### Function `just_job_id` {#manager.reporter.just_job_id}
+
+
+
+
+>     def just_job_id(
+>         jobid
+>     )
+
+
+Strip job ID to just the base ID, not including any array part.
+
+
+Args
+-----=
+**```jobid```**
+:   Job identifier, optionally including array part.
+
+
+
+Returns
+-----=
+Integer job identifier.
+
+Raises
+-----=
+<code>manager.exceptions.AppException</code> if the job ID does not match the
+expected format.
+
+
+    
+## Classes
+
+
+    
+### Class `Reporter` {#manager.reporter.Reporter}
+
+
+
+
+>     class Reporter
+
+
+Base class for reporting metrics.
+
+The Reporter class defines methods or stubs necessary to support a Detector
+reporting potential problem cases of specific kind through the application's
+API.
+
+Subclasses must implement some methods and may override others, as
+documented.  Methods implemented as stubs will throw <code>NotImplementedError</code>
+if called.
+
+
+
+    
+#### Descendants
+
+* [manager.burst.Burst](#manager.burst.Burst)
+* [manager.oldjob.OldJob](#manager.oldjob.OldJob)
+
+
+
+
+    
+#### Static methods
+
+
+    
+##### `Method describe` {#manager.reporter.Reporter.describe}
+
+
+
+
+>     def describe()
+
+
+Describe report structure and semantics.
+
+The results of this method are used to meaningfully present the report data
+(provided by other methods).  For example, these descriptions can be used
+to inform UI templates what columns should appear in the report table on
+the Dashboard.
+
+The data returned has the following structure:
+```
+{
+  table: str,       # table name in database
+  title: str,       # display title of report
+  metric: str,      # primary metric of interest
+  cols: [{          # ordered list of field descriptors
+    datum: ..,      # name of reported data field
+    title: ..,      # display label (such as for column header)
+    searchable: .., # should column data be included in searches
+    sortable: ..,   # should table be sortable on this column
+    type: ..,       # type (text or number, used for display)
+    help: ..        # help text, displayed when hovering over title
+  }, ... ],
+}
+```
+
+
+Returns
+-----=
+A data structure conforming to the above.
+Note: Subclasses _must not_ override this function.  Instead, subclasses
+  _must_ override <code>[Reporter.describe\_me()](#manager.reporter.Reporter.describe\_me "manager.reporter.Reporter.describe\_me")</code> to describe the specifics of
+  that case and this method will combine the common and specific field
+  descriptions.
+
+    
+##### `Method describe_me` {#manager.reporter.Reporter.describe_me}
+
+
+
+
+>     def describe_me()
+
+
+Describe report structure and semantics specific to report type.
+
+Subclasses should implement this to describe the table name, report title,
+and the primary metric of the report type as well as columns specific to
+and implemented by the subclass.  The Reporter class will call this method
+from <code>[Reporter.describe()](#manager.reporter.Reporter.describe "manager.reporter.Reporter.describe")</code> to generate the full report.
+
+All fields are required with the exception of <code>help</code>.
+
+The data returned has the following structure:
+```
+{
+  table: str,       # table name in database
+  title: str,       # display title of report
+  metric: str,      # primary metric of interest
+  cols: [{          # ordered list of field descriptors
+    datum: ..,      # name of reported data field
+    title: ..,      # display label (such as for column header)
+    searchable: .., # should column data be included in searches
+    sortable: ..,   # should table be sortable on this column
+    type: ..,       # type (text or number, used for display)
+    help: ..        # help text, displayed when hovering over title
+  }, ... ],
+}
+```
+
+
+Returns
+-----=
+A data structure conforming to the above.
+
+    
+##### `Method report` {#manager.reporter.Reporter.report}
+
+
+
+
+>     def report(
+>         cluster,
+>         epoch,
+>         data
+>     )
+
+
+Report potential job and/or account issues.
+
+Subclasses must implement this to interpret reports coming through the API
+from a Detector.  Those implementations should describe the expected
+format of the <code>data</code> argument and should call <code>[Reporter.summarize\_report()](#manager.reporter.Reporter.summarize\_report "manager.reporter.Reporter.summarize\_report")</code>
+to provide a summary as return value.
+
+
+Args
+-----=
+**```cluster```**
+:   The reporting cluster.
+
+
+**```epoch```**
+:   Epoch of report (UTC).
+
+
+**```data```**
+:   A list of dicts describing current instances of potential account
+      or job pain or other metrics, as appropriate for the type of
+      report.
+
+
+
+Returns
+-----=
+String describing summary of report.
+
+    
+##### `Method summarize_report` {#manager.reporter.Reporter.summarize_report}
+
+
+
+
+>     def summarize_report(
+>         cases
+>     )
+
+
+Provide a brief, one-line summary of last report.
+
+The intended use case for this summary is for notifications, such as to
+Slack, when a report is received and interpreted.
+
+Subclasses may override this method to provide additional information.
+
+
+Args
+-----=
+**```cases```**
+:   The list of cases (objects subclassed from Reportable class)
+    created or updated from the last report.
+
+
+
+Returns
+-----=
+A string description of the last report.
+
+    
+##### `Method view` {#manager.reporter.Reporter.view}
+
+
+
+
+>     def view(
+>         criteria
+>     )
+
+
+Provide view to reported data.
+
+By default, provides current view of reported data.  Subclasses may
+override this to provide additional views.
+
+The view is described as follows:
+```
+epoch: seconds since epoch
+results:
+  - obj1.attribute1: ..
+    obj1.attribute2: ..
+    obj1.attribute2_pretty: ..
+    obj1.attribute3: ..
+    ...
+  - obj2.attribute1: ..
+    obj2.attribute2: ..
+    obj2.attribute2_pretty: ..
+    obj2.attribute3: ..
+    ...
+  ...
+```
+
+Attributes suffixed with <code>\_pretty</code> provide display versions of those
+attributes without, if appropriate and requested.
+
+
+Args
+-----=
+**```criteria```**
+:   Dict of criteria for selecting data for view.  In this
+    implementation, <code>cluster</code> is required and <code>pretty</code> is optional.
+  
+    * <code>cluster</code>: (required) Cluster for which to provide data.
+    * <code>pretty</code>: (optional, default False): provide display-friendly
+      alternatives on some fields, if possible.
+
+
+
+Returns
+-----=
+None or a data structure conforming to the above.
+
+Raises
+-----=
+<code>NotImplementedError</code>
+:   Criteria other than <code>pretty</code> or <code>cluster</code> were
+    specified, indicating this should have been overridden by a subclass
+    and were not.
+
+
+
+
+    
+### Class `ReporterRegistry` {#manager.reporter.ReporterRegistry}
+
+
+
+
+>     class ReporterRegistry
+
+
+Singular registry of reporters.
+
+The application uses this registry to query available report types.
+Subclasses of the Reporter class register so the application is aware of
+them and knows to query and present different report types.
+
+
+Attributes
+-----=
+**```reporters```**
+:   Dict of report names to their classes.
+
+
+
+
+
+
+
+    
+#### Instance variables
+
+
+    
+##### Variable `descriptions` {#manager.reporter.ReporterRegistry.descriptions}
+
+
+
+
+Dictionary of reporter name to the data description provided by the
+reporter.
+
+    
+##### Variable `reporters` {#manager.reporter.ReporterRegistry.reporters}
+
+
+
+
+Dictionary of reporter name to class.
+
+
+    
+#### Static methods
+
+
+    
+##### `Method get_registry` {#manager.reporter.ReporterRegistry.get_registry}
+
+
+
+
+>     def get_registry()
+
+
+Return singular instance of registry.
+
+
+    
+#### Methods
+
+
+    
+##### Method `register` {#manager.reporter.ReporterRegistry.register}
+
+
+
+
+>     def register(
+>         self,
+>         name,
+>         reporter
+>     )
+
+
+Register a Reporter implementation.
+
+Reporters (subclasses of the <code>reporter.Reporter</code> class) must register
+themselves so the application knows to query these classes.  A subclass of
+the Reporter class must use this method at the end of its module file.
+
+
+Args
+-----=
+**```name```**
+:   The common name for the reporter type.  This name will be used,
+    for example, when reporting via the API.  It is recommended it match
+    the table name and be plural, for example, "bursts" or "oldjobs".
+
+
+**```reporter```**
+:   The subclass.
+
+
+
+Raises
+-----=
+<code>manager.exceptions.AppException</code> if a reporter with that name has
+  already by registered.
+
+
+-----
+Generated by *pdoc* 0.9.2 (<https://pdoc3.github.io>).
