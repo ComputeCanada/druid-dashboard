@@ -1,6 +1,10 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint: disable=raise-missing-from
 #
+"""
+Reportable class for implementing new types of problem metrics.
+"""
+
 import json
 from manager.db import get_db
 from manager.log import get_log
@@ -16,15 +20,50 @@ from manager.history import History
 # ---------------------------------------------------------------------------
 
 def dict_to_table(d):
-  html = ''
-  if d:
-    html += '<table>'
-    for k, v in d.items():
-      html += f"<tr><th>{k}</th><td>{v}</td></tr>"
-    html += '</table>'
-  return html
+  """
+  Given a dictionary, return a basic HTML table.
+
+  Turns the keys and values of the dictionary into a two-column table where
+  the keys are header cells (`TH`) and the values are regular cells (`TD`).
+  There is no header row and any complexity in the values are ignored (for
+  example there is no hierarchical tabling).
+
+  Args:
+    d: A dictionary.
+
+  Returns:
+    A basic HTML table to display that dictionary in the simplest possible
+    way.
+  """
+  if not d:
+    return ''
+
+  # Create a list of HTML chunks, starting with the beginning representation
+  # of a table.  Iterate through the items in the dictionary while appending
+  # rows to this list.  Finish the list and return a concatenated string.
+  #
+  # Starting with a blank or basic string and appending to that can use
+  # quadratic time instead of linear time in some cases, so using the list
+  # method instead.
+
+  html = ['<table>']
+  for k, v in d.items():
+    html.append(f"<tr><th>{k}</th><td>{v}</td></tr>")
+  html.append('</table>')
+  return ''.join(html)
 
 def json_to_table(str):
+  """
+  Given a JSON string representing a dictionary, return an HTML table.
+
+  See `dict_to_table()` for more detail.
+
+  Args:
+    str: A JSON string representation of a dictionary.
+
+  Returns:
+    A basic HTML table.
+  """
   return dict_to_table(json.loads(str))
 
 # ---------------------------------------------------------------------------
@@ -98,13 +137,47 @@ SQL_SET_TICKET = '''
 class Reportable:
   """
   A base class for reportable trouble metrics.
+
+  Subclasses of this class implement a single instance of a reportable case.
+  For example, an instance of the OldJob class represents an account on a
+  cluster with really old jobs.  Tomorrow if that account still has really old
+  jobs, it'll be reported again (via the appropriate subclass of
+  `manager.reporter.Reporter`) but it will still be the same instance, though
+  some of the details may change.
+
+  Instances of these subclasses are represented in the database by a row in
+  each of two tables: the reportables table, which stores information common
+  to all types, and in a table specific to the subclass.
+
+  Subclasses must implement some methods and may override others, as
+  documented.  Methods implemented here merely as stubs will throw
+  `NotImplementedError` if called.
   """
 
   @classmethod
   def get(cls, id):
+    """
+    Find and load the appropriate Reportable object given the ID.
+
+    Reportable IDs are unique among all subclasses.  In the database, they are
+    stored in the common reportables table and referenced from the
+    subclass-specific table.
+
+    This implementation tries to instantiate each of the registered case
+    classes using the given ID.  This is not efficient or graceful.
+
+    Args:
+      id: The numeric ID of the case.
+
+    Returns:
+      An instance of the appropriate case class with that ID, or None.
+    """
 
     # TODO: This could be improved by having a bidirectional link--such as
     #       storing the subclass report type in the reportables table
+
+    # TODO: This assumes every Reporter also implements Reportable.  Really
+    #       should just merge them into "Case".
 
     registry = ReporterRegistry.get_registry()
 
@@ -114,12 +187,25 @@ class Reportable:
         return reportercls(id=id)
       except ResourceNotFound:
         pass
+
     get_log().error("Could not find reporter class for case ID %d", id)
     return None
 
   @classmethod
   def get_current(cls, cluster):
-    res = get_db().execute(SQL_GET_CURRENT_FOR_CLUSTER.format(cls._table, cls._table), (cluster, cluster)).fetchall()
+    """
+    Get the current cases for this type of report.
+
+    Args:
+      cluster: The identifier for the cluster of interest.
+
+    Returns:
+      A list of appropriate reportable objects, or None.
+    """
+    res = get_db().execute(
+      SQL_GET_CURRENT_FOR_CLUSTER.format(cls._table, cls._table),
+      (cluster, cluster)
+    ).fetchall()
     if not res:
       return None
     return [
@@ -128,13 +214,65 @@ class Reportable:
 
   @classmethod
   def set_ticket(cls, id, ticket_id, ticket_no):
+    """
+    Set the ticket information for a given case ID.
+
+    This is a convenience function that avoids actually finding and
+    instantiating the matching case.
+
+    Args:
+      id: The case ID.
+      ticket_id: The OTRS ticket ID.
+      ticket_no: The OTRS ticket number.
+
+    Raises:
+      DatabaseException if the execution fails.
+
+    Notes:
+      The ticket ID and number are confusing and meaningful only to OTRS.
+      The Dude abides.
+    """
     db = get_db()
     res = db.execute(SQL_SET_TICKET, (ticket_id, ticket_no, id))
+
+    # TODO: should use rowcount == 1 instead of res
     if not res:
       raise DatabaseException("Could not set ticket information for case ID {}".format(id))
     db.commit()
 
   def __init__(self, id=None, record=None, cluster=None, epoch=None, summary=None):
+    """
+    There are three modes for creating a Case object:
+
+    1.  Lookup by ID.  Specify the ID but NOT the record.
+    2.  Factory loading by specifying a database record (row).  Specify the
+        record but not the ID.
+    3.  Creating a "new" Case specifying information about it.  Note that it
+        may be that an existing case is found matching enough of the
+        information to be effectively the same case.  Both `id` and `record`
+        should not be set.
+
+    Subclasses will need to override this method but _must_ invoke the base
+    implementation via `super().__init__()` to ensure the entire object is
+    initialized and persisted.
+
+    Args:
+      id: Unique identifier for the case.
+      record: Dictionary describing all the values for the case.  This is used
+        to efficiently instantiate multiple objects from a multiple-row query,
+        or other examples of factory loading.
+      cluster: The cluster where this case occurred.
+      epoch: The UNIX epoch (UTC) when this case was (last) reported.
+      summary: A dictionary of arbitrary information supplied by the Detector
+        which may be of use to analysts in addressing the case.
+
+    Raises:
+      `manager.exceptions.ResourceNotFound` if the ID (but no record) is
+        supplied and no record with that ID can be found.
+      `manager.exceptions.BadCall` if a nonsensical combination of named
+        arguments are supplied.
+    """
+
     if id and not record:
       # lookup record
       rec = get_db().execute(
@@ -170,6 +308,10 @@ class Reportable:
       db.commit()
 
   def _load_from_rec(self, rec):
+    """
+    Helper method for initializing an object given a dictionary describing its
+    attributes.
+    """
     for (k, v) in rec.items():
       if k == 'notes':
         self._other = {
@@ -189,10 +331,13 @@ class Reportable:
     Subclasses MUST implement this to enable detection of when a reported
     record matches one already in the database.
 
-    Returns: (query, terms, cols) where:
-      query (string) completes the WHERE clauses in SQL_FIND_EXISTING.
-      terms (list) lists the search terms in the query,
-      cols (list) lists the columns include in the selection
+    Returns:
+
+      A tuple (query, terms, cols) where:
+
+        - `query` (string) completes the WHERE clauses in SQL_FIND_EXISTING,
+        - `terms` (list) lists the search terms in the query, and
+        - `cols` (list) lists the columns included in the selection.
     """
     raise NotImplementedError
 
@@ -261,7 +406,8 @@ class Reportable:
     Subclasses must implement this method to insert a new record in their
     associated table.  This method is called by the base class after the base
     record has been created in the "reportables" table and an ID is available
-    as `self._id`.
+    as `self._id`, which the subclass can use in the database to link records
+    in its table to the reportables table.
     """
     raise NotImplementedError
 
@@ -311,40 +457,69 @@ class Reportable:
 
   @property
   def id(self):
+    """
+    The numerical identifier of this case, assigned by the database as an
+    auto-incrementing sequence.
+    """
     return self._id
 
   @property
   def cluster(self):
+    """
+    The cluster where this case originated.
+    """
     return self._cluster
 
   @property
   def epoch(self):
+    """
+    The most recent UNIX epoch (UTC) this case was reported.
+    """
     return self._epoch
 
   @property
   def ticks(self):
+    """
+    The number of reports including this case.
+    """
     return self._ticks
 
   @property
   def ticket_id(self):
+    """
+    The primary ticket identifier.  Numeric.
+    """
     return self._ticket_id
 
   @property
   def ticket_no(self):
+    """
+    The other primary ticket identifier.  Looks numeric.  Is not the same as
+    `ticket_id`.  Actually a string.
+    """
     return self._ticket_no
 
   @property
   def claimant(self):
+    """
+    The analyst that has signalled they will pursue this case.
+    """
     return self._claimant
 
   @property
   def notes(self):
+    """
+    Notes associated with this case.
+    """
     if self._other and 'notes' in self._other:
       return self._other['notes']
     return None
 
   @property
   def info(self):
+    """
+    Some information about this case, used for passing on to templates.
+    """
     basic = {
       'account': self._account,
       'cluster': Cluster(self._cluster).name,
@@ -357,20 +532,46 @@ class Reportable:
   @property
   def contact(self):
     """
-    Return contact information for this potential issue.  This can depend on
-    the type of issue: a PI is responsible for use of the account, so the PI
-    should be the contact for questions of resource allocation.  For a
-    misconfigured job, the submitting user is probably more appropriate.
+    Contact information for this potential issue.
 
-    Returns: username of contact.
+    This can depend on the type of issue: a PI is responsible for use of the
+    account, so the PI should be the contact for questions of resource
+    allocation.  For a misconfigured job, the submitting user is probably more
+    appropriate.
     """
     raise NotImplementedError
 
   def serialize(self, pretty=False, options=None):
+    """
+    Provide a dictionary representation of self.
 
-    #get_log().debug("Serializing myself: %s (pretty = %s) dict = %s",
-    #  self.__class__.__name__, pretty, self.__dict__
-    #)
+    By default, simply returns a dictionary of attributes with leading
+    underscores removed.  If `pretty` is specified, the dictionary may be
+    augmented with prettified versions of some attributes, depending on the
+    implementation.  In the base implementation, prettification includes:
+
+    * `claimant_pretty` is included if the value for `claimant` is found in
+      LDAP and will be set to the person's given name.
+    * `ticket` is included if `ticket_id` is set and becomes an HTML anchor
+      element for that ticket.
+    * `summary_pretty` is included if `summary` is set,
+      `options['skip_summary_prettification']` is either unset or false, and
+      is populated with an HTML table interpretation of the summary attribute.
+
+    In general, prettified attributes should compliment, not replace, the
+    originals, and the consumer may choose.
+
+    Subclasses may override this to provide their own prettification, and must
+    must call `super().serialize(...)` appropriately to ensure full
+    representation.  See existing subclasses for examples.
+
+    Args:
+      pretty: if True, prettify some fields
+      options: optional dictionary of options
+
+    Returns:
+      A dictionary representation of the case.
+    """
 
     dct = {
       key.lstrip('_'): val
