@@ -7,8 +7,7 @@ from manager.db import get_db, DbEnum
 from manager.log import get_log
 from manager.exceptions import InvalidApiCall, DatabaseException
 from manager.cluster import Cluster
-from manager.reporter import Reporter, registry, just_job_id
-from manager.reportable import Reportable, dict_to_table
+from manager.case import Case, registry, just_job_id, dict_to_table
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -97,7 +96,7 @@ def prettify_summary(original):
 #                                                               burst class
 # ---------------------------------------------------------------------------
 
-class Burst(Reporter, Reportable):
+class Burst(Case):
   """
   Represents a burst candidate.
 

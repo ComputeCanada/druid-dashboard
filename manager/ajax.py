@@ -18,8 +18,7 @@ from manager.burst import Burst
 from manager.template import Template
 from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, ResourceNotCreated
 from manager.history import History
-from manager.reporter import registry
-from manager.reportable import Reportable
+from manager.case import Case, registry
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
@@ -334,7 +333,7 @@ def xhr_update_case(id):
     updates.append(update)
 
   try:
-    case = Reportable.get(id)
+    case = Case.get(id)
     for item in updates:
       get_log().debug("Updating case %d with datum = %s, value = %s, note = %s", id,
         item.get('datum', '<blank>'), item.get('value', '<blank>'), item.get('note', '<blank>'))
@@ -451,7 +450,7 @@ def xhr_create_ticket():
      burst_id, account, ticket)
 
   # register the ticket with the burst candidate
-  Reportable.set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
+  Case.set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
 
   return jsonify(dict({
     'burst_id': burst_id,

@@ -5,8 +5,7 @@ from flask_babel import _
 from manager.log import get_log
 from manager.db import get_db, DbEnum
 from manager.exceptions import InvalidApiCall, ResourceNotCreated
-from manager.reportable import Reportable
-from manager.reporter import Reporter, registry
+from manager.case import Case, registry
 
 # enum of resources
 class JobResource(DbEnum):
@@ -49,7 +48,7 @@ SQL_UPDATE_BY_ID = '''
 #                                                             Old Job class
 # ---------------------------------------------------------------------------
 
-class OldJob(Reporter, Reportable):
+class OldJob(Case):
 
   _table = 'oldjobs'
 

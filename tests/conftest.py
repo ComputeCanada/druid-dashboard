@@ -5,7 +5,7 @@ import os
 import re
 import pytest
 from manager.notifier import Notifier, register_notifier, get_notifiers
-from manager.reporter import registry
+from manager.case import registry
 
 @pytest.fixture(scope='class')
 def client(seeded_app):

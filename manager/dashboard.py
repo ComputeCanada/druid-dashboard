@@ -11,7 +11,7 @@ from manager.auth import login_required
 from manager.notification import get_latest_notifications
 from manager.db import close_db
 from manager.log import get_log
-from manager.reporter import registry
+from manager.case import registry
 
 bp = Blueprint('dashboard', __name__)
 
