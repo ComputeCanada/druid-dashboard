@@ -332,9 +332,7 @@ class Reportable:
     record matches one already in the database.
 
     Returns:
-
       A tuple (query, terms, cols) where:
-
         - `query` (string) completes the WHERE clauses in SQL_FIND_EXISTING,
         - `terms` (list) lists the search terms in the query, and
         - `cols` (list) lists the columns included in the selection.
@@ -367,7 +365,8 @@ class Reportable:
     details provided, but this may need to be appropriately adjusted with
     data from the matching case in the database.
 
-    Returns: boolean indicating whether there was a record to update
+    Returns:
+      A boolean indicating whether there was a record to update.
     """
     (query, terms, columns_list) = self.find_existing_query()
 

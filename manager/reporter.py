@@ -173,7 +173,8 @@ class Reporter:
     Returns:
       A data structure conforming to the above.
 
-    Note: Subclasses _must not_ override this function.  Instead, subclasses
+    Note:
+      Subclasses _must not_ override this function.  Instead, subclasses
       _must_ override `Reporter.describe_me()` to describe the specifics of
       that case and this method will combine the common and specific field
       descriptions.
