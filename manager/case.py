@@ -2,7 +2,7 @@
 # pylint: disable=wrong-import-position,import-outside-toplevel,raise-missing-from
 #
 """
-Case and CaseRegistry classes.
+Case module: the foundation for reporting problem cases
 
 Subclass the Case class to support a new type of reportable problem
 metrics.  The original use case for this was burst candidates: accounts with
@@ -12,6 +12,10 @@ typically available without a RAC.
 Use the CaseRegistry class to register new case classes so that the
 application is aware of them: knows to query them for data to display on the
 dashboard and can serve them appropriately via the REST API.
+
+Helper functions provide some common functionality and may be of use to
+subclasses.  If creating a utility function for a new subclass, consider
+whether it may be of use to other case types.
 """
 
 import re
@@ -280,7 +284,8 @@ class Case:
 
   @classmethod
   def describe(cls):
-    """Describe report structure and semantics.
+    """
+    Describe report structure and semantics.
 
     The results of this method are used to meaningfully present the report data
     (provided by other methods).  For example, these descriptions can be used
@@ -360,7 +365,8 @@ class Case:
 
   @classmethod
   def describe_me(cls):
-    """Describe report structure and semantics specific to case type.
+    """
+    Describe report structure and semantics specific to case type.
 
     Subclasses should implement this to describe the table name, report title,
     and the primary metric of the case type as well as columns specific to
@@ -393,7 +399,8 @@ class Case:
 
   @classmethod
   def summarize_report(cls, cases):
-    """Provide a brief, one-line summary of last report.
+    """
+    Provide a brief, one-line summary of last report.
 
     The intended use case for this summary is for notifications, such as to
     Slack, when a report is received and interpreted.
@@ -421,7 +428,8 @@ class Case:
 
   @classmethod
   def report(cls, cluster, epoch, data):
-    """Report potential job and/or account issues.
+    """
+    Report potential job and/or account issues.
 
     Subclasses must implement this to interpret reports coming through the API
     from a Detector.  Those implementations should describe the expected
@@ -442,7 +450,8 @@ class Case:
 
   @classmethod
   def view(cls, criteria):
-    """Provide view to reported data.
+    """
+    Provide view to reported data.
 
     By default, provides current view of reported data.  Subclasses may
     override this to provide additional views.
@@ -469,8 +478,7 @@ class Case:
 
     Args:
       criteria: Dict of criteria for selecting data for view.  In this
-        implementation, `cluster` is required and `pretty` is optional.
-
+      implementation, `cluster` is required and `pretty` is optional.
         * `cluster`: (required) Cluster for which to provide data.
         * `pretty`: (optional, default False): provide display-friendly
           alternatives on some fields, if possible.
@@ -480,8 +488,8 @@ class Case:
 
     Raises:
       NotImplementedError: Criteria other than `pretty` or `cluster` were
-        specified, indicating this should have been overridden by a subclass
-        and were not.
+        specified, indicating this method should have been overridden by a
+        subclass and was not.
     """
 
     # 'cluster' required, 'pretty' optional, nothing else handled

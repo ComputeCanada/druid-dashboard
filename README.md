@@ -4,9 +4,7 @@ A web application for managing bursts.
 
 ## Requirements
 
-Python 3.8.
-* Walrus operator (`:=` occuring in assignment expressions, allowing such as
-  `if state := updates.get('state', None):`, for example)
+Python 3.6.
 * libraries imported from `requirements.txt`
 
 ## Architecture
@@ -32,7 +30,8 @@ and production.
 
 ### User interface
 
-JQuery-UI provides tabs, dialog boxes and other UI elements.
+The user interface is built on JavaScript, JQuery and
+[Bootstrap 5](https://getbootstrap.com/docs/5.0/getting-started/introduction/).
 
 ## Setting up a development environment
 
@@ -141,6 +140,8 @@ skip_tls = yes
 ```
 
 ### Notifications
+
+> Note: Notifications are not currently enabled.
 
 To enable desktop notifications, you'll need a certificate for your
 development server.  Generate this and put the cert and key in `instance/` and
@@ -344,3 +345,41 @@ only work for one request.
 
 2. Install a Firefox plugin to mangle headers for you.  I'm using
 [SimpleModifyHeaders](https://github.com/didierfred/SimpleModifyHeaders/tree/v1.6.3).
+
+### Replicating production database for development/upgrade testing
+
+The databases used by the development and production instances of the BEAM
+project contain potentially sensitive information and identifiers and should
+not be distributed or added to source repositories.  That said, they represent
+real data, are useful for development and testing, and are essential for
+testing schema upgrades.
+
+1. On *db.frak*, make a local backup of the `beam` database and globals:
+    ```
+    db.frak$ sudo su - postgres -c 'pg_dump -Fc  beam' > beam-schema-20210417.psql 
+    db.frak$ sudo su - postgres -c 'pg_dumpall --globals-only -c' > beam-globals.psql
+    ```
+2. Copy those to the target workstation.  Then:
+  * Ensure the globals (tablespaces and roles) are in place
+  * Restore the given version of the database, in this case reflective of a
+    particular schema version
+  * Restore development API keys
+    ```
+    local$ psql -h localhost -U postgres < tests/beam-globals.psql
+    local$ pg_restore -h localhost -U postgres -Cc -d postgres tests/beam-schema-20210417.psql
+    local$ psql -h localhost -U postgres -d beam < tests/dev.sql
+    ```
+
+### Schema upgrade testing
+
+See also [manager/sql/README.md].
+
+Upgrading the schema may be performed one of two ways:
+
+1. Upgrading manually from the command line.  This is recommended for initial
+development.
+    ```
+    local$ psql -h localhost -U postgres < manager/sql/20210417_to_20210721.psql
+    [ ... whatch for errors ... ]
+    ```
+2. Using the Manager, by visiting [the database upgrade URL](http://localhost:5001/status/db).
