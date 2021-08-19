@@ -9,7 +9,8 @@ Python 3.6.
 
 ## Architecture
 
-This is implemented as a Flask app using LDAP and a database backend.
+This is implemented as a Flask app using LDAP and a database backend.  The
+application also connects to OTRS to create and manage tickets.
 
 ### LDAP
 
@@ -28,165 +29,17 @@ necessary functionality.
 The database is SQLite for development and testing and Postgres for testing
 and production.
 
+SQLite is more forgiving of syntax and structure and enables faster
+prototyping and functional development.  Test suites also run noticeably
+faster.
+
+Postgres is a more robust platform with stricter syntax and type enforcement.
+It's more suitable for deployment.
+
 ### User interface
 
 The user interface is built on JavaScript, JQuery and
 [Bootstrap 5](https://getbootstrap.com/docs/5.0/getting-started/introduction/).
-
-## Setting up a development environment
-
-### Git setup
-
-First, clone the repository.  Then, you'll need the `tests` and `ccldap`
-submodules.  These are defined in `.gitmodules` as _relative paths_ to ease
-development and [enable
-CI](https://docs.gitlab.com/ee/ci/git_submodules.html#using-git-submodules-in-your-ci-jobs).
-The relative paths will cause you a bit of pain if you don't have your Git
-workspaces set up in the same structure as on this GitLab instance, that is,
-something like:
-
-```
-├── dleske
-│   ├── python-ccldap
-│   ├── tests
-│   └── try-ldap-ctnr
-├── frak
-│   ├── burst
-│   │   └── manager
-│   └── smallest-asks-win
-...
-```
-
-The first-level entries are the groups and the second-level are the projects.
-So from `frak/burst/manager`, `../../../dleske/tests` takes you to the correct
-project for the tests submodule.
-
-If you don't replicate this structure, you can switch to using URLs, but if
-you do so _do not push these changes_ as it will break CI.  Use the same
-scheme you're currently using, presumably SSH:
-
-```
-[submodule "ccldap"]
-        path = ccldap
-        url = gitlab@git.computecanada.ca:dleske/python-ccldap.git
-[submodule "tests/linting"]
-        path = tests/linting
-        url = gitlab@git.computecanada.ca:dleske/tests.git
-```
-
-To avoid seeing these local changes (which must remain local!) and pushing
-them upstream inadvertently (because they must remain local!) use:
-
-```
-$ git update-index --skip-worktree  .gitmodules
-```
-
-Now to get the submodules:
-
-```
-$ git submodule update --init
-```
-
-### The development environment
-
-Create and configure a virtual Python environment:
-
-```
-$ python3 -m venv venv
-$ . venv/bin/activate
-$ pip install -r requirements.txt
-$ export PYTHONPATH=$PYTHONPATH:.
-```
-
-Setting `PYTHONPATH` is necessary for the module to be found.  If you know a
-better way to handle this, let me know.
-
-Set up some variables for running the Flask development server:
-
-```
-$ export FLASK_APP=manager
-$ export FLASK_ENV=development
-```
-
-Now either initialize the DB with a schema or initialize it and seed it with
-dev/test data:
-
-```
-$ flask init-db
-```
-
-Or
-
-```
-$ flask seed-db
-```
-
-### LDAP container
-
-The LDAP instance is necessary in order to be able to look up user data.
-The `tests/test-all-docker` script sets one up for testing and so contains the
-necessary commands.  Setting up a separate container network is probably not
-necessary for development so long as you specify the correct LDAP URI in your
-application configuration.
-
-### App configuration
-
-Put something like the following in `instance/manager.conf`:
-```
-[ldap]
-uri = ldap://localhost:3389
-# only set this for testing!
-skip_tls = yes
-```
-
-### Notifications
-
-> Note: Notifications are not currently enabled.
-
-To enable desktop notifications, you'll need a certificate for your
-development server.  Generate this and put the cert and key in `instance/` and
-invoke the Flask dev server with:
-
-```
-flask run --with-threads --cert instance/cert.pem --key instance/key.pem
-```
-
-### Translation
-
-> References:
->
-> * [Flask:Babel home page](https://pythonhosted.org/Flask-Babel/)
-> * [Flask Mega-Tutorial Part XIII](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-xiii-i18n-and-l10n)
-
-Use of i18n to support a French-language interface requires the following
-steps (only needs to be done when adding new user-facing messages):
-
-0. Mark any appropriate messages for translation using `_()` syntax:
-    ```
-    print(_('This used to be just English all the time!'))
-    ```
-   Look through the code for more complex examples, such as parametrized
-   strings.
-1. Extract text strings to translate:
-    ```
-    $ pybabel extract -F i18n/babel.cfg -k _l -o i18n/messages.pot .
-    ```
-2. Update the messages translation file with empty translations:
-    ```
-    $ pybabel update -i i18n/messages.pot -d manager/translations
-    ```
-3. Fill in the missing translations with your favourite editor.
-4. Compile the messages:
-    ```
-    $ pybabel compile -d manager/translations
-    ```
-
-If I decide to replace the English strings in the Python source with static
-"constants" (sigh, _Python_) then here'd be how to initialize that:
-
-```
-pybabel init -i messages.pot -d manager/translations -l en
-```
 
 ## Testing
 
@@ -205,63 +58,7 @@ superset of the previously mentioned test script because it covers
 unit/integration testing as well.  (Requires `docker-compose`; `pip install
 docker-compose` if not already present on your system.)
 
-## API Access
-
-API access is via an API key pair which must be used to create a digest of the
-request, which is passed along with the request to be verified by the server.
-
-### Creating an API key
-
-If the Admin dashboard is unavailable for some other reason you want to do
-this manually, here's how.
-
-API keys are an arbitrary access string (read: username) and a 64-character
-secret.  Secrets can be generated like so:
-
-```
-$ key=$(dd if=/dev/urandom bs=1 count=46 2>/dev/null | base64)
-```
-
-### Creating the request digest
-
-The request digest is based on the request method, resource, and a timestamp,
-in the following format:
-
-```
-$method $resource
-$date
-```
-
-Example:
-
-```
-GET /api/widgets/current
-Fri, 13 Dec 2019 20:35:01 +0000
-```
-
-The digest is created by hashing this summary with the secret key.  This can
-be done in the shell like so:
-
-```
-echo -n $summary | openssl dgst -sha256 -hmac "$secret" -binary | base64
-```
-
-This digest must then be included as the `Authorization` HTTP header, _along
-with a date header matching the same timestamp used in the digest_.
-
-Putting these parts together, an API request can be accomplished with Curl as
-follows (`access` and `secret` must be defined):
-
-```
-$ access="???"
-$ secret="??????"
-$ path=/api/widgets/current
-$ date=$(date -Ru)
-$ digest=$(echo -en "GET $path\n$date" | openssl dgst -sha256 -hmac "$secret" -binary | base64)
-$ curl -H "Authorization: BEAM $access $digest" -H "Date: $date" localhost:5000${path}
-```
-
-A Python example can be found in `manager/apikey.py`.
+For more information see [TESTING.md].
 
 ## Logging
 
@@ -289,97 +86,3 @@ this project, are as follows:
 It would be appropriate to escalate messages of severity `WARNING` or higher.
 `INFO` and `DEBUG` messages should provide value when using logs to diagnose
 or investigate problems.
-
-## Running tests
-
-To set up the environment, issue the following from the root of the
-repository, in one window:
-
-### Unit tests
-
-Uses SQLite and an LDAP stub.
-
-```
-$ tests/test-all
-```
-
-### Postgres integration
-
-Tests Postgres as well, still using the LDAP stub.
-
-```
-$ docker-compose -f tests/docker-pgsql.yml up -d
-[...]
-$ tests/test-all
-[...]
-$ docker-compose -f tests/docker-pgsql.yml down
-```
-
-### LDAP integration
-
-Tests Postgres and LDAP.
-
-```
-$ docker-compose -f tests/docker-ldap.yml up -d
-[...]
-$ tests/test-all
-[...]
-$ docker-compose -f tests/docker-ldap.yml down
-```
-
-## Development environment
-
-### Authentication and application credentials
-
-Authentication in this app assumes it is running behind a reverse proxy which
-handles authentication and passes along the user in the HTTP request header
-`X_AUTHENTICATED_USER`.  Without this you will get a 403, regardless of
-which LDAP backend used (a real server, a local container, or a stub).  There
-are two ways around this I'm aware of with Firefox.
-
-1. Under Developer Tools, with the Network tab open, reload or visit the app.
-Right-click on the 403 request for `/` or whatever path you entered and
-selected *Edit and Resend*.  Add a header for `x-authenticated-user` set to
-whichever user you want to fake out and click _Send_.  Note that this will
-only work for one request.
-
-2. Install a Firefox plugin to mangle headers for you.  I'm using
-[SimpleModifyHeaders](https://github.com/didierfred/SimpleModifyHeaders/tree/v1.6.3).
-
-### Replicating production database for development/upgrade testing
-
-The databases used by the development and production instances of the BEAM
-project contain potentially sensitive information and identifiers and should
-not be distributed or added to source repositories.  That said, they represent
-real data, are useful for development and testing, and are essential for
-testing schema upgrades.
-
-1. On *db.frak*, make a local backup of the `beam` database and globals:
-    ```
-    db.frak$ sudo su - postgres -c 'pg_dump -Fc  beam' > beam-schema-20210417.psql 
-    db.frak$ sudo su - postgres -c 'pg_dumpall --globals-only -c' > beam-globals.psql
-    ```
-2. Copy those to the target workstation.  Then:
-  * Ensure the globals (tablespaces and roles) are in place
-  * Restore the given version of the database, in this case reflective of a
-    particular schema version
-  * Restore development API keys
-    ```
-    local$ psql -h localhost -U postgres < tests/beam-globals.psql
-    local$ pg_restore -h localhost -U postgres -Cc -d postgres tests/beam-schema-20210417.psql
-    local$ psql -h localhost -U postgres -d beam < tests/dev.sql
-    ```
-
-### Schema upgrade testing
-
-See also [manager/sql/README.md].
-
-Upgrading the schema may be performed one of two ways:
-
-1. Upgrading manually from the command line.  This is recommended for initial
-development.
-    ```
-    local$ psql -h localhost -U postgres < manager/sql/20210417_to_20210721.psql
-    [ ... whatch for errors ... ]
-    ```
-2. Using the Manager, by visiting [the database upgrade URL](http://localhost:5001/status/db).

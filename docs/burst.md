@@ -326,6 +326,20 @@ A history record is created for the update.
     logged-in user.
   
 
+  
+
+---
+
+####  <code>update_existing_me(self, rec)</code>
+
+  
+
+  
+Updates the subclass's partial record of an existing case.  Subclasses
+must implement this to write to the database the appropriate values of
+a case's latest report.
+  
+
 ---
 
 #### Variables

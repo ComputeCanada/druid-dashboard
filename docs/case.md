@@ -545,8 +545,8 @@ A history record is created for the update.
   
 Handle updates to existing records.  This is called on initialization
 to handle existing cases, as partially defined by subclasses (see
-`find_exsiting_query()`).  Updates are also handled by subclass (see
-`_update_existing_sub()`).
+`find_existing_query()`).  Updates are also handled by subclass (see
+`update_existing_me()`).
 
 At this point this is called, self should be initialized with the
 details provided, but this may need to be appropriately adjusted with
@@ -556,6 +556,20 @@ data from the matching case in the database.
 **Returns**
 
 A boolean indicating whether there was a record to update.
+
+  
+
+---
+
+####  <code>update_existing_me(self, rec)</code>
+
+  
+
+  
+Updates the subclass's partial record of an existing case.  Subclasses
+must implement this to write to the database the appropriate values of
+a case's latest report.
+  
 
 ---
 
