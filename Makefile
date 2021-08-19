@@ -25,6 +25,11 @@ $(PACKAGES): $(SOURCES)
 	@echo Version: $(VERSION)
 	@python3 -m build
 
+docs/%.md: manager/%.py misc/pdoc-templates/text.mako
+	@pdoc3 --template-dir=misc/pdoc-templates manager.$* > $@
+
+docs: docs/case.md docs/burst.md docs/oldjob.md
+
 publish-test: $(PACKAGES) checkversion
 	@python3 -m twine upload --repository testpypi $(PACKAGES)
 
