@@ -64,6 +64,7 @@ Create and configure a virtual Python environment:
 $ python3 -m venv venv
 $ . venv/bin/activate
 $ pip install -r requirements.txt
+$ pip install -r tests/requirements.txt
 $ export PYTHONPATH=$PYTHONPATH:.
 ```
 
@@ -120,7 +121,7 @@ invoke the Flask dev server with:
 flask run --with-threads --cert instance/cert.pem --key instance/key.pem
 ```
 
-### Translation
+## Translation
 
 > References:
 >
@@ -157,7 +158,7 @@ If I decide to replace the English strings in the Python source with static
 pybabel init -i messages.pot -d manager/translations -l en
 ```
 
-### Authentication and application credentials
+## Authentication and application credentials
 
 Authentication in this app assumes it is running behind a reverse proxy which
 handles authentication and passes along the user in the HTTP request header
@@ -174,7 +175,7 @@ only work for one request.
 2. Install a Firefox plugin to mangle headers for you.  I'm using
 [SimpleModifyHeaders](https://github.com/didierfred/SimpleModifyHeaders/tree/v1.6.3).
 
-### Replicating production database for development/upgrade testing
+## Replicating production database for development/upgrade testing
 
 The databases used by the development and production instances of the BEAM
 project contain potentially sensitive information and identifiers and should
@@ -198,12 +199,12 @@ testing schema upgrades.
     local$ psql -h localhost -U postgres -d beam < tests/dev.sql
     ```
 
-### API Access
+## API Access
 
 API access is via an API key pair which must be used to create a digest of the
 request, which is passed along with the request to be verified by the server.
 
-#### Creating an API key
+### Creating an API key
 
 If the Admin dashboard is unavailable for some other reason you want to do
 this manually, here's how.
@@ -215,7 +216,7 @@ secret.  Secrets can be generated like so:
 $ key=$(dd if=/dev/urandom bs=1 count=46 2>/dev/null | base64)
 ```
 
-#### Creating the request digest
+### Creating the request digest
 
 The request digest is based on the request method, resource, and a timestamp,
 in the following format:
@@ -256,9 +257,9 @@ $ curl -H "Authorization: BEAM $access $digest" -H "Date: $date" localhost:5000$
 
 A Python example can be found in `manager/apikey.py`.
 
-### Schema upgrade testing
+## Schema upgrade testing
 
-See also [manager/sql/README.md].
+See also [manager/sql/README.md](manager/sql/README.md).
 
 Upgrading the schema may be performed one of two ways:
 
@@ -293,8 +294,8 @@ What needs to be done:
 ### Database changes
 
 You will define a new table to describe the data unique to your new report
-type.  Much of the common information is handled by the base Reportables class
-and its table: the cluster where the case was reported, the analyst that has
+type.  Much of the common information is handled by the base Case class and
+its table: the cluster where the case was reported, the analyst that has
 claimed the case for further investigation, and an associated ticket in OTRS,
 if one has been created.  The new table will refer to this one and build on it
 with new information.
@@ -308,29 +309,29 @@ CREATE TABLE spacecases (
 ```
 
 This creates a primary key which is a reference to the corresponding ID in the
-base class ("Reportable").  To this add the rest of the definitions you'll
-need to track your case details.
+base class ("Case").  To this add the rest of the definitions you'll need to
+track your case details.
 
 The data definition for your new case type needs to be represented both in the
 base schemas, used for populating an empty database, and the appropriate update
 scriptage, used for updating an existing database to the latest schema
 version.  The files are:
 
-* `(manager/sql/schema.psql)[manager/sql/schema.psql]` and
-* `(manager/sql/schema.sql)[manager/sql/schema.sql]`.  These are the
+* [manager/sql/schema.psql](manager/sql/schema.psql) and
+* [manager/sql/schema.sql](manager/sql/schema.sql).  These are the
   base schemas for Postgres and SQLite, respectively.
-* `(manager/sql/20210417_to_20210721.psql)[manager/sql/20210417_to_20210721.psql]`
+* [manager/sql/20210417_to_20210721.psql](manager/sql/20210417_to_20210721.psql)
   is the script that upgrades a database from schema version 20210417 to
   20210721, for example.
 
 The base schemas, defined for both SQLite and Postgres, are mostly identical
 to eachother but differ in a few places, typically in the definition of the
 auto-incrementing primary key, as well as `WITHOUT ROWID` for the SQLite
-version, for the subclass tables whose primary key is the reportables' ID.
+version, for the subclass tables whose primary key is the cases' ID.
 
 Every update to the base schema files requires an update to the schema
 version.  This version must be the same in both the `.sql` and `.psql`
-variants and must match what is in `(manager/db.py)[manager/db.py]`.  This is
+variants and must match what is in [manager/db.py](manager/db.py).  This is
 how the application can tell it needs to execute the upgrade script.
 
 Things to remember in creating your schema:
@@ -485,7 +486,7 @@ you need, open an issue to start a discussion.
  
 ### Other
 
-You'll need to update `(manager/__init__.py)[manager/__init__.py]` to import
+You'll need to update [manager/__init__.py](manager/__init__.py) to import
 the new Python module.
 
 ### UI updates

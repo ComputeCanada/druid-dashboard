@@ -50,8 +50,11 @@ Options:
   -v|--verbose:   [pytest] Show verbose information
   -d|--debug:     [pytest] Show debug-level logging
 
-Postgres testing is performed by default if a Postgres container is running
-with the label 'postgres-beam'.
+Postgres, LDAP and Selenium testing can only be performed if an appropriate
+container is running with the label 'postgres-beam', 'ldap-beam', or
+'selenium-beam', respectively.
+
+
 EOF
 }
 

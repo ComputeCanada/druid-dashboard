@@ -4,8 +4,10 @@ Insert clever pro-testing quotes here.
 
 ## Running tests
 
-To set up the environment, issue the following from the root of the
-repository, in one window:
+To activate the environment, issue the following from the root of the
+repository, in one window (if you haven't yet set up the environment, see
+[Setting up the development
+environment](DEVELOPMENT.md#the-development-environment):
 
 ```
 . venv/bin/activate

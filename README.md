@@ -2,10 +2,16 @@
 
 A web application for managing bursts.
 
+## Other documentation for this project
+
+* [Development](DEVELOPMENT.md)
+* [About testing](TESTING.md)
+
 ## Requirements
 
 Python 3.6.
 * libraries imported from `requirements.txt`
+* for testing, libraries imported from `tests/requirements.txt`
 
 ## Architecture
 
@@ -47,18 +53,18 @@ Testing includes linting, unit and integration tests, and Selenium tests.
 Linting has no dependencies beyond having the correct software installed,
 which should be the case for the virtual environment described above.
 
-Unit and integration testing is described by `tests/test_unit.py` and requires
-a database (set up by the fixtures in `tests/conftest.py`) and a test LDAP
-instance.  This can be set up with `docker-compose -f tests/docker-compose.yml
-up`.
+Unit and integration testing is described by
+[tests/test_sqlite.py](tests/test_sqlite.py),
+[tests/test_pgsql.py](tests/test_pgsql.py), and
+[tests/test_integration.py](tests/test_integration.py) and requires a database
+(set up by the fixtures in [tests/conftest.py](tests/conftest.py)) and a test
+LDAP instance.  This can be set up with `docker-compose -f
+tests/docker-compose.yml up`.
 
 Selenium testing simulates a web client and requires a separate service to be
-run as well.  `tests/test-all-selenium` sets this up.  It is essentially a
-superset of the previously mentioned test script because it covers
-unit/integration testing as well.  (Requires `docker-compose`; `pip install
-docker-compose` if not already present on your system.)
+run as well.
 
-For more information see [TESTING.md].
+For more information see [TESTING.md](TESTING.md).
 
 ## Logging
 
@@ -86,3 +92,8 @@ this project, are as follows:
 It would be appropriate to escalate messages of severity `WARNING` or higher.
 `INFO` and `DEBUG` messages should provide value when using logs to diagnose
 or investigate problems.
+
+## Documentation
+
+API documentation is written as necessary and generated using
+[pdoc](https://pdoc3.github.io/pdoc).  To generate use `make docs`.
