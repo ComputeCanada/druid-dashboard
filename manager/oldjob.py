@@ -169,7 +169,7 @@ class OldJob(Case):
     # now fix up a few special data types
     self._resource = JobResource(self._resource)
 
-  def _update_existing_sub(self, rec):
+  def update_existing_me(self, rec):
     affected = get_db().execute(SQL_UPDATE_BY_ID, (
       self._age, self._submitter, self._id
     )).rowcount

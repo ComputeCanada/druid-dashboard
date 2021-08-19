@@ -334,7 +334,7 @@ class Burst(Case):
       ['account', 'resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
     )
 
-  def _update_existing_sub(self, rec):
+  def update_existing_me(self, rec):
     self._state = rec['state']
     self._jobrange[0] = rec['firstjob']
     self._submitters = set(rec['submitters'].split()) | set(self._submitters)

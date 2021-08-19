@@ -695,7 +695,7 @@ class Case:
     """
     raise NotImplementedError
 
-  def _update_existing_sub(self, rec):
+  def update_existing_me(self, rec):
     """
     Updates the subclass's partial record of an existing case.  Subclasses
     must implement this to write to the database the appropriate values of
@@ -714,8 +714,8 @@ class Case:
     """
     Handle updates to existing records.  This is called on initialization
     to handle existing cases, as partially defined by subclasses (see
-    `find_exsiting_query()`).  Updates are also handled by subclass (see
-    `_update_existing_sub()`).
+    `find_existing_query()`).  Updates are also handled by subclass (see
+    `update_existing_me()`).
 
     At this point this is called, self should be initialized with the
     details provided, but this may need to be appropriately adjusted with
@@ -741,7 +741,7 @@ class Case:
     for col in ['id', 'claimant', 'ticket_id', 'ticket_no']:
       self.__dict__['_'+col] = rec[col]
     try:
-      if not self._update_existing_sub(rec):
+      if not self.update_existing_me(rec):
         return False
     except NotImplementedError:
       raise NotImplementedError("Subclass has not implemented required methods")
