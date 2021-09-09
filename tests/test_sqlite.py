@@ -15,7 +15,6 @@ from tests_authentication import *
 from tests_bursts import *
 from tests_oldjobs import *
 from tests_dashboard import *
-from tests_ajax import *
 from tests.ldapstub import LdapStub
 from tests.otrsstub import OtrsStub
 from manager import create_app
