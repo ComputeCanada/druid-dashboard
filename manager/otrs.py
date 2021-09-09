@@ -98,8 +98,6 @@ def close_otrs(e=None):
       get_log().info("Closing OTRS client in presence of error")
     else:
       get_log().debug("Closing OTRS client.")
-    g.otrs.close()
-
 
 def ticket_url(ticket_id):
   return "{}/otrs/index.pl?Action=AgentTicketZoom&TicketID={}".format(
@@ -143,7 +141,8 @@ def create_ticket(title, body, owner, client, clientEmail, CCs=None):
   article_defn = {
     'Subject': title,
     'Body': body,
-    'ArticleType': 'email-external',
+    'ArticleType': 'email-external',  # OTRS 5
+    'CommunicationChannel': 'Email',  # OTRS 6
     'ArticleSend': 1,
     'To': clientEmail
   }
