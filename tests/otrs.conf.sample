@@ -1,0 +1,12 @@
+[ldap]
+# assume using the LDAP container for testing OTRS
+uri = ldap://localhost:389
+skip_tls = yes
+tls_reqcert = allow
+
+[otrs]
+url = <Base URL for your instance, ex. https://otrs.example.com>
+username = <OTRS username>
+password = <OTRS password>
+queue = <Queue for ticket creation>
+ticket_state = <Default state for new tickets>

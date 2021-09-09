@@ -29,3 +29,6 @@ resources/*
 
 # ignore local working notes and snippets
 local/
+
+# ignore OTRS test configuration
+tests/otrs.conf
