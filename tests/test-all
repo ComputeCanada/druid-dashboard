@@ -41,6 +41,8 @@ Options:
   --no-sqlite:    Don't test SQLite (default to test SQLite)
   --pgsql:        Test Postgres
   --ldap:         Test LDAP integration
+  --otrs:         Test OTRS integration.  Requires configuration file
+                  tests/otrs.conf to exist (see sample).
   --selenium:     Execute Selenium testing (default false)
   -a|--all:       Test all above if containers available
   --no-cleanup:   Do not clean up temporary directories
@@ -62,6 +64,7 @@ EOF
 sqlite=1
 pgsql=0
 ldap=0
+otrs=0
 selenium=0
 test_schema=0
 linting=1
@@ -95,6 +98,9 @@ do
       ;;
     --ldap)
       ldap=1
+      ;;
+    --otrs)
+      otrs=1
       ;;
     --no-linting)
       linting=0
@@ -237,6 +243,19 @@ then
   fi
 fi
 
+# test OTRS if desired and LDAP container is running
+otrs_testing=""
+if (( otrs ))
+then
+  # test if LDAP container is running
+  if docker ps | grep -q ldap-beam
+  then
+    otrs_testing="tests/test_otrs.py"
+  else
+    warn_couldnt test OTRS--LDAP container must be running
+  fi
+fi
+
 # test Selenium if desired and container is running
 selenium_testing=""
 if (( selenium ))
@@ -252,8 +271,9 @@ fi
 
 # functional testing
 emptypat='^ *$'
-if [[ "$sqlite_testing $pgsql_testing $ldap_testing $selenium_testing" =~ $emptypat ]]
+tests="$sqlite_testing $pgsql_testing $ldap_testing $otrs_testing $selenium_testing"
+if [[ "$tests" =~ $emptypat ]]
 then
   fail_to test anything.
 fi
-sh -c "$env pytest $pytest_opts $sqlite_testing $pgsql_testing $ldap_testing $selenium_testing || exit 1"
+sh -c "$env pytest $pytest_opts $tests || exit 1"
