@@ -20,6 +20,7 @@ whether it may be of use to other case types.
 
 import re
 import json
+from inspect import isclass
 from flask_babel import _
 from manager.log import get_log
 from manager.db import get_db
@@ -59,7 +60,7 @@ def just_job_id(jobid):
     raise AppException(
       "Could not parse job ID ('{}') to extract base ID".format(jobid)
     )
-  return match.groups()[0]
+  return int(match.groups()[0])
 
 def dict_to_table(d):
   """
@@ -174,9 +175,10 @@ class CaseRegistry:
   """
   Singular registry of case classes.
 
-  The application uses this registry to query available case types.
-  Subclasses of the Case class register so the application is aware of
-  them and knows to query and present different case types.
+  The application uses this registry to query available case types.  Subclasses
+  of the Case class register so the application is aware of them and knows to
+  query and present different case types.  A global instance of the registry is
+  created on module initialization.
 
   Basic usage:
 
@@ -193,8 +195,7 @@ class CaseRegistry:
 
   def __new__(cls):
     if cls._instance is not None:
-      # TODO: Don't raise BaseException!
-      raise BaseException("You can't create two of me.  Use get_registry()")
+      raise BadCall("Cannot create two instances of this class.  Use get_registry()")
     cls._instance = super(CaseRegistry, cls).__new__(cls)
     return cls._instance
 
@@ -208,6 +209,7 @@ class CaseRegistry:
 
   def __init__(self):
     self._reporters = {}
+    self._descriptions = {}
 
   def register(self, name, reporter):
     """
@@ -229,8 +231,32 @@ class CaseRegistry:
     """
     if name in self._reporters.keys():
       raise AppException("A reporter has already been registered with that name: {}".format(name))
+    if not isclass(reporter) or not issubclass(reporter, Case):
+      raise AppException("The reporter is not a subclass of Case")
+    description = reporter.describe()
+
+    # register
     self._reporters[name] = reporter
+    self._descriptions[name] = description
     get_log().info("Registered reporter for %s", name)
+
+  def deregister(self, name):
+    """
+    Deregister a Case implementation.
+
+    This method should only be used in testing where a nonsense or half-
+    implemented Case subclass is registered but should not be considered for
+    subsequent testing.  As such, trying to register an unregistered reporter
+    is not an error and will not throw an exception.
+
+    Args:
+      name: The name for the reporter used when registering it.
+    """
+    try:
+      del self._reporters[name]
+      del self._descriptions[name]
+    except KeyError:
+      pass
 
   @property
   def reporters(self):
@@ -243,14 +269,10 @@ class CaseRegistry:
     Dictionary of reporter name to the data description provided by the
     reporter.
     """
-
-    descriptions = {}
-    for name, reporter in self._reporters.items():
-      descriptions[name] = reporter.describe()
-    return descriptions
+    return self._descriptions
 
 # create global reporter registry
-registry = CaseRegistry()
+registry = CaseRegistry.get_registry()
 
 # ---------------------------------------------------------------------------
 #                                                       base Case class
