@@ -217,7 +217,13 @@ def init_db_command():
 @click.argument('seedfile')
 @with_appcontext
 def seed_db_command(seedfile):
-  """Clear existing data, create new tables, seed with test data."""
+  """
+  Clear existing data, create new tables, seed with test data.
+
+  Note:
+    Seedfile here is interpreted to be relative to client's current working
+    directory.
+  """
 
   init_db()
   seed_db(os.path.join(os.getcwd(), seedfile))
