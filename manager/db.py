@@ -1,5 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint: disable=C0415
+# pylint: disable=C0415,disable=assigning-non-slot
+# NOTE: "assigning-non-slot" test is broken in Pylint; can remove when
+#       https://github.com/PyCQA/pylint/issues/3793 resolved
 #
 import os
 from enum import Enum
@@ -94,7 +96,7 @@ def init_db(schema=None):
     elif db.type == 'postgres':
       schema = "{}/schema.psql".format(SQL_SCRIPTS_DIR)
 
-  get_log().debug("Initializing database with %s", schema)
+  get_log().info("Initializing database with %s", schema)
 
   with current_app.open_resource(schema) as f:
     db.executescript(f.read().decode('utf8'))
@@ -104,6 +106,8 @@ def init_db(schema=None):
 
 def seed_db(seedfile):
   db = get_db()
+
+  get_log().info("Seeding database with %s", seedfile)
 
   with current_app.open_resource(seedfile) as f:
     db.executescript(f.read().decode('utf8'))
@@ -216,7 +220,7 @@ def seed_db_command(seedfile):
   """Clear existing data, create new tables, seed with test data."""
 
   init_db()
-  seed_db(seedfile)
+  seed_db(os.path.join(os.getcwd(), seedfile))
   click.echo('Initialized and seeded the database.')
 
 
