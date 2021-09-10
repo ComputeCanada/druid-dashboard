@@ -86,7 +86,9 @@ def test_post_nothing(client):
 
   response = api_post(client, '/api/cases/', {})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: API violation: must define \'version\'"}\n'
+  assert json.loads(response.data) == {
+    "error": "400 Bad Request: API violation: must define 'version'"
+  }
 
 def test_post_report_without_report(client):
   # In v2 of the API, this is valid
@@ -109,7 +111,9 @@ def test_post_report_no_version(client):
       }
     ]})
   assert response.status_code == 400
-  assert response.data == b'{"error":"400 Bad Request: API violation: must define \'version\'"}\n'
+  assert json.loads(response.data) == {
+    "error": "400 Bad Request: API violation: must define 'version'"
+  }
 
 def test_post_report_old_version(client):
   # Note: version 0 of the API used "report" instead of "bursts", so using a
@@ -127,10 +131,12 @@ def test_post_report_old_version(client):
       }
     ]})
 
-  expected = '{{"error":"400 Bad Request: Client API version (1) does not match server ({})"}}\n'.format(API_VERSION)
+  expected = '400 Bad Request: Client API version (1) does not match server ({})'.format(API_VERSION)
 
   assert response.status_code == 400
-  assert response.data == expected.encode('utf-8')
+  assert json.loads(response.data) == {
+    'error': expected
+  }
 
 def test_post_incomplete_burst_no_account(client):
 
@@ -150,7 +156,7 @@ def test_post_incomplete_burst_no_account(client):
   print(response.data)
   assert json.loads(response.data) == {
     "detail": "Does not conform to API for report type bursts: Missing required field: \'account\'",
-    "status":400
+    "status": 400
   }
 
 def test_post_incomplete_burst_no_firstjob(client):
