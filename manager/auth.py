@@ -1,5 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=assigning-non-slot
+# NOTE: "assigning-non-slot" test is broken in Pylint; can remove when
+#       https://github.com/PyCQA/pylint/issues/3793 resolved
 #
 import functools
 
