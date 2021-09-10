@@ -48,6 +48,7 @@ Options:
   --no-cleanup:   Do not clean up temporary directories
   --schema:       Include schema upgrade testing
   --no-linting:   Skip lint testing
+  --no-unit:      Skip unit testing
   -x|--exitfirst: [pytest] Exit at first failed test
   -v|--verbose:   [pytest] Show verbose information
   -d|--debug:     [pytest] Show debug-level logging
@@ -68,6 +69,7 @@ otrs=0
 selenium=0
 test_schema=0
 linting=1
+unit=1
 exitfirst=0
 verbose=0
 debug=0
@@ -82,6 +84,7 @@ do
       sqlite=1
       pgsql=1
       ldap=1
+      otrs=1
       selenium=1
       ;;
     --no-cleanup)
@@ -104,6 +107,9 @@ do
       ;;
     --no-linting)
       linting=0
+      ;;
+    --no-unit)
+      unit=0
       ;;
     --selenium)
       selenium=1
@@ -202,6 +208,13 @@ then
   tests/linting/test-all || exit 1
 fi
 
+# unit testing
+unit_testing=""
+if (( unit ))
+then
+  unit_testing="tests/test_unit.py"
+fi
+
 # test sqlite if desired
 sqlite_testing=""
 if (( sqlite ))
@@ -271,7 +284,7 @@ fi
 
 # functional testing
 emptypat='^ *$'
-tests="$sqlite_testing $pgsql_testing $ldap_testing $otrs_testing $selenium_testing"
+tests="$unit_testing $sqlite_testing $pgsql_testing $ldap_testing $otrs_testing $selenium_testing"
 if [[ "$tests" =~ $emptypat ]]
 then
   fail_to test anything.
