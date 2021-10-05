@@ -2,3 +2,4 @@
 # pylint: disable=wildcard-import,unused-wildcard-import
 #
 from tests_cases import *
+from tests_templates import *

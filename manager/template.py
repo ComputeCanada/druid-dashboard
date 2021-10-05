@@ -2,6 +2,7 @@
 # pylint:
 #
 import re
+from flask_babel import _
 from manager.db import get_db
 from manager.log import get_log
 from manager.exceptions import ResourceNotFound
@@ -22,6 +23,30 @@ SQL_GET = '''
 '''
 
 # ---------------------------------------------------------------------------
+#                                                            Helpers
+# ---------------------------------------------------------------------------
+
+def __resolve(dikt, var):
+  """
+  Resolve a complex key using dot notation to a value in a dict.
+
+  Args:
+    dikt: Dictionary of key-value pairs, where some values may be sub
+      dictionaries, recursively.
+    var: Key or string of dot-separated keys denoting path through dict
+
+  Returns:
+    The referenced value, or None if none found
+  """
+  arr = var.split('.', 1)
+  try:
+    if len(arr) == 1:
+      return dikt[arr[0]]
+    return __resolve(dikt[arr[0]], arr[1])
+  except KeyError:
+    return None
+
+# ---------------------------------------------------------------------------
 #                                                            Template class
 # ---------------------------------------------------------------------------
 
@@ -40,6 +65,6 @@ class Template:
     values = values or {}
     return re.sub(
       _rec,
-      lambda x: str(values.get(x['var'], "[undefined]")),
+      lambda x: str(__resolve(values, x) or _("[undefined]")),
       self._content
     )
