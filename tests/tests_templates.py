@@ -1,10 +1,10 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
-from manager.template import __resolve
+from manager.template import _resolve, Template
 
 # ---------------------------------------------------------------------------
-#                                                          __resolve()
+#                                                               __resolve()
 # ---------------------------------------------------------------------------
 
 def test_resolve_empty_dict():
@@ -14,8 +14,8 @@ def test_resolve_empty_dict():
   """
   d = {}
 
-  assert __resolve(d, 'foo') is None
-  assert __resolve(d, 'foo.bar') is None
+  assert _resolve(d, 'foo') is None
+  assert _resolve(d, 'foo.bar') is None
 
 def test_resolve():
   """
@@ -35,8 +35,51 @@ def test_resolve():
     'thing': 'thong'
   }
 
-  assert __resolve(d, 'foo') == 'bar'
-  assert __resolve(d, 'ding.dang') == 'doo'
-  assert __resolve(d, 'bleep') is None
-  assert __resolve(d, 'raz.ma') is None
-  assert __resolve(d, 'ding') == {'dang': 'doo', 'dong': 'bell'}
+  assert _resolve(d, 'foo') == 'bar'
+  assert _resolve(d, 'ding.dang') == 'doo'
+  assert _resolve(d, 'bleep') is None
+  assert _resolve(d, 'raz.ma') is None
+  assert _resolve(d, 'ding') == {'dang': 'doo', 'dong': 'bell'}
+
+# ---------------------------------------------------------------------------
+#                                                            Template class
+# ---------------------------------------------------------------------------
+
+def test_template():
+  """
+  Test that template content renders correctly.
+  """
+  content = '''
+Dear {user}:
+
+This is a test template.  You've requested {summary.cpu} CPUs, {summary.mem}
+memory and {summary.nodes} nodes in a job.  This will never run.
+
+Also this value should be undefined: {not.a.variable}
+
+Sincerely,
+{analyst}
+'''
+  values = {
+    'user': 'Tracy',
+    'summary': {
+      'cpu': 32,
+      'mem': '250G',
+      'nodes': 1024
+    },
+    'analyst': 'Chris'
+  }
+  template = Template(content=content)
+  text = template.render(values=values)
+  print(text)
+  assert text == '''
+Dear Tracy:
+
+This is a test template.  You've requested 32 CPUs, 250G
+memory and 1024 nodes in a job.  This will never run.
+
+Also this value should be undefined: [undefined]
+
+Sincerely,
+Chris
+'''

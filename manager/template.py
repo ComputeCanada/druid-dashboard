@@ -5,10 +5,10 @@ import re
 from flask_babel import _
 from manager.db import get_db
 from manager.log import get_log
-from manager.exceptions import ResourceNotFound
+from manager.exceptions import ResourceNotFound, BadCall
 
 # regular expression for substituting template variables
-_re = r'%(?P<var>\w+)%'
+_re = r'{(?P<var>\w[.\w]*)}'
 _rec = re.compile(_re)
 
 # ---------------------------------------------------------------------------
@@ -23,10 +23,10 @@ SQL_GET = '''
 '''
 
 # ---------------------------------------------------------------------------
-#                                                            Helpers
+#                                                                   Helpers
 # ---------------------------------------------------------------------------
 
-def __resolve(dikt, var):
+def _resolve(dikt, var):
   """
   Resolve a complex key using dot notation to a value in a dict.
 
@@ -42,7 +42,7 @@ def __resolve(dikt, var):
   try:
     if len(arr) == 1:
       return dikt[arr[0]]
-    return __resolve(dikt[arr[0]], arr[1])
+    return _resolve(dikt[arr[0]], arr[1])
   except KeyError:
     return None
 
@@ -52,19 +52,35 @@ def __resolve(dikt, var):
 
 class Template:
 
-  def __init__(self, name, language=''):
-    res = get_db().execute(SQL_GET, (name, language)).fetchone()
-    if not res:
-      error = "Could not load requested template (name=%s, language=%s) from database" % \
-        (name, language)
-      get_log().error(error)
-      raise ResourceNotFound(error)
-    self._content = res['content']
+  def __init__(self, name=None, language=None, content=None):
+    """
+    Initialize template object.
+
+    Args:
+      name: name of template in database
+      language: language to use
+      content: template content
+
+    Notes:
+      Either name or content must be specified.
+    """
+    if name:
+      res = get_db().execute(SQL_GET, (name, language or '')).fetchone()
+      if not res:
+        error = "Could not load requested template (name=%s, language=%s) from database" % \
+          (name, language)
+        get_log().error(error)
+        raise ResourceNotFound(error)
+      self._content = res['content']
+    elif content:
+      self._content = content
+    else:
+      raise BadCall('Must specify either template name or content')
 
   def render(self, values=None):
     values = values or {}
     return re.sub(
       _rec,
-      lambda x: str(__resolve(values, x) or _("[undefined]")),
+      lambda x: str(_resolve(values, x['var']) or _("[undefined]")),
       self._content
     )
