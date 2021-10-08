@@ -41,10 +41,10 @@ Options:
   --no-sqlite:    Don't test SQLite (default to test SQLite)
   --pgsql:        Test Postgres
   --ldap:         Test LDAP integration
-  --otrs:         Test OTRS integration.  Requires configuration file
-                  tests/otrs.conf to exist (see sample).
   --selenium:     Execute Selenium testing (default false)
   -a|--all:       Test all above if containers available
+  --otrs:         Test OTRS integration.  Requires configuration file
+                  tests/otrs.conf to exist (see sample).
   --no-cleanup:   Do not clean up temporary directories
   --schema:       Include schema upgrade testing
   --no-linting:   Skip lint testing
@@ -56,6 +56,11 @@ Options:
 Postgres, LDAP and Selenium testing can only be performed if an appropriate
 container is running with the label 'postgres-beam', 'ldap-beam', or
 'selenium-beam', respectively.
+
+OTRS testing *will create tickets and send e-mails*.  The tickets will be
+automatically closed if successful, but e-mails will need to be verified
+before cleanup.  OTRS testing is not included by `--all`.
+
 
 
 EOF
@@ -84,7 +89,6 @@ do
       sqlite=1
       pgsql=1
       ldap=1
-      otrs=1
       selenium=1
       ;;
     --no-cleanup)
