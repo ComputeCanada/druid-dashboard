@@ -1,10 +1,10 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
-from manager.template import _resolve, Template
+from manager.template import _resolve, _render, Template
 
 # ---------------------------------------------------------------------------
-#                                                               __resolve()
+#                                                                _resolve()
 # ---------------------------------------------------------------------------
 
 def test_resolve_empty_dict():
@@ -42,9 +42,64 @@ def test_resolve():
   assert _resolve(d, 'ding') == {'dang': 'doo', 'dong': 'bell'}
 
 # ---------------------------------------------------------------------------
+#                                                                 _render()
+# ---------------------------------------------------------------------------
+
+def test_render_trivial():
+  """
+  Test that given empty or null values or those without substitutions to make,
+  template content is still rendered appropriately.
+  """
+  values = {
+    'user': 'whocares',
+    'variable': 'will never be used'
+  }
+  assert _render('', values) == ''
+  assert _render(None, values) is None
+  assert _render('meh', values) == 'meh'
+
+def test_render():
+  """
+  Test that template content renders correctly.
+  """
+  content = '''
+Dear {user}:
+
+This is a test template.  You've requested {summary.cpu} CPUs, {summary.mem}
+memory and {summary.nodes} nodes in a job.  This will never run.
+
+Also this value should be undefined: {not.a.variable}
+
+Sincerely,
+{analyst}
+'''
+  values = {
+    'user': 'Tracy',
+    'summary': {
+      'cpu': 32,
+      'mem': '250G',
+      'nodes': 1024
+    },
+    'analyst': 'Chris'
+  }
+  text = _render(content, values)
+  assert text == '''
+Dear Tracy:
+
+This is a test template.  You've requested 32 CPUs, 250G
+memory and 1024 nodes in a job.  This will never run.
+
+Also this value should be undefined: [undefined]
+
+Sincerely,
+Chris
+'''
+
+# ---------------------------------------------------------------------------
 #                                                            Template class
 # ---------------------------------------------------------------------------
 
+# TODO: this is basically redundant.  Rendering is tested above
 def test_template():
   """
   Test that template content renders correctly.
@@ -69,10 +124,9 @@ Sincerely,
     },
     'analyst': 'Chris'
   }
-  template = Template(content=content)
-  text = template.render(values=values)
-  print(text)
-  assert text == '''
+  template = Template(body=content)
+  template.render(values=values)
+  assert template.serialize()['body_rendered'] == '''
 Dear Tracy:
 
 This is a test template.  You've requested 32 CPUs, 250G

@@ -46,41 +46,77 @@ def _resolve(dikt, var):
   except KeyError:
     return None
 
+def _render(content, values):
+  # trivial case, but retain empty string or None as given
+  if not content:
+    return content
+  return re.sub(
+    _rec,
+    lambda x: str(_resolve(values, x['var']) or _("[undefined]")),
+    content
+  )
+
 # ---------------------------------------------------------------------------
 #                                                            Template class
 # ---------------------------------------------------------------------------
 
 class Template:
 
-  def __init__(self, name=None, language=None, content=None):
+  def __init__(self,
+      name=None, language=None,
+      label=None, title=None, body=None
+    ):
     """
-    Initialize template object.
+    Initialize template object in a persistent or ephemeral context.
 
     Args:
       name: name of template in database
       language: language to use
-      content: template content
+      label: display name of this template in given language
+      title: title for template body, ex. e-mail subject
+      body: template body
 
     Notes:
-      Either name or content must be specified.
+      Either name or body must be specified.  If only name is specified, the
+      template is loaded from the database using the name and language as
+      keys.  If only body is specified, then a non-persisting template is
+      created (this is used in unit testing and may not have other uses).  If
+      the name and body are specified, a new template object is created to be
+      persisted for future use.
     """
-    if name:
+    if name and not body:
+      # retrieve template record
       res = get_db().execute(SQL_GET, (name, language or '')).fetchone()
       if not res:
         error = "Could not load requested template (name=%s, language=%s) from database" % \
           (name, language)
         get_log().error(error)
         raise ResourceNotFound(error)
-      self._content = res['content']
-    elif content:
-      self._content = content
+      self._name = name
+      self._label = res['label']
+      self._title = res['title']
+      self._body = res['body']
+    elif body:
+      self._title = title
+      self._body = body
+      if name:
+        self._name = name
+        self._label = label or name
+
+        # create persistent template record
+        # TODO
     else:
       raise BadCall('Must specify either template name or content')
 
   def render(self, values=None):
     values = values or {}
-    return re.sub(
-      _rec,
-      lambda x: str(_resolve(values, x['var']) or _("[undefined]")),
-      self._content
-    )
+    self._title_rendered = _render(self._title, values)
+    self._body_rendered = _render(self._body, values)
+
+  # TODO: add to Seralizable class and inherit?
+  def serialize(self):
+    dikt = {
+      key.lstrip('_'): val
+      for (key, val) in self.__dict__.items()
+    }
+    return dikt
