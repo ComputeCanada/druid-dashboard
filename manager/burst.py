@@ -6,7 +6,6 @@ from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
 from manager.exceptions import InvalidApiCall, DatabaseException
-from manager.cluster import Cluster
 from manager.case import Case, registry, just_job_id, dict_to_table
 
 # ---------------------------------------------------------------------------
@@ -38,8 +37,8 @@ SQL_GET = '''
 
 SQL_INSERT_NEW = '''
   INSERT INTO bursts
-              (id, account, resource, pain, firstjob, lastjob, submitters)
-  VALUES      (?, ?, ?, ?, ?, ?, ?)
+              (id, resource, pain, firstjob, lastjob, submitters)
+  VALUES      (?, ?, ?, ?, ?, ?)
 '''
 
 SQL_UPDATE_BY_ID = '''
@@ -51,7 +50,7 @@ SQL_UPDATE_BY_ID = '''
 '''
 
 SQL_GET_BURSTERS = '''
-  SELECT    R.cluster, B.account, B.resource, B.pain
+  SELECT    R.cluster, R.account, B.resource, B.pain
   FROM      reportables R
   JOIN      bursts B
   USING     (id)
@@ -102,14 +101,14 @@ class Burst(Case):
 
   Attributes:
     _id: id
-    _cluster: cluster ID referencing entry in cluster table
-    _account: account name (such as 'def-dleske-ab')
     _resource: resource type (type burst.Resource)
     _pain: pain metric used as initial indicator of burst candidacy
     _jobrange: tuple of first and last job IDs in burst
     _submitters: submitters associated with the jobs
     _state: state of burst (type burst.State)
     # Common Reportables stuff
+    _cluster: cluster ID referencing entry in cluster table
+    _account: account name (such as 'def-dleske-ab')
     _summary: summary information about burst and jobs (JSON)
     _epoch: epoch timestamp of last report
     _ticks: number of times reported
@@ -124,16 +123,9 @@ class Burst(Case):
   @classmethod
   def describe_me(cls):
     return {
-      'table': 'bursts',
       'title': _('Burst candidates'),
       'metric': 'pain',
       'cols': [
-        { 'datum': 'account',
-          'searchable': True,
-          'sortable': True,
-          'type': 'text',
-          'title': _('Account')
-        },
         { 'datum': 'usage',
           'searchable': False,
           'sortable': False,
@@ -318,20 +310,19 @@ class Burst(Case):
 
     else:
 
-      self._account = account
       self._resource = resource
       self._pain = pain
       self._jobrange = jobrange
       self._submitters = submitters
       self._state = state
       self._other = other
-      super().__init__(cluster=cluster, epoch=epoch, summary=summary)
+      super().__init__(account=account, cluster=cluster, epoch=epoch, summary=summary)
 
   def find_existing_query(self):
     return (
-      "account = ?  AND resource = ? AND ? <= lastjob",
-      (self._account, self._resource, self._jobrange[0]),
-      ['account', 'resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
+      "resource = ? AND ? <= lastjob",
+      (self._resource, self._jobrange[0]),
+      ['resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
     )
 
   def update_existing_me(self, rec):
@@ -346,7 +337,7 @@ class Burst(Case):
 
   def insert_new(self):
     res = get_db().execute(SQL_INSERT_NEW, (
-      self._id, self._account, self._resource, self._pain, self._jobrange[0],
+      self._id, self._resource, self._pain, self._jobrange[0],
       self._jobrange[1], ' '.join(self._submitters)
     ))
     if not res:
@@ -360,22 +351,6 @@ class Burst(Case):
     super().update(update, who)
 
   @property
-  def contact(self):
-    """
-    Return contact information for this potential issue.  This can depend on
-    the type of issue: a PI is responsible for use of the account, so the PI
-    should be the contact for questions of resource allocation.  For a
-    misconfigured job, the submitting user is probably more appropriate.
-
-    Returns: username of contact.
-    """
-    return self._account
-
-  @property
-  def account(self):
-    return self._account
-
-  @property
   def state(self):
     return self._state
 
@@ -384,21 +359,15 @@ class Burst(Case):
     return self._resource
 
   @property
-  def submitters(self):
+  def users(self):
     return self._submitters
 
   @property
   def info(self):
-    basic = {
-      'account': self._account,
-      'cluster': Cluster(self._cluster).name,
-      'resource': self._resource,
-      'pain': self._pain,
-      'submitters': self._submitters
-    }
-    if self._summary:
-      return dict(basic, **self._summary)
-    return basic
+    d = super().info
+    d['pain'] = self._pain
+    d['resource'] = str(self._resource)
+    return d
 
   def serialize(self, pretty=False, options=None):
     # have superclass start serialization but we'll handle the summary

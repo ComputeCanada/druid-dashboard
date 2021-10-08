@@ -18,24 +18,8 @@ class JobResource(DbEnum):
 
 SQL_INSERT_NEW = '''
   INSERT INTO oldjobs
-              (id, account, submitter, resource, age)
-  VALUES      (?, ?, ?, ?, ?)
-'''
-
-# TODO: if a report comes in for this account, submitter and resource with
-# age greater than what's already in the database, it will look like the same
-# stuff.  Need to use a job range, or something else.  Using the oldest job
-# isn't good enough--the user might try deleting the oldest few or something.
-# So maybe job range but unlike with bursts, the job range is NOT updated.
-#
-# TODO: also this isn't actually used :)
-SQL_UPDATE_EXISTING = '''
-  UPDATE    oldjobs
-  SET       age = ?
-  FROM      reportables
-  WHERE     reportables.cluster = ? AND oldjobs.account = ?
-    AND     oldjobs.submitter = ? AND oldjobs.resource = ?
-    AND     oldjobs.age <= ? AND reportables.id = oldjobs.id
+              (id, submitter, resource, age)
+  VALUES      (?, ?, ?, ?)
 '''
 
 SQL_UPDATE_BY_ID = '''
@@ -55,16 +39,9 @@ class OldJob(Case):
   @classmethod
   def describe_me(cls):
     return {
-      'table': 'oldjobs',
       'title': _('Job age'),
       'metric': 'age',
       'cols': [
-        { 'datum': 'account',
-          'searchable': True,
-          'sortable': True,
-          'type': 'text',
-          'title': _('Account')
-        },
         { 'datum': 'resource',
           'searchable': True,
           'sortable': True,
@@ -143,9 +120,9 @@ class OldJob(Case):
         raise InvalidApiCall("Invalid resource type: {}".format(e))
 
       records.append(cls(
+        account=account,
         cluster=cluster,
         epoch=epoch,
-        account=account,
         submitter=submitter,
         resource=resource,
         age=age,
@@ -154,17 +131,16 @@ class OldJob(Case):
     # report event
     return cls.summarize_report(records)
 
-  def __init__(self, id=None, record=None, cluster=None, epoch=None,
-      account=None, submitter=None, resource=None, age=None, summary=None
+  def __init__(self, id=None, record=None,
+      account=None, cluster=None, epoch=None, submitter=None, resource=None, age=None, summary=None
   ):
     if id or record:
       super().__init__(id=id, record=record)
     else:
-      self._account = account
       self._resource = resource
       self._age = age
       self._submitter = submitter
-      super().__init__(cluster=cluster, epoch=epoch, summary=summary)
+      super().__init__(account=account, cluster=cluster, epoch=epoch, summary=summary)
 
     # now fix up a few special data types
     self._resource = JobResource(self._resource)
@@ -181,15 +157,15 @@ class OldJob(Case):
 
   def find_existing_query(self):
     return (
-      "account = ? AND resource = ?",
-      [self._account, self._resource],
-      ('account', 'resource', 'age', 'submitter')
+      "resource = ?",
+      [self._resource],
+      ('resource', 'age', 'submitter')
     )
 
   def insert_new(self):
     try:
       get_db().execute(SQL_INSERT_NEW, (
-        self._id, self._account, self._submitter, self._resource, self._age
+        self._id, self._submitter, self._resource, self._age
       ))
     # TODO: develop normalized exceptions for different database types
     #       except UniqueViolation:
@@ -202,8 +178,15 @@ class OldJob(Case):
     return self._resource
 
   @property
-  def contact(self):
+  def users(self):
     return self._submitter
+
+  @property
+  def info(self):
+    d = super().info
+    d['age'] = self._age
+    d['resource'] = str(self._resource)
+    return d
 
   def serialize(self, pretty=False, options=None):
     serialized = super().serialize(pretty=pretty, options=options)
