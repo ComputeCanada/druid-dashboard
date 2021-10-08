@@ -115,7 +115,8 @@ def json_to_table(str):
 
 ## use with `.format(tablename)`
 SQL_LOOKUP = '''
-  SELECT    R.ticks, R.cluster, R.epoch, B.*, R.summary, R.claimant, R.ticket_id, R.ticket_no, COUNT(N.id) AS notes
+  SELECT    R.ticks, R.account, R.cluster, R.epoch, B.*, R.summary,
+            R.claimant, R.ticket_id, R.ticket_no, COUNT(N.id) AS notes
   FROM      reportables R
   JOIN      {} B
   USING     (id)
@@ -127,8 +128,8 @@ SQL_LOOKUP = '''
 
 SQL_INSERT_NEW = '''
   INSERT INTO reportables
-              (epoch, cluster, summary)
-  VALUES      (?, ?, ?)
+              (epoch, account, cluster, summary)
+  VALUES      (?, ?, ?, ?)
 '''
 
 SQL_UPDATE_BY_ID = '''
@@ -141,7 +142,8 @@ SQL_UPDATE_BY_ID = '''
 
 # Reportable table's columns are explicitly listed to avoid 'id' appearing twice
 SQL_GET_CURRENT_FOR_CLUSTER = '''
-  SELECT    R.ticks, R.cluster, R.epoch, B.*, R.summary, R.claimant, R.ticket_id, R.ticket_no, COUNT(N.id) AS notes
+  SELECT    R.ticks, R.account, R.cluster, R.epoch, B.*, R.summary,
+            R.claimant, R.ticket_id, R.ticket_no, COUNT(N.id) AS notes
   FROM      reportables R
   LEFT JOIN {} B
   ON        (R.id = B.id)
@@ -158,13 +160,19 @@ SQL_FIND_EXISTING = '''
   FROM      reportables R
   LEFT JOIN {} B
   USING     (id)
-  WHERE     R.cluster = ? AND {}
+  WHERE     R.account = ? AND R.cluster = ? AND {}
 '''
 
 SQL_SET_TICKET = '''
   UPDATE  reportables
   SET     ticket_id = ?, ticket_no = ?
   WHERE   id = ?
+'''
+
+SQL_GET_APPROPRIATE_TEMPLATES = '''
+  SELECT    template
+  FROM      appropriate_templates
+  WHERE     enabled = TRUE AND casetype = ?
 '''
 
 # ---------------------------------------------------------------------------
@@ -341,6 +349,7 @@ class Case:
       descriptions.
     """
     desc = cls.describe_me()
+    desc['table'] = cls._table
     desc['cols'].insert(0,
       { 'datum': 'ticks',
         'searchable': False,
@@ -348,6 +357,14 @@ class Case:
         'type': 'number',
         'title': "<img src='static/icons/ticks.svg' height='18' width='20' " \
                  "alt='Times reported' title='Times reported'/>",
+      }
+    )
+    desc['cols'].insert(1,
+      { 'datum': 'account',
+        'searchable': True,
+        'sortable': True,
+        'type': 'text',
+        'title': _('Account')
       }
     )
     desc['cols'].extend([
@@ -618,7 +635,27 @@ class Case:
       raise DatabaseException("Could not set ticket information for case ID {}".format(id))
     db.commit()
 
-  def __init__(self, id=None, record=None, cluster=None, epoch=None, summary=None):
+  @classmethod
+  def appropriate_templates(cls):
+    """
+    Return a list of templates appropriate for this type of case.
+
+    Returns:
+      A list of templates appropriate for this type of case.
+    """
+    db = get_db()
+    res = db.execute(SQL_GET_APPROPRIATE_TEMPLATES, (cls._table,)).fetchall()
+    get_log().debug("Retrieving appropriate templates for %s: %s", cls._table, res)
+    if not res:
+      return None
+    return [
+      rec['template'] for rec in res
+    ]
+
+  def __init__(self,
+      id=None, record=None,
+      account=None, cluster=None, epoch=None, summary=None
+    ):
     """
     There are three modes for creating a Case object:
 
@@ -668,6 +705,7 @@ class Case:
         raise BadCall("Cannot create or update Case without cluster and epoch")
 
       self._epoch = epoch
+      self._account = account
       self._cluster = cluster
       self._summary = summary
       db = get_db()
@@ -680,7 +718,9 @@ class Case:
         self._claimant = None
         self._ticks = 1
 
-        self._id = db.insert_returning_id(SQL_INSERT_NEW, (self._epoch, self._cluster, json.dumps(self._summary)))
+        self._id = db.insert_returning_id(SQL_INSERT_NEW,
+          (self._epoch, self._account, self._cluster, json.dumps(self._summary)
+          ))
         self.insert_new()
 
       db.commit()
@@ -753,7 +793,7 @@ class Case:
 
     rec = get_db().execute(
       SQL_FIND_EXISTING.format(columns_str, self.__class__._table, query),
-      [self._cluster] + list(terms)
+      [self._account, self._cluster] + list(terms)
     ).fetchone()
     if not rec:
       return False
@@ -841,6 +881,13 @@ class Case:
     return self._id
 
   @property
+  def account(self):
+    """
+    The account associated with this case.
+    """
+    return self._account
+
+  @property
   def cluster(self):
     """
     The cluster where this case originated.
@@ -897,24 +944,32 @@ class Case:
     """
     Some information about this case, used for passing on to templates.
     """
-    basic = {
+    d = {
+      'type': self._table,
       'account': self._account,
       'cluster': Cluster(self._cluster).name,
       'resource': self._resource,
+      'users': self.users
     }
     if self._summary:
-      return dict(basic, **self._summary)
-    return basic
+      d['summary'] = self._summary
+    return d
 
   @property
-  def contact(self):
+  def users(self):
     """
-    Contact information for this potential issue.
+    User contacts for this potential issue.
 
     This can depend on the type of issue: a PI is responsible for use of the
     account, so the PI should be the contact for questions of resource
     allocation.  For a misconfigured job, the submitting user is probably more
     appropriate.
+
+    The PI is always included and derived from the account associated with the
+    case.  This method should return all usernames associated with the case,
+    such as those submitting problematic jobs, and so on.
+
+    Order is preserved and can be used to suggest defaults.
     """
     raise NotImplementedError
 
