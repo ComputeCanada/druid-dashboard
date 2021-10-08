@@ -9,12 +9,14 @@ DROP TABLE IF EXISTS templates;
 DROP TABLE IF EXISTS oldjobs;
 DROP TABLE IF EXISTS reportables;
 DROP TABLE IF EXISTS history;
+DROP TABLE IF EXISTS templates_content;
+DROP TABLE IF EXISTS appropriate_templates;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,
   applied TIMESTAMP
 );
-INSERT INTO schemalog (version, applied) VALUES ('20210721', CURRENT_TIMESTAMP);
+INSERT INTO schemalog (version, applied) VALUES ('20211005', CURRENT_TIMESTAMP);
 
 CREATE TABLE clusters (
   id VARCHAR(16) UNIQUE NOT NULL,
@@ -56,6 +58,11 @@ CREATE TABLE notifiers (
   config TEXT
 );
 
+CREATE TABLE templates (
+  name VARCHAR(32) PRIMARY KEY,
+  pi_only BOOLEAN
+);
+
 /* The language column allows an empty string as default because it is
  * acceptable to have some templates which are not language-specific, such as
  * a separator for use between versions in an e-mail.  Simply leaving as NULL
@@ -66,18 +73,29 @@ CREATE TABLE notifiers (
  * variants where a language was defined and where one was not, as a template
  * should represent all languages or be language-agnostic.
  */
-CREATE TABLE templates (
-  name VARCHAR(32),
+CREATE TABLE templates_content (
+  template VARCHAR(32) NOT NULL,
   language CHAR(2) NOT NULL DEFAULT '',
-  content TEXT,
-  PRIMARY KEY (name, language),
-  CHECK (language IN ('', 'en', 'fr'))
+  label VARCHAR(64),
+  title TEXT,
+  body TEXT NOT NULL,
+  PRIMARY KEY (template, language),
+  CHECK (language IN ('', 'en', 'fr')),
+  FOREIGN KEY (template) REFERENCES templates(name)
+);
+
+CREATE TABLE appropriate_templates (
+  casetype VARCHAR(32),
+  template VARCHAR(32),
+  enabled BOOLEAN,
+  FOREIGN KEY (template) REFERENCES templates(name)
 );
 
 CREATE TABLE reportables (
   id INTEGER PRIMARY KEY,
   epoch INTEGER NOT NULL,
   ticks INTEGER NOT NULL DEFAULT 1,
+  account VARCHAR(32) NOT NULL,
   cluster VARCHAR(16) NOT NULL,
   claimant CHAR(7),
   ticket_id INTEGER,
@@ -95,7 +113,6 @@ CREATE TABLE reportables (
 CREATE TABLE bursts (
   id INTEGER PRIMARY KEY,
   state CHAR(1) NOT NULL DEFAULT 'p',
-  account VARCHAR(32) NOT NULL,
   resource CHAR(1) NOT NULL DEFAULT 'c',
   pain REAL NOT NULL,
   firstjob INTEGER NOT NULL,
@@ -110,7 +127,6 @@ CREATE TABLE bursts (
 -- so that the primary key is not tied to the row ID
 CREATE TABLE oldjobs (
   id INTEGER PRIMARY KEY,
-  account VARCHAR(32) NOT NULL,
   submitter VARCHAR(32) NOT NULL,
   resource CHAR(1) NOT NULL DEFAULT 'c',
   age INTEGER NOT NULL,
