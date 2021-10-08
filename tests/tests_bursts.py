@@ -79,6 +79,31 @@ def test_get_cases_xhr(client):
     },
   }
 
+def test_get_case_xhr(client):
+  """
+  Test that we get expected info about a case.
+  """
+  response = client.get('/xhr/cases/2', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  print(response.data)
+  d = json.loads(response.data.decode())
+  assert 'account' in d
+  assert 'resource' in d
+  assert 'templates' in d
+  assert 'users' in d
+  assert response.status_code == 200
+
+def test_get_unknown_case_xhr(client):
+  """
+  Test that we get a reasonable error when requesting information about a
+  nonexistent case.
+  """
+  # TODO: the following gets an HTML response instead of a JSON one
+  #response = client.get('/xhr/cases/4')
+
+  response = client.get('/xhr/cases/4', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  print(response.data)
+  assert response.status_code == 404
+
 def test_update_case_xhr(client):
   data = [
     {
