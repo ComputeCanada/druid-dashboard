@@ -109,6 +109,7 @@ class FakeCase(Case):
 
 # pylint: disable=abstract-method
 class RealizedCase(Case):
+  _table = 'cases'
   @classmethod
   def describe_me(cls):
     return {
