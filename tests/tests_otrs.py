@@ -23,15 +23,16 @@ def test_get_template(client):
   assert response.status_code == 200
 
   # retrieve template
-  response = client.get('/xhr/templates/impossible?burst_id=1')
+  response = client.get('/xhr/templates/impossible?case_id=2')
   assert response.status_code == 200
 
   data = json.loads(response.data)
+  print(data)
   assert data['title'] == "NOTICE: Your computations on Test Cluster may be optimized"
   print(data['body'])
   assert data['body'].startswith("""Hello PI 1,
 
-Our records show that your account 'def-pi1' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
+Our records show that your account 'def-dleske-aa' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
 
 If you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.
 
@@ -71,8 +72,8 @@ def test_create_ticket_xhr(client, seeded_app):
   """
 
   # "log in"--normally user is logged in already when creating a ticket
-  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'dleske'})
-  #assert response.status_code == 200
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  assert response.status_code == 200
 
   title = "NOTICE: Your computations on Test Cluster may be optimized"
   body = """Hello PI 1,
@@ -88,12 +89,13 @@ Compute Canada Support"""
 
   # post a create ticket request
   response = client.post('/xhr/tickets/', data={
-    'burst_id': 1,
+    'case_id': 2,
     'title': title,
     'body': body,
     'recipient': 'dleske',
     'email': 'drew.leske+pi1@computecanada.ca'
   })
+  print(response.data)
   assert response.status_code == 200
 
   x = json.loads(response.data)
@@ -101,7 +103,7 @@ Compute Canada Support"""
   print(x)
 
   # pylint: disable=line-too-long
-  assert x['burst_id'] == 1
+  assert x['case_id'] == 2
   assert x['url'].endswith('/otrs/index.pl?Action=AgentTicketZoom&TicketID={}'.format(ticket_id))
 
   # this is what you'd get from the stub
