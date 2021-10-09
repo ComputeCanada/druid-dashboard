@@ -15,9 +15,13 @@ _rec = re.compile(_re)
 #                                                               SQL queries
 # ---------------------------------------------------------------------------
 
+# select pi_only, label, title  from templates t JOIN templates_content tc ON
+# name = template where name='candidate' and language='en';
 SQL_GET = '''
-  SELECT  content
+  SELECT  pi_only, label, title, body
   FROM    templates
+  JOIN    templates_content
+  ON      name = template
   WHERE   name = ?
   AND     language = ?
 '''
@@ -112,6 +116,14 @@ class Template:
     values = values or {}
     self._title_rendered = _render(self._title, values)
     self._body_rendered = _render(self._body, values)
+
+  @property
+  def title(self):
+    return self._title_rendered
+
+  @property
+  def body(self):
+    return self._body_rendered
 
   # TODO: add to Seralizable class and inherit?
   def serialize(self):
