@@ -5,8 +5,8 @@ import os
 import logging
 import configparser
 from json import JSONEncoder
-from flask import Flask, request, session, current_app
-from flask_babel import Babel, _
+from flask import Flask, session, current_app
+from flask_babel import _
 
 # utilities
 from . import log
@@ -24,6 +24,7 @@ from . import status
 
 # misc
 from . import errors
+from . import i18n
 
 # this is so that the notifiers are registered
 from . import notifier_slack
@@ -41,12 +42,6 @@ def json_encoder_override(self, obj):
   )(obj)
 json_encoder_override.default = JSONEncoder().default
 JSONEncoder.default = json_encoder_override
-
-# languages are not configurable
-SUPPORTED_LANGUAGES = ['en', 'fr']
-
-# declare Babel object to be initialized in factory
-babel = Babel()
 
 # static defaults - even empty ones need to exist so that app knows to check
 # the environment
@@ -179,7 +174,7 @@ def create_app(test_config=None):
   app = Flask(__name__, instance_relative_config=True)
 
   # initialize Babel
-  babel.init_app(app)
+  i18n.babel.init_app(app)
 
   # determine default database URI based on instance location
   defaults['DATABASE_URI'] = "file:///%s/%s.sqlite" % (
@@ -214,7 +209,7 @@ def create_app(test_config=None):
   app.register_blueprint(status.bp)
 
   # this is to make get_locale() available to templates
-  app.jinja_env.globals.update(get_locale=get_locale)
+  app.jinja_env.globals.update(get_locale=i18n.get_locale)
 
   # register error handlers
   app.register_error_handler(400, errors.error_400)
@@ -241,8 +236,3 @@ def init_app(app):
   app.cli.add_command(db.init_db_command)
   app.cli.add_command(db.seed_db_command)
   app.cli.add_command(db.upgrade_db_command)
-
-
-@babel.localeselector
-def get_locale():
-  return request.accept_languages.best_match(SUPPORTED_LANGUAGES)
