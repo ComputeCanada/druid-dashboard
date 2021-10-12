@@ -90,6 +90,21 @@ def test_get_case_xhr(client):
   assert 'resource' in d
   assert 'templates' in d
   assert 'users' in d
+  print(d['templates'])
+  assert d['templates'] == [
+    { "label": "impossible",
+      "name": "impossible",
+      "pi_only": False
+    },
+    { "label": "rac",
+      "name": "rac",
+      "pi_only": True
+    },
+    { "label":"candidate",
+      "name":"candidate",
+      "pi_only": True
+    }
+  ]
   assert response.status_code == 200
 
 def test_get_unknown_case_xhr(client):
