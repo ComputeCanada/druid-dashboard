@@ -31,6 +31,7 @@ from manager.history import History
 from manager.exceptions import (
   AppException, BadCall, DatabaseException, ResourceNotFound
 )
+from manager.template import get_templates_for_case_type
 
 # ---------------------------------------------------------------------------
 #                                                                   helpers
@@ -167,12 +168,6 @@ SQL_SET_TICKET = '''
   UPDATE  reportables
   SET     ticket_id = ?, ticket_no = ?
   WHERE   id = ?
-'''
-
-SQL_GET_APPROPRIATE_TEMPLATES = '''
-  SELECT    template
-  FROM      appropriate_templates
-  WHERE     enabled = TRUE AND casetype = ?
 '''
 
 # ---------------------------------------------------------------------------
@@ -636,21 +631,18 @@ class Case:
     db.commit()
 
   @classmethod
-  def appropriate_templates(cls):
+  def appropriate_templates(cls, language):
     """
     Return a list of templates appropriate for this type of case.
+
+    Args:
+      language: user's language.
 
     Returns:
       A list of templates appropriate for this type of case.
     """
-    db = get_db()
-    res = db.execute(SQL_GET_APPROPRIATE_TEMPLATES, (cls._table,)).fetchall()
-    get_log().debug("Retrieving appropriate templates for %s: %s", cls._table, res)
-    if not res:
-      return None
-    return [
-      rec['template'] for rec in res
-    ]
+    get_log().debug("Getting appropriate templates for case %s with language %s", cls._table, language)
+    return get_templates_for_case_type(cls._table, language)
 
   def __init__(self,
       id=None, record=None,

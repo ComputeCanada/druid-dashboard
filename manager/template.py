@@ -26,8 +26,37 @@ SQL_GET = '''
   AND     language = ?
 '''
 
+SQL_GET_TEMPLATES_FOR_CASE = '''
+  SELECT  name, pi_only, label
+  FROM    templates
+  JOIN    templates_content tc
+  ON      name = tc.template
+  JOIN    appropriate_templates ap
+  ON      name = ap.template
+  WHERE   enabled AND language IN (?, '') AND casetype = ?
+'''
+
 # ---------------------------------------------------------------------------
-#                                                                   Helpers
+#                                                          module functions
+# ---------------------------------------------------------------------------
+
+def get_templates_for_case_type(casetype, language):
+  get_log().debug("Retrieving templates available for case type %s and language %s", casetype, language)
+  res = get_db().execute(
+    SQL_GET_TEMPLATES_FOR_CASE,
+    (language, casetype)
+  ).fetchall()
+
+  return [
+    {
+      'name': rec['name'],
+      'label': rec['label'],
+      'pi_only': rec['pi_only'],
+    } for rec in res
+  ]
+
+# ---------------------------------------------------------------------------
+#                                                                   helpers
 # ---------------------------------------------------------------------------
 
 def _resolve(dikt, var):
