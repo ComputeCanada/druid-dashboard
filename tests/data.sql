@@ -49,7 +49,7 @@ These are what we'll use actively.  Putting them here for convenience and
 also in case we use them for testing at some point.
 --------------------------------------------------------------------------- */
 
-INSERT INTO templates (name) VALUES ('candidate');
+INSERT INTO templates (name, pi_only) VALUES ('candidate', CAST (1 AS BOOLEAN));
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
   'candidate', 'candidate', 'en',
   'NOTICE: Your computations on {cluster} may be eligible for prioritised execution',
@@ -90,7 +90,7 @@ Info additionel au tâches:
   Emetteurs de tâches: {submitters}
 ');
 
-INSERT INTO templates (name) VALUES ('impossible');
+INSERT INTO templates (name, pi_only) VALUES ('impossible', CAST (0 AS BOOLEAN));
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
   'impossible', 'impossible', 'en', 'NOTICE: Your computations on {cluster} may be optimized',
   'Hello {piName},
@@ -130,7 +130,7 @@ Info additionel au tâches:
   Emetteurs de tâches: {submitters}
 ');
 
-INSERT INTO templates (name) VALUES ('rac');
+INSERT INTO templates (name, pi_only) VALUES ('rac', CAST (1 AS BOOLEAN));
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
   'rac', 'rac', 'en',
   'NOTICE: Your computations on {cluster} may indicate a need for an ongoing allocation',
@@ -211,9 +211,9 @@ Info additionel au tâches:
   Emetteurs de tâches: {submitters}
 ');
 
-INSERT INTO appropriate_templates VALUES ('bursts', 'impossible', TRUE);
-INSERT INTO appropriate_templates VALUES ('bursts', 'rac', TRUE);
-INSERT INTO appropriate_templates VALUES ('bursts', 'candidate', TRUE);
-INSERT INTO appropriate_templates VALUES ('oldjobs', 'impossible', TRUE);
+INSERT INTO appropriate_templates VALUES ('bursts', 'impossible', CAST (1 AS BOOLEAN));
+INSERT INTO appropriate_templates VALUES ('bursts', 'rac', CAST (1 AS BOOLEAN));
+INSERT INTO appropriate_templates VALUES ('bursts', 'candidate', CAST (1 AS BOOLEAN));
+INSERT INTO appropriate_templates VALUES ('oldjobs', 'impossible', CAST (1 AS BOOLEAN));
 
 INSERT INTO notifiers (name, type, config) VALUES ('Test Notifier', 'test', '{}');
