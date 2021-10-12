@@ -18,6 +18,7 @@ from manager.template import Template
 from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, ResourceNotCreated
 from manager.history import History
 from manager.case import Case, registry
+from manager.i18n import get_locale
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
@@ -301,8 +302,9 @@ def xhr_get_case(id):
     get_log().error("Error in retrieving PI for account %s: %s", case.account, e)
     return jsonify({'error': 'Error in retrieving PI information'}), 500
 
-  # get outreach templates appropriate for this case
-  info['templates'] = case.appropriate_templates()
+  # get outreach templates appropriate for this case.  Use 'en' if nothing
+  # found
+  info['templates'] = case.appropriate_templates(get_locale() or 'en')
 
   return jsonify(info), 200
 
