@@ -51,7 +51,7 @@ also in case we use them for testing at some point.
 
 INSERT INTO templates (name, pi_only) VALUES ('candidate', CAST (1 AS BOOLEAN));
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'candidate', 'candidate', 'en',
+  'candidate', 'Potential burst candidate', 'en',
   'NOTICE: Your computations on {cluster} may be eligible for prioritised execution',
   'Hello {piName},
 
@@ -71,13 +71,13 @@ Additional job info:
 ');
 
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'candidate', 'candidate', 'fr',
+  'candidate', 'Candidat potential pour éclater', 'fr',
   'AVIS: Vos calculs sur {cluster} peuvent être éligibles pour une exécution prioritaire',
   'Bonjour {piName},
 
 Nos archives montrent que votre compte ''{account}'' a une quantité de ressources en attente dans la file d''attente des tâches sur {cluster} qui pourrait connaître un temps d''attente substantiel. Compte tenu de cette charge de travail en attente ainsi que de l''historique d''utilisation récent du compte, nous pourrions être en mesure de fournir une augmentation transitoire de la priorité pour réduire ces temps d''attente prévus.
 
-Si vous souhaitez discuter de ce changement de priorité transitoire potentiel vers{ account}, vous pouvez répondre à ce message et nous vous donnerons plus de détails.
+Si vous souhaitez discuter de ce changement de priorité transitoire potentiel vers {account}, vous pouvez répondre à ce message et nous vous donnerons plus de détails.
 
 Meilleures salutations,
 
@@ -92,7 +92,7 @@ Info additionel au tâches:
 
 INSERT INTO templates (name, pi_only) VALUES ('impossible', CAST (0 AS BOOLEAN));
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'impossible', 'impossible', 'en', 'NOTICE: Your computations on {cluster} may be optimized',
+  'impossible', 'Impossible jobs', 'en', 'NOTICE: Your computations on {cluster} may be optimized',
   'Hello {piName},
 
 Our records show that your account ''{account}'' has a quantity of resources waiting in the job queue on {cluster} which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
@@ -111,7 +111,7 @@ Additional job info:
 ');
 
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'impossible', 'impossible', 'fr',
+  'impossible', 'Tâches impossibles', 'fr',
   'AVIS: Vos calculs sur {cluster} peuvent être optimisés',
   'Bonjour {piName},
 
@@ -132,7 +132,7 @@ Info additionel au tâches:
 
 INSERT INTO templates (name, pi_only) VALUES ('rac', CAST (1 AS BOOLEAN));
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'rac', 'rac', 'en',
+  'rac', 'Potential RAC candidate', 'en',
   'NOTICE: Your computations on {cluster} may indicate a need for an ongoing allocation',
   'Hello {piName},
 
@@ -152,7 +152,7 @@ Additional job info:
 ');
 
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'rac', 'rac', 'fr',
+  'rac', 'Candidat potential pour RAC', 'fr',
   'AVIS: Vos calculs sur {cluster} peuvent indiquer la nécessité d''une allocation continue',
   'Bonjour {piName},
 
@@ -173,7 +173,7 @@ Info additionel au tâches:
 
 INSERT INTO templates (name) VALUES ('empty');
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'empty', 'empty', 'en', 'Regarding your computations on {cluster}',
+  'empty', 'Generic', 'en', 'Regarding your computations on {cluster}',
   'Hello {piName},
 
 
@@ -192,13 +192,13 @@ Additional job info:
 ');
 
 INSERT INTO templates_content (template, label, language, title, body) VALUES (
-  'empty', 'empty', 'fr', 'Vos calculs sur {cluster}',
+  'empty', 'Générique', 'fr', 'Vos calculs sur {cluster}',
   'Bonjour {piName},
 
 
 
 
-Si vous souhaitez discuter de ce changement de priorité transitoire potentiel vers{ account}, vous pouvez répondre à ce message et nous vous donnerons plus de détails.
+Si vous souhaitez discuter de ce changement de priorité transitoire potentiel vers {account}, vous pouvez répondre à ce message et nous vous donnerons plus de détails.
 
 Meilleures salutations,
 
