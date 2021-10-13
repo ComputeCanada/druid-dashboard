@@ -179,7 +179,7 @@ class OldJob(Case):
 
   @property
   def users(self):
-    return self._submitter
+    return [self._submitter]
 
   @property
   def info(self):
