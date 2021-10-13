@@ -28,6 +28,9 @@ var report_specs = {{ reports|tojson|safe }};
 // for lookup for cluster names
 var cluster_lookup = {};
 
+// for remembering case information between uses
+var case_info = null;
+
 // translation lookup map.  This is to make the text available to library
 // code that doesn't get parsed as templates.
 var i18n_texts = {
@@ -399,11 +402,10 @@ function renderActionMenu(caseObj) {
 }
 
 function recipientSelectable(outreach) {
-  switch (outreach) {
-    case "impossible":
-    case "empty":
-      return true;
-      break;
+  for (var i=0; i<case_info.templates.length; i++) {
+    if (outreach == case_info.templates[i].name) {
+      return !case_info.templates[i].pi_only;
+    }
   }
   return false;
 }
@@ -434,21 +436,56 @@ $(document).ready(function() {
     var recipients = $('#ticketRecipient');
     recipients.empty();
 
+    // get template selection element
+    var templates = $('#outreach-type');
+    templates.empty();
+    templates.append("<option selected disabled value=''>Choose outreach type</option>");
+
+    // clear out global case info variable
+    case_info = null;
+
+    // set up AJAX call
     $.ajax({
-      url: `/xhr/cases/${case_id}/people/`,
+      url: `/xhr/cases/${case_id}`,
       method: 'GET',
-      success: function(people, status, jqXHR) {
+      success: function(info, status, jqXHR) {
         status_clear(status_id);
 
-        // create recipient list, starting with PI as default
-        var pi = people.pi;
-        recipients.append(`<option value='${pi}' selected>${pi} (PI)</option>`);
-        for (var i=0; i<people.submitters.length; i++) {
-          var submitter = people.submitters[i];
-          if (pi != submitter) {
-            recipients.append(`<option value='${submitter}'>${submitter}</option>`);
-          }
+        // iterate through available outreach templates
+        for (var i=0; i<info.templates.length; i++) {
+          var template = info.templates[i]['name'];
+          var label = info.templates[i]['label'];
+          var pi_only = info.templates[i]['pi_only'];
+          var extra = pi_only ? " (PI only)" : "";
+          templates.append(`<option value='${template}'>${label}${extra}</option>`);
         }
+
+        // create recipient list.  First listed is default and flag the PI
+        var pi = info.pi.uid;
+        let got_pi = false;
+        for (var i=0; i<info.users.length; i++) {
+          var user = info.users[i];
+          var userlabel;
+          if (pi == user) {
+            userlabel = `${user} (PI)`;
+            got_pi = true;
+          } else {
+            userlabel = user;
+          }
+
+          // if default is first listed, not sure "selected" needs to be
+          // specified
+          //if (i == 0) { /* add selected */ }
+          recipients.append(`<option value='${user}'>${userlabel}</option>`);
+        }
+
+        // add PI if not already (i.e. did not appear in user list)
+        if (!got_pi) {
+          recipients.append(`<option value='${pi}'>${pi} (PI)</option>`);
+        }
+
+        // save case info
+        case_info = info;
       },
       error: function() {
         status_clear(status_id);
@@ -639,9 +676,6 @@ $(document).ready(function() {
             <label for='outreach-type'>Select what sort of outreach you want to initiate:</label>
             <select class='form-select' id='outreach-type' required>
               <option selected disabled value=''>Choose outreach type</option>
-              <option value='candidate'>Burst candidate</option>
-              <option value='impossible'>Impossible jobs</option>
-              <option value='rac'>Apply for RAC</option>
               <option value='empty'>Empty</option>
             </select>
           </p>
