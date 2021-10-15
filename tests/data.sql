@@ -1,3 +1,15 @@
+-- cluster data
+INSERT INTO clusters (id, name) VALUES ('testcluster', 'Test Cluster');
+
+-- component data
+INSERT INTO components (id, name, cluster, service) VALUES ('testcluster_detector', 'Detector', 'testcluster', 'detector');
+INSERT INTO components (id, name, cluster, service) VALUES ('testcluster_scheduler', 'Adjustor', 'testcluster', 'scheduler');
+
+-- API keys
+INSERT INTO apikeys (access, secret, component) VALUES ('testapikey_d', 'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ==', 'testcluster_detector');
+INSERT INTO apikeys (access, secret, component) VALUES ('testapikey_s', 'T3h5mwEk7mrVwxdon+s9blWhVh8zHDd7PVoUoWJsTf5Qd2EUie6I4pdBuyRykw==', 'testcluster_scheduler');
+
+
 -- template data
 INSERT INTO templates (name) VALUES ('other language follows');
 INSERT INTO templates_content (template, label, language, body) VALUES (
