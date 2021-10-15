@@ -166,7 +166,7 @@ def xhr_add_apikey():
     get_log().error(
       "Exception in adding API key (%s=%s for component %s): %s",
       access, secret, component, e)
-    return None
+    return jsonify({'error': 'error'}), 500
   return jsonify({'status': 'OK'}), 200
 
 
