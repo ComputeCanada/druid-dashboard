@@ -13,7 +13,7 @@ def client(seeded_app):
   return seeded_app.test_client()
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='class')
 def empty_client(empty_app):
   return empty_app.test_client()
 
