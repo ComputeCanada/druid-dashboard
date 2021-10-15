@@ -50,13 +50,6 @@ _projects = {
     'ccResponsible': 'tst-002',
     'members': ['tst-005', 'tst-006']
   },
-  'def-dleske-aa': {
-    'dn': 'def-dleske-aa,ou=Group,dc=fakey,dc=fake',
-    'ccRapi': 'tst-002-aa',
-    'description': '',
-    'ccResponsible': 'tst-002',
-    'members': ['tst-005', 'tst-006']
-  }
 }
 
 # create CCI-indexed tree
