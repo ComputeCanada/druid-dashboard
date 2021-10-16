@@ -12,9 +12,9 @@ from tests_cli import *
 from tests_status import *
 from tests_app import *
 from tests_authentication import *
-#from tests_bursts import *
-#from tests_oldjobs import *
-#from tests_otrs import *
+from tests_bursts import *
+from tests_oldjobs import *
+from tests_otrs import *
 from tests_dashboard import *
 from tests.ldapstub import LdapStub
 from tests.otrsstub import OtrsStub
