@@ -9,6 +9,11 @@ INSERT INTO components (id, name, cluster, service) VALUES ('testcluster_schedul
 INSERT INTO apikeys (access, secret, component) VALUES ('testapikey_d', 'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ==', 'testcluster_detector');
 INSERT INTO apikeys (access, secret, component) VALUES ('testapikey_s', 'T3h5mwEk7mrVwxdon+s9blWhVh8zHDd7PVoUoWJsTf5Qd2EUie6I4pdBuyRykw==', 'testcluster_scheduler');
 
+-- bursts
+-- specifying the ID for the reportable causes issues with Postgres (the serial isn't properly initialized so
+-- on the next insertion it tries to reuse it and gets a uniqueness violation error
+INSERT INTO reportables (epoch, account, cluster, summary) VALUES (1634316499, 'def-pi1', 'testcluster', '');
+INSERT INTO bursts (id, pain, firstjob, lastjob, submitters) VALUES (1, 1.00, 1005, 2000, 'user3');
 
 -- template data
 INSERT INTO templates (name) VALUES ('other language follows');
