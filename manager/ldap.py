@@ -86,7 +86,9 @@ def get_ldap():
 
 def close_ldap(e=None):
   if e:
-    get_log().info("LDAP connection will be dropped in presence of error condition: '%s'", e)
+    get_log().info("Closing LDAP connection in presence of error.")
+  else:
+    get_log().info("Closing LDAP connection.")
 
   # On deletion of LDAPObject the connection is automatically unbound and
   # closed, so no explicit close() message needs to be sent.

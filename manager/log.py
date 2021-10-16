@@ -26,7 +26,8 @@ def close_log(e=None):
   global _logger
   if _logger:
     if e:
-      _logger.info("Closing logger in presence of error condition: '%s'", e)
+      clean_e = str(e).strip().replace('\n', ' :: ')
+      _logger.info("Closing logger in presence of error condition: %s", clean_e)
     else:
       _logger.debug("Closing down logger")
 

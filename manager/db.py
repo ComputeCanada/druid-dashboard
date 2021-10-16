@@ -79,11 +79,11 @@ def open_db(uri):
 
 def close_db(e=None):
   db = g.pop('db', None)
-
-  if e:
-    get_log().info("Closing database in presence of error condition: '%s'", e)
-
   if db is not None:
+    if e:
+      get_log().info("Closing database connection in presence of error.")
+    else:
+      get_log().info("Closing database connection.")
     db.close()
 
 
