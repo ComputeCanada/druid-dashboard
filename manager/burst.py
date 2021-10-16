@@ -328,7 +328,10 @@ class Burst(Case):
   def update_existing_me(self, rec):
     self._state = rec['state']
     self._jobrange[0] = rec['firstjob']
-    self._submitters = set(rec['submitters'].split()) | set(self._submitters)
+
+    # update list of submitters, prioritizing new submitters
+    self._submitters = self._submitters + [ x for x in rec['submitters'].split() if x not in self._submitters ]
+
     affected = get_db().execute(SQL_UPDATE_BY_ID, (
       self._pain, self._jobrange[1], ' '.join(self._submitters), self._id
     )).rowcount
