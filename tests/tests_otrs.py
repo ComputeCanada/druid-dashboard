@@ -16,6 +16,16 @@ from manager.otrs import get_otrs
 #                                                           TEMPLATES TESTS
 # ---------------------------------------------------------------------------
 
+def test_get_template_for_nonexistent_case(client):
+
+  # log in
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  assert response.status_code == 200
+
+  # retrieve template
+  response = client.get('/xhr/templates/impossible?case_id=200')
+  assert response.status_code == 404
+
 def test_get_template(client):
 
   # log in
@@ -23,7 +33,7 @@ def test_get_template(client):
   assert response.status_code == 200
 
   # retrieve template
-  response = client.get('/xhr/templates/impossible?case_id=2')
+  response = client.get('/xhr/templates/impossible?case_id=1')
   assert response.status_code == 200
 
   data = json.loads(response.data)
@@ -32,7 +42,7 @@ def test_get_template(client):
   print(data['body'])
   assert data['body'].startswith("""Hello PI 1,
 
-Our records show that your account 'def-dleske-aa' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
+Our records show that your account 'def-pi1' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.
 
 If you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.
 
@@ -89,7 +99,7 @@ Compute Canada Support"""
 
   # post a create ticket request
   response = client.post('/xhr/tickets/', data={
-    'case_id': 2,
+    'case_id': 1,
     'title': title,
     'body': body,
     'recipient': 'dleske',
@@ -103,7 +113,7 @@ Compute Canada Support"""
   print(x)
 
   # pylint: disable=line-too-long
-  assert x['case_id'] == 2
+  assert x['case_id'] == 1
   assert x['url'].endswith('/otrs/index.pl?Action=AgentTicketZoom&TicketID={}'.format(ticket_id))
 
   # this is what you'd get from the stub

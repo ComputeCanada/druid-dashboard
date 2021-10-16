@@ -74,12 +74,14 @@ def test_api_unsigned(client):
   response = client.get('/api/cases/')
   assert response.status_code == 401
 
-def test_get_bursts_but_there_are_none(client):
-
-  response = api_get(client, '/api/cases/?report=bursts')
-  assert response.status_code == 200
-  x = json.loads(response.data)
-  assert x is None
+# This test won't run without a _mostly_ empty client, one that has the API
+# key defined already
+#def test_get_bursts_but_there_are_none(empty_client):
+#  client = empty_client
+#  response = api_get(client, '/api/cases/?report=bursts')
+#  assert response.status_code == 200
+#  x = json.loads(response.data)
+#  assert x is None
 
 def test_post_nothing(client):
 
@@ -321,18 +323,18 @@ def test_post_unknown_report_type(client):
     "status": 400
   }
 
+def test_post_empty_burst_report(client):
+  """
+  Tests that a report with no bursts is accepted as valid.
+  """
+
+  response = api_post(client, '/api/cases/', {
+    'version': 2,
+    'bursts': []
+  })
+  assert response.status_code == 201
+
 class TestPostingSuccessiveReports:
-
-  def test_post_empty_burst_report(self, client):
-    """
-    Tests that a report with no bursts is accepted as valid.
-    """
-
-    response = api_post(client, '/api/cases/', {
-      'version': 2,
-      'bursts': []
-    })
-    assert response.status_code == 201
 
   def test_post_burst(self, client, notifier):
 
@@ -382,7 +384,7 @@ class TestPostingSuccessiveReports:
             'claimant': None,
             'cluster': 'testcluster',
             'id': 1,
-            'jobrange': [1000, 2000],
+            'jobrange': [1005, 2000],
             'other': {'notes': 0},
             'pain': 0.0,
             'pain_pretty': '0.00',
@@ -390,22 +392,23 @@ class TestPostingSuccessiveReports:
             'resource_pretty': 'CPU',
             'state': 'pending',
             'state_pretty': 'Pending',
-            'submitters': ['userQ'],
+            'submitters': ['userQ', 'user3'],
             'summary': None,
             'ticket': None,
             'ticket_id': None,
             'ticket_no': None,
-            'ticks': 1,
+            'ticks': 2,
             'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_instant.html">Instant</a>'
           }
         ]
       }
     }
 
+    # NOTE: shows as existing because this matches the burst report seeded
+    # in the test data
     print(notifier.notifications)
     assert notifier.notifications == [
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
     ]
 
   def test_post_bursts(self, client, notifier):
@@ -425,7 +428,7 @@ class TestPostingSuccessiveReports:
       'version': 2,
       'bursts': [
         {
-          'account': 'def-pi1-aa',
+          'account': 'def-pi1',
           'resource': 'cpu',
           'pain': 1.0,
           'firstjob': 1005,
@@ -434,7 +437,7 @@ class TestPostingSuccessiveReports:
           'submitters': ['userQ']
         },
         {
-          'account': 'def-bobaloo-aa',
+          'account': 'def-pi2-ab',
           'resource': 'cpu',
           'pain': 1.5,
           'firstjob': 1015,
@@ -445,15 +448,10 @@ class TestPostingSuccessiveReports:
       ]})
     assert response.status_code == 201
 
-    # note: notifications show 2 new records and 0 existing in the last
-    #       notification because the report just posted did not update the
-    #       existing burst, so it was shunted aside.  (So the notification could
-    #       say "1 retired" I suppose, but that would be difficult to track.)
     print(notifier.notifications)
     assert notifier.notifications == [
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      "beam-dev: ReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      "beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 1 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed."]
 
   def test_get_bursts(self, client):
 
@@ -468,27 +466,27 @@ class TestPostingSuccessiveReports:
     # epochs may well match, bursts 2 and 3 arrived after 1 and don't overlap
     assert x['results'] == [
       {
-        'account': 'def-pi1-aa',
+        'account': 'def-pi1',
         'resource': 'cpu',
         'claimant': None,
         'cluster': 'testcluster',
-        'id': 2,
+        'id': 1,
         'jobrange': [1005, 2005],
         'pain': 1.0,
         'state': 'pending',
         'summary': None,
         'ticket_id': None,
         'ticket_no': None,
-        'ticks': 1,
-        'submitters': ['userQ'],
+        'ticks': 3,
+        'submitters': ['userQ', 'user3'],
         'other': {'notes': 0}
       },
       {
-        'account': 'def-bobaloo-aa',
+        'account': 'def-pi2-ab',
         'resource': 'cpu',
         'claimant': None,
         'cluster': 'testcluster',
-        'id': 3,
+        'id': 2,
         'jobrange': [1015, 2015],
         'pain': 1.5,
         'state': 'pending',
@@ -508,25 +506,25 @@ class TestPostingSuccessiveReports:
 
   def test_get_burst(self, client):
 
-    response = api_get(client, '/api/cases/2')
+    response = api_get(client, '/api/cases/1')
     assert response.status_code == 200
     x = json.loads(response.data)
     del x['epoch']
     print(x)
     assert x == {
-      'account': 'def-pi1-aa',
+      'account': 'def-pi1',
       'resource': 'cpu',
       'claimant': None,
       'cluster': 'testcluster',
-      'id': 2,
+      'id': 1,
       'jobrange': [1005, 2005],
       'pain': 1.0,
       'state': 'pending',
       'summary': None,
       'ticket_id': None,
       'ticket_no': None,
-      'ticks': 1,
-      'submitters': ['userQ'],
+      'ticks': 3,
+      'submitters': ['userQ', 'user3'],
       'other': {'notes': 0}
     }
 
@@ -541,7 +539,7 @@ class TestPostingSuccessiveReports:
       'version': 2,
       'bursts': [
         {
-          'account': 'def-pi1-aa',
+          'account': 'def-pi1',
           'resource': 'cpu',
           'pain': 1.2,
           'firstjob': 1020,
@@ -552,10 +550,10 @@ class TestPostingSuccessiveReports:
       ]})
     assert response.status_code == 201
 
+    print(notifier.notifications)
     assert notifier.notifications == [
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      'beam-dev: ReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 1 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
       'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.']
 
     # now login and retrieve burst candidates as manager would
@@ -589,7 +587,7 @@ class TestPostingSuccessiveReports:
       'version': 2,
       'bursts': [
         {
-          'account': 'def-pi1-aa',
+          'account': 'def-pi1',
           'resource': 'cpu',
           'pain': 1.0,
           'firstjob': 1005,
@@ -598,7 +596,7 @@ class TestPostingSuccessiveReports:
           'submitters': ['userQ']
         },
         {
-          'account': 'def-bobaloo-aa',
+          'account': 'def-pi2-ab',
           'resource': 'cpu',
           'pain': 1.5,
           'firstjob': 1015,
@@ -610,18 +608,18 @@ class TestPostingSuccessiveReports:
     assert response.status_code == 201
 
     assert notifier.notifications == [
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      'beam-dev: ReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
       'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.']
+      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 1 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+    ]
 
   def test_post_bursts_with_other_updates(self, client, notifier):
     """
     Tests that state and claimant information in notification is correct.
     """
 
-    id = 2
+    id = 1
     data = [
       {
         'note': 'Hey how are ya',
@@ -643,7 +641,7 @@ class TestPostingSuccessiveReports:
       'version': 2,
       'bursts': [
         {
-          'account': 'def-pi1-aa',
+          'account': 'def-pi1',
           'resource': 'cpu',
           'pain': 1.0,
           'firstjob': 1005,
@@ -652,7 +650,7 @@ class TestPostingSuccessiveReports:
           'submitters': ['userQ']
         },
         {
-          'account': 'def-bobaloo-aa',
+          'account': 'def-pi2-ab',
           'resource': 'cpu',
           'pain': 1.5,
           'firstjob': 1015,
@@ -667,15 +665,10 @@ class TestPostingSuccessiveReports:
     print(json.loads(response.data))
 
     print(notifier.notifications)
-    assert notifier.notifications[0] == \
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 0 existing.  In total there are 0 pending, 0 accepted, 0 rejected.  0 have been claimed.'
-    assert notifier.notifications[1] == \
-      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 0 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
-    assert notifier.notifications[2] == \
-      'beam-dev: ReportReceived: bursts on testcluster: 2 new record(s) and 0 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.'
-    assert notifier.notifications[3] == \
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.'
-    assert notifier.notifications[4] == \
-      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.'
-    assert notifier.notifications[5] == \
+    assert notifier.notifications == [
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      'beam-dev: ReportReceived: bursts on testcluster: 1 new record(s) and 1 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 1 existing.  In total there are 1 pending, 0 accepted, 0 rejected.  0 have been claimed.',
+      'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 2 pending, 0 accepted, 0 rejected.  0 have been claimed.',
       'beam-dev: ReportReceived: bursts on testcluster: 0 new record(s) and 2 existing.  In total there are 1 pending, 0 accepted, 1 rejected.  1 have been claimed.'
+    ]
