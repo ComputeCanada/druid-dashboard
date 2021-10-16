@@ -92,6 +92,8 @@ def _render_template(template, caseID, recipient=None):
 
   # retrieve case object and info
   case = Case.get(caseID)
+  if case is None:
+    raise ResourceNotFound(f"Could not find case with ID {caseID}")
   info = case.info
 
   # use requested recipient if provided
@@ -413,10 +415,12 @@ def xhr_get_template(name):
     # if recipient specified
     recipient = request.args.get('recipient', None)
 
-    # render template with burst and account information
+    # render template with case and account information
     try:
       data = _render_template(name, case_id, recipient)
       return jsonify(data), 200
+    except ResourceNotFound as e:
+      return jsonify({'error': str(e)}), 404
     except LdapException as e:
       get_log().error("Error in rendering template: %s", e)
       return jsonify({'error': str(e)}), 500
@@ -447,7 +451,7 @@ def xhr_create_ticket():
     get_log().error(error)
     return jsonify({'error': error}), 400
 
-  # get burst
+  # get case
   case = Case.get(case_id)
   if not case:
     return xhr_error(404, f"Could not find case with ID {id}")
