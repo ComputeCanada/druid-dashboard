@@ -24,9 +24,12 @@ Options:
   --ldap:         Test LDAP integration
   --selenium:     Execute Selenium testing (default false)
   -a|--all:       Test all above if containers available
+  --otrs:         Test OTRS integration.  Requires configuration file
+                  tests/otrs.conf to exist (see sample).
   --no-cleanup:   Do not clean up temporary directories
   --schema:       Include schema upgrade testing
   --no-linting:   Skip lint testing
+  --no-unit:      Skip unit testing
   -x|--exitfirst: [pytest] Exit at first failed test
   -v|--verbose:   [pytest] Show verbose information
   -d|--debug:     [pytest] Show debug-level logging
@@ -34,6 +37,10 @@ Options:
 Postgres, LDAP and Selenium testing can only be performed if an appropriate
 container is running with the label 'postgres-beam', 'ldap-beam', or
 'selenium-beam', respectively.
+
+OTRS testing *will create tickets and send e-mails*.  The tickets will be
+automatically closed if successful, but e-mails will need to be verified
+before cleanup.  OTRS testing is not included by `--all`.
 ```
 
 Typical uses are described following.
@@ -75,6 +82,17 @@ $ tests/test-all
 [...]
 $ docker-compose -f tests/docker-ldap.yml down
 ```
+
+### OTRS testing
+
+OTRS testing exercises the templating and ticketing code and actually creates
+a ticket on the configured test instance.  Tickets are automatically closed if
+the tests succeed but the client and owner e-mails will need to be cleaned
+up--they should be verified for correctness at this time.
+
+OTRS testing should not be performed too frequently (to avoid too many test
+tickets and testing spam).  It should probably be performed by the project
+maintainer at their discretion.
 
 ### Selenium testing
 

@@ -2,112 +2,131 @@
 
 [[_TOC_]]
 
-## Development environment
+## Developer setup
 
-### Git setup
-
-First, clone the repository.  Then, you'll need the `tests` and `ccldap`
-submodules.  These are defined in `.gitmodules` as _relative paths_ to ease
-development and [enable
-CI](https://docs.gitlab.com/ee/ci/git_submodules.html#using-git-submodules-in-your-ci-jobs).
-The relative paths will cause you a bit of pain if you don't have your Git
-workspaces set up in the same structure as on this GitLab instance, that is,
-something like:
+### Source code
 
 ```
-├── dleske
-│   ├── python-ccldap
-│   ├── tests
-│   └── try-ldap-ctnr
-├── frak
-│   ├── burst
-│   │   └── manager
-│   └── smallest-asks-win
-...
+# clone repository
+git clone gitlab@git.computecanada.ca:frak/burst/manager.git
+cd manager
+
+# optional: checkout branch you want to base off of
+#git checkout generalized-reports
+
+# fetch submodules
+git submodule update --init
+
+# create virtual environment
+python3 -m venv venv
+
+# activate and install app and testing requirements
+. venv/bin/activate
+pip install -r requirements.txt
+pip install -r tests/requirements.txt
+
+# compile translations
+pybabel compile -d manager/translations
+
+# run essential tests
+tests/test-all
 ```
 
-The first-level entries are the groups and the second-level are the projects.
-So from `frak/burst/manager`, `../../../dleske/tests` takes you to the correct
-project for the tests submodule.
+The last step runs unit tests and the basic integration (using SQLite and
+stubs for LDAP and other components).  These tests should all pass and you
+should be ready to move on to the next step.
 
-If you don't replicate this structure, you can switch to using URLs, but if
-you do so _do not push these changes_ as it will break CI.  Use the same
-scheme you're currently using, presumably SSH:
+### Running application
 
-```
-[submodule "ccldap"]
-        path = ccldap
-        url = gitlab@git.computecanada.ca:dleske/python-ccldap.git
-[submodule "tests/linting"]
-        path = tests/linting
-        url = gitlab@git.computecanada.ca:dleske/tests.git
-```
-
-To avoid seeing these local changes (which must remain local!) and pushing
-them upstream inadvertently (because they must remain local!) use:
+We seed the database with some basic data (test cluster, register a detector
+and adjustor for API calls, and associated API keys) and then start up the
+server in development mode.  In development mode, more debug information is
+displayed to the client and updated source triggers an automatic reload (on
+the server side; the client browser may need to be refreshed).
 
 ```
-$ git update-index --skip-worktree  .gitmodules
+# set up environment
+export PYTHONPATH=$PYTHONPATH:.
+export FLASK_APP=manager
+export FLASK_ENV=development
+
+# initialize and seed database with basic dev data
+flask seed-db tests/dev.sql
+
+# run application
+flask run --with-threads
 ```
 
-Now to get the submodules:
+### Browser access
+
+To use the application in your browser, you'll need to fake out the user
+authentication.  When deployed the application runs behind a reverse proxy
+which handles the single sign-on and, if the user authenticates successfully,
+passes the authenticated username to the application using the
+`X-Authenticated-User` header.
+
+For Firefox, the [SimpleModifyHeaders
+plugin](https://github.com/didierfred/SimpleModifyHeaders) works well enough.
+Other browsers will require their own plugins unless they have an inbuilt
+ability to add a header to every request.
+
+Another possible option is running a small proxy locally to add the header.
+The following [Tinyproxy](https://tinyproxy.github.io/) configuration works:
 
 ```
-$ git submodule update --init
+Port 5022
+AddHeader "X-Authenticated-User" "admin1"
 ```
 
-### The development environment
-
-Create and configure a virtual Python environment:
+...for this Curl call:
 
 ```
-$ python3 -m venv venv
-$ . venv/bin/activate
-$ pip install -r requirements.txt
-$ pip install -r tests/requirements.txt
-$ export PYTHONPATH=$PYTHONPATH:.
+$ curl -x localhost:5022 localhost:5001
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<title>Redirecting...</title>
+<h1>Redirecting...</h1>
+<p>You should be redirected automatically to target URL: <a
+href="/admin/">/admin/</a>.  If not click the link.
 ```
 
-Setting `PYTHONPATH` is necessary for the module to be found.  If you know a
-better way to handle this, let me know.
+However Firefox does not funnel visits to localhost, 127.0.0.1, etc. through
+configured proxies.
 
-Set up some variables for running the Flask development server:
+### Support containers
 
-```
-$ export FLASK_APP=manager
-$ export FLASK_ENV=development
-```
+The LDAP instance is necessary in order to be able to look up user data.  A
+Postgres container is necessary for testing against Postgres (which is a must
+since deployment uses Postgres instead of SQLite).  A resources container
+contains static resources such as third-party Javascript libraries.
 
-Now either initialize the DB with a schema or initialize it and seed it with
-dev/test data:
-
-```
-$ flask init-db
-```
-
-Or
+To get these running, Docker must be installed and configured on your system.
+It's recommended you run them in their own terminal so you can see activity.
+To do so:
 
 ```
-$ flask seed-db
+$ TAG=beam docker-compose -f tests/docker-ldap.yml up
 ```
-
-### LDAP container
-
-The LDAP instance is necessary in order to be able to look up user data.
-The `tests/test-all-docker` script sets one up for testing and so contains the
-necessary commands.  Setting up a separate container network is probably not
-necessary for development so long as you specify the correct LDAP URI in your
-application configuration.
 
 ### App configuration
 
 Put something like the following in `instance/manager.conf`:
+
 ```
+[core]
+static_resource_uri = http://localhost:8080
+application_css_override = html{background:chartreuse}
+
 [ldap]
-uri = ldap://localhost:3389
-# only set this for testing!
+# local testing
+uri = ldap://localhost
+# ONLY set the following for local testing!  Insecure!
 skip_tls = yes
+tls_reqcert = allow
 ```
+
+The `application_css_override` is a simple trick to help differentiate your
+local environment from the deployed one, by setting the background colour to
+something obnoxious.
 
 ### Notifications
 
