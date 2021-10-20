@@ -36,32 +36,35 @@ warn_couldnt()
 usage()
 {
   cat <<EOF
-Usage: $(basename $0) [options]
+Usage: $(basename $0) [options] [case ...]
 Options:
-  --no-sqlite:    Don't test SQLite (default to test SQLite)
-  --pgsql:        Test Postgres
-  --ldap:         Test LDAP integration
-  --selenium:     Execute Selenium testing (default false)
-  -a|--all:       Test all above if containers available
-  --otrs:         Test OTRS integration.  Requires configuration file
-                  tests/otrs.conf to exist (see sample).
-  --no-cleanup:   Do not clean up temporary directories
-  --schema:       Include schema upgrade testing
-  --no-linting:   Skip lint testing
-  --no-unit:      Skip unit testing
-  -x|--exitfirst: [pytest] Exit at first failed test
-  -v|--verbose:   [pytest] Show verbose information
-  -d|--debug:     [pytest] Show debug-level logging
+  --no-sqlite:      Don't test SQLite (default to test SQLite)
+  --pgsql:          Test Postgres
+  --ldap:           Test LDAP integration
+  --selenium:       Execute Selenium testing (default false)
+  -a|--all:         Test all above if containers available
+  --otrs:           Test OTRS integration.  Requires configuration file
+                    tests/otrs.conf to exist (see sample)
+  --no-cleanup:     Do not clean up temporary directories
+  --upgrade:        Include schema upgrade testing for Postgres
+  --no-linting:     Skip lint testing
+  --no-unit:        Skip unit testing
+  -x|--exitfirst:   [pytest] Exit at first failed test
+  -v|--verbose:     [pytest] Show verbose information
+  -d|--debug:       [pytest] Show debug-level logging
+  --sw|--stepwise:  [pytest] Exit and resume at first failed test
 
 Postgres, LDAP and Selenium testing can only be performed if an appropriate
 container is running with the label 'postgres-beam', 'ldap-beam', or
 'selenium-beam', respectively.
 
+Schema upgrade testing is limited to Postgres.
+
 OTRS testing *will create tickets and send e-mails*.  The tickets will be
 automatically closed if successful, but e-mails will need to be verified
 before cleanup.  OTRS testing is not included by `--all`.
 
-
+Specific Pytest test cases may be specified following options.
 
 EOF
 }
@@ -72,7 +75,7 @@ pgsql=0
 ldap=0
 otrs=0
 selenium=0
-test_schema=0
+test_upgrade=0
 linting=1
 unit=1
 exitfirst=0
@@ -80,6 +83,7 @@ verbose=0
 debug=0
 sqlite=1
 cleanup=1
+stepwise=0
 
 # get arguments
 while [ -n "$1" ]
@@ -94,8 +98,8 @@ do
     --no-cleanup)
       cleanup=0
       ;;
-    --schema)
-      test_schema=1
+    --upgrade)
+      test_upgrade=1
       ;;
     --no-sqlite)
       sqlite=0
@@ -127,14 +131,21 @@ do
     -x|--exitfirst)
       exitfirst=1
       ;;
+    --sw|--stepwise)
+      stepwise=1
+      ;;
     -h|--help)
       usage
       exit
       ;;
-    *)
+    -*|--*)
       echo "Unrecognized option: $1"
       usage
       exit 1
+      ;;
+    *)
+      tests="$tests $1"
+      ;;
   esac
   shift
 done
@@ -152,12 +163,16 @@ if (( exitfirst ))
 then
   pytest_opts="$pytest_opts -x"
 fi
+if (( stepwise ))
+then
+  pytest_opts="$pytest_opts --sw"
+fi
 
 # --------------------------------------------------------------------------
 #                                                     actually doing stuff
 # --------------------------------------------------------------------------
 
-if (( test_schema ))
+if (( test_upgrade ))
 then
   # create temporary directory for this stuff
   tmpdir=$(mktemp -d /tmp/$(basename $0).XXXXXX) || fail_to create temporary directory
@@ -166,27 +181,42 @@ then
     echo "Temporary work dir (not cleaned up): $tmpdir"
   fi
 
-  # Schema baselining is disabled; see "configuration" section
-  # # get schema versions from git after $SCHEMA_BASELINE (when seed data changed)
-  # versions=$(git tag | awk -F- '$1 == "schema" && $2 >= '$SCHEMA_BASELINE' { print $2 }' | sort)
+  # get preliminary list of schema versions, and then winnow to supported
+  # upgrades
   versions=$(git tag | awk -F- '$1 == "schema" { print $2 }' | sort)
   if [ -z "$versions" ]
   then
-    test_schema=0
+    test_upgrade=0
   else
     # grab base schema versions and create databases with them
+    testable=()
     for version in $versions
     do
-      git show schema-$version:manager/sql/schema.sql > $tmpdir/schema-$version.sql
-      git show schema-$version:manager/sql/schema.psql > $tmpdir/schema-$version.psql
-      git show schema-$version:tests/data.sql > $tmpdir/seed-$version.sql
+      if [ -e tests/data-${version}.sql ]
+      then
+        testable+=($version)
+        git show schema-$version:manager/sql/schema.sql > $tmpdir/schema-$version.sql
+        git show schema-$version:manager/sql/schema.psql > $tmpdir/schema-$version.psql
+      fi
     done
 
-    # setup pytest stuff
-    export SCHEMA_BASEDIR=$tmpdir
-    export SCHEMA_VERSIONS=$(echo $versions | tr ' ' ',') 
-    echo "Schema versions: $SCHEMA_VERSIONS"
-    echo "Schema basedir: $SCHEMA_BASEDIR"
+    if [ -z "$testable" ]
+    then
+      test_upgrade=0
+    else
+      # setup pytest stuff
+      export SCHEMA_BASEDIR=$tmpdir
+      export SCHEMA_VERSIONS=$(echo $testable | tr ' ' ',')
+      echo "Schema versions: $SCHEMA_VERSIONS"
+      echo "Schema basedir: $SCHEMA_BASEDIR"
+    fi
+  fi
+  if ! (( test_upgrade ))
+  then
+    echo "WARNING: upgrade testing requested but cannot be performed.  Check that schema"
+    echo "releases are properly tagged in Git, and that versioned seed scripts exists"
+    echo "(i.e. tests/data-VERSION.sql)."
+    exit 1
   fi
 fi
 
@@ -194,7 +224,7 @@ if (( cleanup ))
 then
   cleanup()
   {
-    if (( test_schema ))
+    if (( test_upgrade ))
     then
       rm -Rf $tmpdir
     fi
@@ -224,26 +254,28 @@ sqlite_testing=""
 if (( sqlite ))
 then
   sqlite_testing="tests/test_sqlite.py"
-  if (( test_schema ))
-  then
-    sqlite_testing="${sqlite_testing} tests/test_sqlite_upgrade.py"
-  fi
 fi
 
 # test pgsql if desired and container is running
 pgsql_testing=""
+pgctr=0
+docker ps | grep -q postgres-beam && pgctr=1
 if (( pgsql ))
 then
-  ldap_testing=""
-  if docker ps | grep -q postgres-beam
+  if (( pgctr ))
   then
     pgsql_testing="tests/test_pgsql.py"
-    if (( test_schema ))
-    then
-      pgsql_testing="${pgsql_testing} tests/test_pgsql_upgrade.py"
-    fi
   else
     warn_couldnt test Postgres
+  fi
+fi
+if (( test_upgrade ))
+then
+  if (( pgctr ))
+  then
+    pgsql_testing="${pgsql_testing} tests/test_pgsql_upgrade.py"
+  else
+    warn_couldnt test Postgres upgrade
   fi
 fi
 
@@ -288,7 +320,10 @@ fi
 
 # functional testing
 emptypat='^ *$'
-tests="$unit_testing $sqlite_testing $pgsql_testing $ldap_testing $otrs_testing $selenium_testing"
+if [ -z "$tests" ]
+then
+  tests="$unit_testing $sqlite_testing $pgsql_testing $ldap_testing $otrs_testing $selenium_testing"
+fi
 if [[ "$tests" =~ $emptypat ]]
 then
   fail_to test anything.
