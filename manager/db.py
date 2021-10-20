@@ -172,12 +172,11 @@ def upgrade_schema(data_updates=None):
   upgrades = {}
   current = str(actual)
   while current in scriptdict:
-    upgrades[scriptdict[current][0]] = scriptdict[current][1]
+    upgrades[current] = scriptdict[current][1]
     current = scriptdict[current][0]
     if current == expected:
       have_upgrade_path = True
       break
-
   if not have_upgrade_path:
     # this is a pretty serious application error
     description = \
@@ -186,15 +185,18 @@ def upgrade_schema(data_updates=None):
       '{}'.format(actual, expected, upgrades)
     raise exceptions.ImpossibleSchemaUpgrade(description)
 
-  # add in the data upgrade scripts, if any
-  if data_updates:
-    for (version, path) in data_updates.items():
-      upgrades[version] = path
-
-  # iterate through upgrade scripts
-  actions = []
+  # create sorted list of scripts
+  scripts = []
   for version in sorted(upgrades):
-    upgrade = upgrades[version]
+    scripts.append((version, upgrades[version]))
+
+    # check for post-upgrade updates to seed data for this version
+    if data_updates and version in data_updates:
+      scripts.append((version, data_updates[version]))
+
+  # carry out the plan
+  actions = []
+  for (version, upgrade) in scripts:
     with current_app.open_resource(upgrade) as f:
       get_log().info("Upgrading DB: %s (version %s)", upgrade, version)
       db.executescript(f.read().decode('utf8'))
