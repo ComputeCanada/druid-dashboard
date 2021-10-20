@@ -12,6 +12,18 @@ changelog:
                 --format="$$format" $$tags \
 	>> $(CHANGELOG)
 
+.PHONY: testclean
+testclean:
+	rm -f .pytest_cache/v/cache/stepwise
+
+.PHONY: test-upgrade
+test-upgrade:
+	tests/test-all -v --pgsql --upgrade --stepwise
+
+.PHONY: test
+test:
+	tests/test-all --all --stepwise
+
 # fails if version doesn't match specific pattern, so as not to publish
 # development version.
 .PHONY: checkversion
