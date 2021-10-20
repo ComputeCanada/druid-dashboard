@@ -206,7 +206,7 @@ then
     else
       # setup pytest stuff
       export SCHEMA_BASEDIR=$tmpdir
-      export SCHEMA_VERSIONS=$(echo $testable | tr ' ' ',')
+      export SCHEMA_VERSIONS=$(echo ${testable[@]} | tr ' ' ',')
       echo "Schema versions: $SCHEMA_VERSIONS"
       echo "Schema basedir: $SCHEMA_BASEDIR"
     fi
