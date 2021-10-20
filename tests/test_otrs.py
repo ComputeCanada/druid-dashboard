@@ -4,20 +4,7 @@
 import os
 import tempfile
 import pytest
-from tests_clusters import *
-from tests_components import *
-from tests_apikeys import *
-from tests_api import *
-from tests_cli import *
-from tests_status import *
-from tests_app import *
-from tests_authentication import *
-from tests_bursts import *
-from tests_oldjobs import *
 from tests_otrs import *
-from tests_dashboard import *
-from tests.ldapstub import LdapStub
-from tests.otrsstub import OtrsStub
 from manager import create_app
 from manager.db import get_db, init_db, seed_db
 from manager.notifier import clear_notifiers
@@ -26,13 +13,13 @@ from manager.notifier import clear_notifiers
 # were handled in the same test setup module
 test_params = [{
   'schema': 'schema.sql',
-  'seed': '../tests/data.sql',
+  'seed': '../tests/selenium-seed.sql',
   'delete_afterwards': True,
 }]
-test_ids = ['sqlite']
+test_ids = ['otrs']
 
 
-@pytest.fixture(scope='class', params=test_params, ids=test_ids)
+@pytest.fixture(scope='module', params=test_params, ids=test_ids)
 def seeded_app(request):
 
   (filehandle, filename) = tempfile.mkstemp()
@@ -41,9 +28,7 @@ def seeded_app(request):
   app = create_app({
     'TESTING': True,
     'DATABASE_URI': uri,
-    'CONFIG': 'tests/app.conf',
-    'LDAP_STUB': LdapStub(),
-    'OTRS_STUB': OtrsStub()
+    'CONFIG': 'tests/otrs.conf'
   })
 
   with app.app_context():
@@ -59,7 +44,7 @@ def seeded_app(request):
     os.unlink(filename)
 
 
-@pytest.fixture(scope='class', params=test_params, ids=test_ids)
+@pytest.fixture(scope='module', params=test_params, ids=test_ids)
 def empty_app(request):
 
   (filehandle, filename) = tempfile.mkstemp()
@@ -68,13 +53,20 @@ def empty_app(request):
   app = create_app({
     'TESTING': True,
     'DATABASE_URI': uri,
-    'CONFIG': 'tests/app.conf',
-    'LDAP_STUB': LdapStub(),
-    'OTRS_STUB': OtrsStub()
+    'CONFIG': 'tests/otrs.conf'
   })
 
   with app.app_context():
     init_db()
+
+    # this fixture is for testing a brand-new instance with no current
+    # activity, but minimal seeding is still required, such as for testing
+    # API keys
+    get_db().execute("""
+      INSERT INTO apikeys (access, secret, component)
+      VALUES ('testapikey', 'WuHheVDysQQwdb+NK98w8EOHdiNUjLlz2Uxg/kIHqIGOek4DAmC5NCd2gZv7RQ==', 'testcluster_detector')
+    """)
+    get_db().commit()
 
   yield app
 

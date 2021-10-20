@@ -3,18 +3,18 @@
 #
 import os
 import pytest
-from tests_05_clusters import *
-from tests_10_components import *
-from tests_15_apikeys import *
-from tests_20_api import *
+from tests_clusters import *
+from tests_components import *
+from tests_apikeys import *
+from tests_api import *
 from tests_cli import *
 from tests_status import *
 from tests_app import *
 from tests_authentication import *
 from tests_bursts import *
 from tests_oldjobs import *
+from tests_otrs import *
 from tests_dashboard import *
-from tests_ajax import *
 from tests.ldapstub import LdapStub
 from tests.otrsstub import OtrsStub
 from manager import create_app
@@ -29,7 +29,7 @@ test_params = [{
 test_ids = ['pgsql']
 
 
-@pytest.fixture(scope='module', params=test_params, ids=test_ids)
+@pytest.fixture(scope='class', params=test_params, ids=test_ids)
 def seeded_app(request):
 
   app = create_app({
@@ -49,7 +49,7 @@ def seeded_app(request):
   yield app
 
 
-@pytest.fixture(scope='module', params=test_params, ids=test_ids)
+@pytest.fixture(scope='class', params=test_params, ids=test_ids)
 def empty_app(request):
 
   app = create_app({

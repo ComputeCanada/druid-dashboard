@@ -5,7 +5,7 @@ import os
 import re
 import pytest
 from manager.notifier import Notifier, register_notifier, get_notifiers
-from manager.reporter import registry
+from manager.case import registry
 
 @pytest.fixture(scope='class')
 def client(seeded_app):
@@ -13,7 +13,7 @@ def client(seeded_app):
   return seeded_app.test_client()
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='class')
 def empty_client(empty_app):
   return empty_app.test_client()
 
@@ -24,13 +24,13 @@ def runner(app):
 
 
 # pylint: disable=unused-variable,superfluous-parens
-def find_seed_update_scripts(basedir, targetver):
+def find_seed_update_scripts(basedir, baseversion):
 
   # dict of version (datestamp) to file
   versions = {}
 
   # find files looking like 'data-YYYYMMDD.sql'
-  regex = re.compile(r'^data-(\d{8})\.sql$')
+  regex = re.compile(r'^data-(\d{8})-post\.sql$')
 
   # walk tests subdirectory
   testsdir = basedir + '/../tests'
@@ -39,7 +39,7 @@ def find_seed_update_scripts(basedir, targetver):
       m = regex.match(file)
       if m:
         version = m[1]
-        if int(version) > int(targetver):
+        if int(version) >= int(baseversion):
           versions[m[1]] = '{}/{}'.format(testsdir, file)
 
   return (versions if versions else None)
@@ -66,7 +66,7 @@ class TestNotifier(Notifier):
 
 register_notifier('test', TestNotifier)
 
-@pytest.fixture
+@pytest.fixture(scope='class')
 def notifier(seeded_app):
   with seeded_app.app_context():
     # TODO: maybe get_notifiers() should return map of type or name to

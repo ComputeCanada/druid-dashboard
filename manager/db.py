@@ -1,5 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint: disable=C0415
+# pylint: disable=C0415,disable=assigning-non-slot
+# NOTE: "assigning-non-slot" test is broken in Pylint; can remove when
+#       https://github.com/PyCQA/pylint/issues/3793 resolved
 #
 import os
 from enum import Enum
@@ -18,7 +20,7 @@ from manager import exceptions
 # or an upgrade should be performed.
 #
 # See README in SQL scripts dir for guidance on updating the schema.
-SCHEMA_VERSION = '20210721'
+SCHEMA_VERSION = '20211005'
 
 # query to fetch latest schema version
 SQL_GET_SCHEMA_VERSION = """
@@ -77,11 +79,11 @@ def open_db(uri):
 
 def close_db(e=None):
   db = g.pop('db', None)
-
-  if e:
-    get_log().info("Closing database in presence of error condition: '%s'", e)
-
   if db is not None:
+    if e:
+      get_log().info("Closing database connection in presence of error.")
+    else:
+      get_log().info("Closing database connection.")
     db.close()
 
 
@@ -94,7 +96,7 @@ def init_db(schema=None):
     elif db.type == 'postgres':
       schema = "{}/schema.psql".format(SQL_SCRIPTS_DIR)
 
-  get_log().debug("Initializing database with %s", schema)
+  get_log().info("Initializing database with %s", schema)
 
   with current_app.open_resource(schema) as f:
     db.executescript(f.read().decode('utf8'))
@@ -104,6 +106,8 @@ def init_db(schema=None):
 
 def seed_db(seedfile):
   db = get_db()
+
+  get_log().info("Seeding database with %s", seedfile)
 
   with current_app.open_resource(seedfile) as f:
     db.executescript(f.read().decode('utf8'))
@@ -168,12 +172,11 @@ def upgrade_schema(data_updates=None):
   upgrades = {}
   current = str(actual)
   while current in scriptdict:
-    upgrades[scriptdict[current][0]] = scriptdict[current][1]
+    upgrades[current] = scriptdict[current][1]
     current = scriptdict[current][0]
     if current == expected:
       have_upgrade_path = True
       break
-
   if not have_upgrade_path:
     # this is a pretty serious application error
     description = \
@@ -182,15 +185,18 @@ def upgrade_schema(data_updates=None):
       '{}'.format(actual, expected, upgrades)
     raise exceptions.ImpossibleSchemaUpgrade(description)
 
-  # add in the data upgrade scripts, if any
-  if data_updates:
-    for (version, path) in data_updates.items():
-      upgrades[version] = path
-
-  # iterate through upgrade scripts
-  actions = []
+  # create sorted list of scripts
+  scripts = []
   for version in sorted(upgrades):
-    upgrade = upgrades[version]
+    scripts.append((version, upgrades[version]))
+
+    # check for post-upgrade updates to seed data for this version
+    if data_updates and version in data_updates:
+      scripts.append((version, data_updates[version]))
+
+  # carry out the plan
+  actions = []
+  for (version, upgrade) in scripts:
     with current_app.open_resource(upgrade) as f:
       get_log().info("Upgrading DB: %s (version %s)", upgrade, version)
       db.executescript(f.read().decode('utf8'))
@@ -213,10 +219,16 @@ def init_db_command():
 @click.argument('seedfile')
 @with_appcontext
 def seed_db_command(seedfile):
-  """Clear existing data, create new tables, seed with test data."""
+  """
+  Clear existing data, create new tables, seed with test data.
+
+  Note:
+    Seedfile here is interpreted to be relative to client's current working
+    directory.
+  """
 
   init_db()
-  seed_db(seedfile)
+  seed_db(os.path.join(os.getcwd(), seedfile))
   click.echo('Initialized and seeded the database.')
 
 

@@ -6,9 +6,7 @@ from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
 from manager.exceptions import InvalidApiCall, DatabaseException
-from manager.cluster import Cluster
-from manager.reporter import Reporter, registry, just_job_id
-from manager.reportable import Reportable, dict_to_table
+from manager.case import Case, registry, just_job_id, dict_to_table
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -39,8 +37,8 @@ SQL_GET = '''
 
 SQL_INSERT_NEW = '''
   INSERT INTO bursts
-              (id, account, resource, pain, firstjob, lastjob, submitters)
-  VALUES      (?, ?, ?, ?, ?, ?, ?)
+              (id, resource, pain, firstjob, lastjob, submitters)
+  VALUES      (?, ?, ?, ?, ?, ?)
 '''
 
 SQL_UPDATE_BY_ID = '''
@@ -52,7 +50,7 @@ SQL_UPDATE_BY_ID = '''
 '''
 
 SQL_GET_BURSTERS = '''
-  SELECT    R.cluster, B.account, B.resource, B.pain
+  SELECT    R.cluster, R.account, B.resource, B.pain
   FROM      reportables R
   JOIN      bursts B
   USING     (id)
@@ -70,11 +68,11 @@ SQL_GET_BURSTERS = '''
 #                                                                   helpers
 # ---------------------------------------------------------------------------
 
-def make_graphs_links(account, resource):
+def make_graphs_links(cluster, account, resource):
   cumulative_base = current_app.config['BURSTS_GRAPHS_CUMULATIVE_URI']
-  cumulative = cumulative_base.format(account=account, resource=resource)
+  cumulative = cumulative_base.format(cluster=cluster, account=account, resource=resource)
   instant_base = current_app.config['BURSTS_GRAPHS_INSTANT_URI']
-  instant = instant_base.format(account=account, resource=resource)
+  instant = instant_base.format(cluster=cluster, account=account, resource=resource)
   return f'''<a target="beamplot" href="{cumulative}">{_("Cumulative")}</a>
     <br/>
     <a target="beamplot" href="{instant}">{_("Instant")}</a>'''
@@ -97,20 +95,20 @@ def prettify_summary(original):
 #                                                               burst class
 # ---------------------------------------------------------------------------
 
-class Burst(Reporter, Reportable):
+class Burst(Case):
   """
   Represents a burst candidate.
 
   Attributes:
     _id: id
-    _cluster: cluster ID referencing entry in cluster table
-    _account: account name (such as 'def-dleske-ab')
     _resource: resource type (type burst.Resource)
     _pain: pain metric used as initial indicator of burst candidacy
     _jobrange: tuple of first and last job IDs in burst
     _submitters: submitters associated with the jobs
     _state: state of burst (type burst.State)
     # Common Reportables stuff
+    _cluster: cluster ID referencing entry in cluster table
+    _account: account name (such as 'def-dleske-ab')
     _summary: summary information about burst and jobs (JSON)
     _epoch: epoch timestamp of last report
     _ticks: number of times reported
@@ -123,18 +121,11 @@ class Burst(Reporter, Reportable):
   _table = 'bursts'
 
   @classmethod
-  def _describe(cls):
+  def describe_me(cls):
     return {
-      'table': 'bursts',
       'title': _('Burst candidates'),
       'metric': 'pain',
       'cols': [
-        { 'datum': 'account',
-          'searchable': True,
-          'sortable': True,
-          'type': 'text',
-          'title': _('Account')
-        },
         { 'datum': 'usage',
           'searchable': False,
           'sortable': False,
@@ -149,10 +140,10 @@ class Burst(Reporter, Reportable):
           'help': _('Numerical indicator of hopelessness inherent in certain job contexts')
         },
         { 'datum': 'state',
-            'searchable': True,
-            'sortable': True,
-            'type': 'text',
-            'title': _('State')
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('State')
         }
       ]
     }
@@ -319,26 +310,28 @@ class Burst(Reporter, Reportable):
 
     else:
 
-      self._account = account
       self._resource = resource
       self._pain = pain
       self._jobrange = jobrange
       self._submitters = submitters
       self._state = state
       self._other = other
-      super().__init__(cluster=cluster, epoch=epoch, summary=summary)
+      super().__init__(account=account, cluster=cluster, epoch=epoch, summary=summary)
 
   def find_existing_query(self):
     return (
-      "account = ?  AND resource = ? AND ? <= lastjob",
-      (self._account, self._resource, self._jobrange[0]),
-      ['account', 'resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
+      "resource = ? AND ? <= lastjob",
+      (self._resource, self._jobrange[0]),
+      ['resource', 'pain', 'submitters', 'state', 'firstjob', 'lastjob']
     )
 
-  def _update_existing_sub(self, rec):
+  def update_existing_me(self, rec):
     self._state = rec['state']
     self._jobrange[0] = rec['firstjob']
-    self._submitters = set(rec['submitters'].split()) | set(self._submitters)
+
+    # update list of submitters, prioritizing new submitters
+    self._submitters = self._submitters + [ x for x in rec['submitters'].split() if x not in self._submitters ]
+
     affected = get_db().execute(SQL_UPDATE_BY_ID, (
       self._pain, self._jobrange[1], ' '.join(self._submitters), self._id
     )).rowcount
@@ -347,7 +340,7 @@ class Burst(Reporter, Reportable):
 
   def insert_new(self):
     res = get_db().execute(SQL_INSERT_NEW, (
-      self._id, self._account, self._resource, self._pain, self._jobrange[0],
+      self._id, self._resource, self._pain, self._jobrange[0],
       self._jobrange[1], ' '.join(self._submitters)
     ))
     if not res:
@@ -361,22 +354,6 @@ class Burst(Reporter, Reportable):
     super().update(update, who)
 
   @property
-  def contact(self):
-    """
-    Return contact information for this potential issue.  This can depend on
-    the type of issue: a PI is responsible for use of the account, so the PI
-    should be the contact for questions of resource allocation.  For a
-    misconfigured job, the submitting user is probably more appropriate.
-
-    Returns: username of contact.
-    """
-    return self._account
-
-  @property
-  def account(self):
-    return self._account
-
-  @property
   def state(self):
     return self._state
 
@@ -385,21 +362,15 @@ class Burst(Reporter, Reportable):
     return self._resource
 
   @property
-  def submitters(self):
+  def users(self):
     return self._submitters
 
   @property
   def info(self):
-    basic = {
-      'account': self._account,
-      'cluster': Cluster(self._cluster).name,
-      'resource': self._resource,
-      'pain': self._pain,
-      'submitters': self._submitters
-    }
-    if self._summary:
-      return dict(basic, **self._summary)
-    return basic
+    d = super().info
+    d['pain'] = self._pain
+    d['resource'] = str(self._resource)
+    return d
 
   def serialize(self, pretty=False, options=None):
     # have superclass start serialization but we'll handle the summary
@@ -413,7 +384,7 @@ class Burst(Reporter, Reportable):
       serialized['state_pretty'] = _(str(self._state))
       serialized['pain_pretty'] = "%.2f" % (self._pain)
       serialized['usage_pretty'] = make_graphs_links(
-        self._account, str(self._resource).lower())
+        self._cluster, self._account, str(self._resource).lower())
       if self._summary:
         serialized['summary_pretty'] = prettify_summary(self._summary)
 

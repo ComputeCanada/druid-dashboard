@@ -14,12 +14,11 @@ from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
 from manager.cluster import Cluster, get_clusters
 from manager.component import get_components, add_component, delete_component
-from manager.burst import Burst
 from manager.template import Template
 from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, ResourceNotCreated
 from manager.history import History
-from manager.reporter import registry
-from manager.reportable import Reportable
+from manager.case import Case, registry
+from manager.i18n import get_locale
 
 bp = Blueprint('ajax', __name__, url_prefix='/xhr')
 
@@ -89,11 +88,13 @@ def _get_project_pi(account):
     error = "Incomplete information for PI {}".format(project['ccResponsible'])
     raise LdapException(error)
 
-def _render_template(template, burstID, recipient=None):
+def _render_template(template, caseID, recipient=None):
 
-  # retrieve burst object and info
-  burst = Burst(burstID)
-  burst_info = burst.info
+  # retrieve case object and info
+  case = Case.get(caseID)
+  if case is None:
+    raise ResourceNotFound(f"Could not find case with ID {caseID}")
+  info = case.info
 
   # use requested recipient if provided
   if recipient:
@@ -107,15 +108,12 @@ def _render_template(template, burstID, recipient=None):
     except KeyError:
       raise LdapException("Could not find e-mail, given name and/or language for recipient {}".format(recipient))
   else:    # get PI
-    pi = _get_project_pi(burst.account)
+    pi = _get_project_pi(case.account)
 
     recipient = pi['uid']
     email = pi['email']
     givenName = pi['givenName']
     language = pi['language']
-
-  # determine templates to use
-  title_template = template + " title"
 
   # set up values for template substitutions
   template_values = dict({
@@ -123,12 +121,12 @@ def _render_template(template, burstID, recipient=None):
     'piName': givenName,
     'email': email,
     'analyst': session['givenName'],
-  }, **burst_info)
+  }, **info)
 
-  # parametrize templates
+  # retrieve and render template
   try:
-    title = Template(title_template, language).render(values=template_values)
-    body = Template(template, language).render(values=template_values)
+    template = Template(template, language)
+    template.render(template_values)
   except ResourceNotFound as e:
     error = "Could not find template: {}".format(e)
     raise ResourceNotFound(error)
@@ -136,8 +134,8 @@ def _render_template(template, burstID, recipient=None):
   return dict({
     'recipient': recipient,
     'email': email,
-    'title': title,
-    'body': body,
+    'title': template.title,
+    'body': template.body,
   }, **template_values)
 
 # ---------------------------------------------------------------------------
@@ -170,7 +168,7 @@ def xhr_add_apikey():
     get_log().error(
       "Exception in adding API key (%s=%s for component %s): %s",
       access, secret, component, e)
-    return None
+    return jsonify({'error': 'error'}), 500
   return jsonify({'status': 'OK'}), 200
 
 
@@ -283,6 +281,35 @@ def xhr_get_cases():
   cluster = request.args['cluster']
   return jsonify(_reports_by_cluster(cluster))
 
+@bp.route('/cases/<int:id>', methods=['GET'])
+@login_required
+def xhr_get_case(id):
+  """
+  Return detailed information about a case.
+  """
+  get_log().debug("In xhr_get_case(%d)", id)
+
+  # load appropriate case record
+  case = Case.get(id)
+  if not case:
+    return xhr_error(404, f"Could not find case with ID {id}")
+
+  # get info
+  info = case.info
+
+  # get PI
+  try:
+    info['pi'] = _get_project_pi(case.account)
+  except LdapException as e:
+    get_log().error("Error in retrieving PI for account %s: %s", case.account, e)
+    return jsonify({'error': 'Error in retrieving PI information'}), 500
+
+  # get outreach templates appropriate for this case.  Use 'en' if nothing
+  # found
+  info['templates'] = case.appropriate_templates(get_locale() or 'en')
+
+  return jsonify(info), 200
+
 @bp.route('/cases/<int:id>', methods=['PATCH'])
 @login_required
 def xhr_update_case(id):
@@ -334,7 +361,9 @@ def xhr_update_case(id):
     updates.append(update)
 
   try:
-    case = Reportable.get(id)
+    case = Case.get(id)
+    if not case:
+      return xhr_error(404, f"Could not find case with ID {id}")
     for item in updates:
       get_log().debug("Updating case %d with datum = %s, value = %s, note = %s", id,
         item.get('datum', '<blank>'), item.get('value', '<blank>'), item.get('note', '<blank>'))
@@ -360,28 +389,17 @@ def xhr_get_case_events(id):
   events = History.get_events(id)
   return jsonify(events), 200
 
-@bp.route('/bursts/<int:id>/people/', methods=['GET'])
-@login_required
-def xhr_get_burst_people(id):
-
-  get_log().debug("Retrieving people involved in burst %d", id)
-  burst = Burst(id)
-
-  # get PI
-  try:
-    pi = _get_project_pi(burst.account)
-  except LdapException as e:
-    get_log().error("Error in retrieving PI for account %s: %s", burst.account, e)
-    return jsonify({'error': 'Error in retrieving PI information'}), 500
-
-  return jsonify(dict({
-    'pi': pi['uid'],
-    'submitters': burst.submitters
-    })), 200
-
 # ---------------------------------------------------------------------------
 #                                                          ROUTES - templates
 # ---------------------------------------------------------------------------
+
+@bp.route('/templates/', methods=['GET'])
+@login_required
+def xhr_get_templates():
+
+  get_log().debug("In xhr_get_templates()")
+
+  # TODO
 
 @bp.route('/templates/<string:name>', methods=['GET'])
 @login_required
@@ -390,17 +408,19 @@ def xhr_get_template(name):
   get_log().debug("In xhr_get_template(%s)", name)
 
   # get request data, if available
-  if 'burst_id' in request.args:
-    # get burst information
-    burst_id = int(request.args['burst_id'])
+  if 'case_id' in request.args:
+    # get case information
+    case_id = int(request.args['case_id'])
 
     # if recipient specified
     recipient = request.args.get('recipient', None)
 
-    # render template with burst and account information
+    # render template with case and account information
     try:
-      data = _render_template(name, burst_id, recipient)
+      data = _render_template(name, case_id, recipient)
       return jsonify(data), 200
+    except ResourceNotFound as e:
+      return jsonify({'error': str(e)}), 404
     except LdapException as e:
       get_log().error("Error in rendering template: %s", e)
       return jsonify({'error': str(e)}), 500
@@ -421,7 +441,7 @@ def xhr_create_ticket():
 
   # get request data
   try:
-    burst_id = int(request.form['burst_id'])
+    case_id = int(request.form['case_id'])
     title = request.form['title']
     body = request.form['body']
     recipient = request.form['recipient']
@@ -431,15 +451,14 @@ def xhr_create_ticket():
     get_log().error(error)
     return jsonify({'error': error}), 400
 
-  # get burst
-  burst = Burst(burst_id)
-  account = burst.account
+  # get case
+  case = Case.get(case_id)
+  if not case:
+    return xhr_error(404, f"Could not find case with ID {id}")
+  account = case.account
 
   get_log().debug("About to create ticket with title '%s', recipient %s, to e-mail %s",
     title, recipient, email)
-
-  ## testing
-  #return jsonify({'error': "I don't wanna"}), 501
 
   # create ticket via OTRS
   ticket = create_ticket(title, body, g.user['id'], recipient, email)
@@ -447,14 +466,14 @@ def xhr_create_ticket():
     error = "Unable to create ticket"
     get_log().error(error)
     return jsonify({'error': error}), 500
-  get_log().info("Ticket created for burst %d on account %s.  Details: %s",
-     burst_id, account, ticket)
+  get_log().info("Ticket created for case %d on account %s.  Details: %s",
+     case_id, account, ticket)
 
-  # register the ticket with the burst candidate
-  Reportable.set_ticket(burst_id, ticket['ticket_id'], ticket['ticket_no'])
+  # register the ticket with the case candidate
+  Case.set_ticket(case_id, ticket['ticket_id'], ticket['ticket_no'])
 
   return jsonify(dict({
-    'burst_id': burst_id,
+    'case_id': case_id,
     'url': ticket_url(ticket['ticket_id'])
   }, **ticket))
 

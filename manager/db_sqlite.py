@@ -72,6 +72,14 @@ class ExtConnection(sqlite3.Connection):
   # convenience for enabling other code to make decisions based on DB type
   type = 'sqlite'
 
+  def __init__(self, *args, **kwargs):
+    """
+    Initializer is overridden in order to turn on foreign key constraint
+    enforcement, which is disabled by default.
+    """
+    super().__init__(*args, **kwargs)
+    self.execute('PRAGMA foreign_keys = ON')
+
   def execute(self, sql, parameters=None):
     """
     Extend sqlite3.Connection.execute() in order to handle lists and tuples

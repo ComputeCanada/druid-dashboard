@@ -10,13 +10,22 @@ with all the other burst stuff.
 """
 
 import json
-import pytest
+from manager.otrs import get_otrs
 
 # ---------------------------------------------------------------------------
 #                                                           TEMPLATES TESTS
 # ---------------------------------------------------------------------------
 
-@pytest.mark.dependency(depends=['bursts_created'])
+def test_get_template_for_nonexistent_case(client):
+
+  # log in
+  response = client.get('/', environ_base={'HTTP_X_AUTHENTICATED_USER': 'user1'})
+  assert response.status_code == 200
+
+  # retrieve template
+  response = client.get('/xhr/templates/impossible?case_id=200')
+  assert response.status_code == 404
+
 def test_get_template(client):
 
   # log in
@@ -24,10 +33,11 @@ def test_get_template(client):
   assert response.status_code == 200
 
   # retrieve template
-  response = client.get('/xhr/templates/impossible?burst_id=1')
+  response = client.get('/xhr/templates/impossible?case_id=1')
   assert response.status_code == 200
 
   data = json.loads(response.data)
+  print(data)
   assert data['title'] == "NOTICE: Your computations on Test Cluster may be optimized"
   print(data['body'])
   assert data['body'].startswith("""Hello PI 1,
@@ -58,8 +68,7 @@ def test_create_ticket_bad_call_xhr(client):
   })
   assert response.status_code == 400
 
-@pytest.mark.dependency(depends=['bursts_created'])
-def test_create_ticket_xhr(client):
+def test_create_ticket_xhr(client, seeded_app):
   """
   Use the OTRS Stub to ensure the ticket creation AJAX call sets up the
   correct templates and variables and that information is populated correctly.
@@ -90,39 +99,51 @@ Compute Canada Support"""
 
   # post a create ticket request
   response = client.post('/xhr/tickets/', data={
-    'burst_id': 1,
+    'case_id': 1,
     'title': title,
     'body': body,
-    'recipient': 'pi1',
+    'recipient': 'dleske',
     'email': 'drew.leske+pi1@computecanada.ca'
   })
+  print(response.data)
   assert response.status_code == 200
 
   x = json.loads(response.data)
+  ticket_id = x['ticket_id']
   print(x)
 
   # pylint: disable=line-too-long
-  assert x == {
-    'burst_id': 1,
-    'ticket_id': 1,
-    'ticket_no': '01',
-    'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=1',
-    'misc': {
-      'ticket': {
-        'CustomerUser': 'pi1',
-        'Owner': 'user1',
-        'Priority': '3 normal',
-        'Queue': 'Test',
-        'Responsible': 'user1',
-        'State': 'new',
-        'Title': 'NOTICE: Your computations on Test Cluster may be optimized'
-        },
-      'article': {
-        'ArticleSend': 1,
-        'ArticleType': 'email-external',
-        'Body': "Hello PI 1,\n\nOur records show that your account 'def-pi1' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.\n\nIf you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.\n\nBest regards,\n\nUser 1\nCompute Canada Support",
-        'Subject': 'NOTICE: Your computations on Test Cluster may be optimized',
-        'To': 'drew.leske+pi1@computecanada.ca'
-        },
-      }
-    }
+  assert x['case_id'] == 1
+  assert x['url'].endswith('/otrs/index.pl?Action=AgentTicketZoom&TicketID={}'.format(ticket_id))
+
+  # this is what you'd get from the stub
+  ##assert x == {
+  ##  'burst_id': 1,
+  ##  'ticket_id': 1,
+  ##  'ticket_no': '01',
+  ##  'url': '/otrs/index.pl?Action=AgentTicketZoom&TicketID=1',
+  ##  'misc': {
+  ##    'ticket': {
+  ##      'CustomerUser': 'dleske',
+  ##      'Owner': 'dleske',
+  ##      'Priority': '3 normal',
+  ##      'Queue': 'Test',
+  ##      'Responsible': 'dleske',
+  ##      'State': 'new',
+  ##      'Title': 'NOTICE: Your computations on Test Cluster may be optimized'
+  ##      },
+  ##    'article': {
+  ##      'ArticleSend': 1,
+  ##      'ArticleType': 'email-external',
+  ##      'CommunicationChannel': 'email-external',
+  ##      'Body': "Hello PI 1,\n\nOur records show that your account 'def-pi1' has a quantity of resources waiting in the job queue on Test Cluster which could experience substantial wait time. Upon inspection of your recent job history it has come to our attention that there may be job submission parameter changes which could alleviate the occurrence of these anticipated wait times.\n\nIf you would like to discuss this potential job submission parameter changes you can respond to this message and we will follow up with more details.\n\nBest regards,\n\nUser 1\nCompute Canada Support",
+  ##      'Subject': 'NOTICE: Your computations on Test Cluster may be optimized',
+  ##      'To': 'drew.leske+pi1@computecanada.ca'
+  ##      },
+  ##    }
+  ##  }
+
+  # now delete the ticket
+  with seeded_app.app_context():
+    otrs = get_otrs()
+    otrs.ticket_update(ticket_id, State='closed successful')

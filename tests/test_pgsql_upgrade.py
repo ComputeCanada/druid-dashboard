@@ -6,32 +6,37 @@ import random
 import string
 import pytest
 import psycopg2
+from tests_clusters import *
+from tests_components import *
+from tests_apikeys import *
+from tests_api import *
 from tests_cli import *
 from tests_status import *
 from tests_app import *
-from tests_05_clusters import *
-from tests_10_components import *
-from tests_15_apikeys import *
-from tests_20_api import *
 from tests_authentication import *
+from tests_bursts import *
+from tests_oldjobs import *
+from tests_otrs import *
 from tests_dashboard import *
-from tests_upgrades import *
 from ldapstub import LdapStub
 from otrsstub import OtrsStub
+from tests_upgrades import *
 from conftest import find_seed_update_scripts
 from manager import create_app
 from manager.db import init_db, seed_db, upgrade_schema, SCHEMA_VERSION
+from manager.notifier import clear_notifiers
 
 def random_database_name():
-  return 'tmp_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k = 8))
+  return 'testing_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k = 8))
 
 upgrade_versions = os.environ['SCHEMA_VERSIONS'].split(',')
 if SCHEMA_VERSION in upgrade_versions:
   del upgrade_versions[-1]
 sql_base_dir = os.environ['SCHEMA_BASEDIR']
+seed_dir = os.environ.get('SEED_DIR', '../tests')
 uri = os.environ.get('BEAM_PGSQL_URI', 'postgresql://postgres:supersecretpassword@localhost:5432/postgres')
 
-@pytest.fixture(scope='module', params=upgrade_versions)
+@pytest.fixture(scope='class', params=upgrade_versions)
 def unupgraded_app(request):
 
   # create random database
@@ -46,7 +51,7 @@ def unupgraded_app(request):
 
   # parametrize the stuff
   schema = '{}/schema-{}.psql'.format(sql_base_dir, version)
-  seed = '{}/seed-{}.sql'.format(sql_base_dir, version)
+  seed = '{}/data-{}.sql'.format(seed_dir, version)
 
   app = create_app({
     'TESTING': True,
@@ -66,11 +71,11 @@ def unupgraded_app(request):
   pgconn.close()
 
 # this needs to be defined here because it's not common to non-upgrade contexts
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='class')
 def unupgraded_client(unupgraded_app):
   return unupgraded_app.test_client()
 
-@pytest.fixture(scope='module', params=upgrade_versions)
+@pytest.fixture(scope='class', params=upgrade_versions)
 def seeded_app(request):
 
   # create random database
@@ -85,7 +90,7 @@ def seeded_app(request):
 
   # parametrize the stuff
   schema = '{}/schema-{}.psql'.format(sql_base_dir, version)
-  seed = '{}/seed-{}.sql'.format(sql_base_dir, version)
+  seed = '{}/data-{}.sql'.format(seed_dir, version)
 
   app = create_app({
     'TESTING': True,
@@ -102,6 +107,7 @@ def seeded_app(request):
     init_db(schema)
     seed_db(seed)
     upgrade_schema(seed_updates)
+    clear_notifiers()
 
   yield app
 
@@ -109,7 +115,7 @@ def seeded_app(request):
   pgconn.close()
 
 
-@pytest.fixture(scope='module', params=upgrade_versions)
+@pytest.fixture(scope='class', params=upgrade_versions)
 def empty_app(request):
 
   # create random database

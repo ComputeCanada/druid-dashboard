@@ -1,0 +1,49 @@
+ALTER TABLE reportables ADD COLUMN account VARCHAR(32) NOT NULL DEFAULT '';
+UPDATE reportables SET account = bursts.account FROM bursts WHERE
+  bursts.id=reportables.id;
+UPDATE reportables SET account = oldjobs.account FROM oldjobs WHERE
+  oldjobs.id=reportables.id;
+ALTER TABLE reportables ALTER COLUMN account DROP DEFAULT;
+
+ALTER TABLE bursts DROP COLUMN account;
+ALTER TABLE oldjobs DROP COLUMN account;
+
+ALTER TABLE templates RENAME TO templates_content;
+
+CREATE TABLE templates (
+  name VARCHAR(32) PRIMARY KEY,
+  pi_only BOOLEAN
+);
+INSERT INTO templates (SELECT DISTINCT name FROM templates_content WHERE name NOT LIKE '% title');
+
+ALTER TABLE templates_content RENAME name TO template;
+ALTER TABLE templates_content ADD COLUMN title TEXT;
+ALTER TABLE templates_content RENAME content TO body;
+-- templates didn't each used to have title and body, so had separate
+-- "templates" for title and actual e-mail.  Merge into one record.
+-- 1. Copy content from "<templatename> title" records into title of
+--    corresponding "<templatename>" record
+UPDATE templates_content t1 SET title = t2.body FROM templates_content t2
+  WHERE t1.template = substring(t2.template, '(.*) title$') AND
+  t1.language = t2.language;
+-- 2. Delete original
+DELETE FROM templates_content WHERE template LIKE '% title';
+
+-- add language-specific label; default to template name since there's nothing else
+ALTER TABLE templates_content ADD COLUMN label VARCHAR(64) NOT NULL DEFAULT '';
+UPDATE templates_content SET label = template;
+ALTER TABLE templates_content ALTER COLUMN label DROP DEFAULT; 
+
+-- now can create foreign key constraint
+ALTER TABLE templates_content ADD FOREIGN KEY (template) REFERENCES templates(name);
+
+-- now can create the template <-> case type map
+CREATE TABLE appropriate_templates (
+  casetype VARCHAR(32),
+  template VARCHAR(32),
+  enabled BOOLEAN,
+  FOREIGN KEY (template) REFERENCES templates(name)
+);
+
+-- update schemalog
+INSERT INTO schemalog (version, applied) VALUES ('20211005', CURRENT_TIMESTAMP);

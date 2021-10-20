@@ -27,3 +27,7 @@ class OtrsStub():
         'article': article.fields
       }
     }
+
+  # pylint: disable=no-self-use,unused-argument
+  def ticket_update(self, ticket, **kwargs):
+    print("Updating ticket (not really)")

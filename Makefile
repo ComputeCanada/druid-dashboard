@@ -12,6 +12,18 @@ changelog:
                 --format="$$format" $$tags \
 	>> $(CHANGELOG)
 
+.PHONY: testclean
+testclean:
+	rm -f .pytest_cache/v/cache/stepwise
+
+.PHONY: test-upgrade
+test-upgrade:
+	tests/test-all -v --pgsql --upgrade --stepwise
+
+.PHONY: test
+test:
+	tests/test-all --all --stepwise
+
 # fails if version doesn't match specific pattern, so as not to publish
 # development version.
 .PHONY: checkversion
@@ -24,6 +36,11 @@ checkversion:
 $(PACKAGES): $(SOURCES)
 	@echo Version: $(VERSION)
 	@python3 -m build
+
+docs/%.md: manager/%.py misc/pdoc-templates/text.mako
+	@pdoc3 --template-dir=misc/pdoc-templates manager.$* > $@
+
+docs: docs/case.md docs/burst.md docs/oldjob.md
 
 publish-test: $(PACKAGES) checkversion
 	@python3 -m twine upload --repository testpypi $(PACKAGES)

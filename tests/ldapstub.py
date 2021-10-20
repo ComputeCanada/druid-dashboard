@@ -39,7 +39,14 @@ _fake_tree = {
   'ldapcanary': {
     'cn': 'Fake Canary',
     'cci': 'tst-005'
-  }
+  },
+  'pi2': {
+    'givenName': 'PI 2',
+    'preferredLanguage': 'en',
+    'cn': 'Test PI 2',
+    'cci': 'tst-007',
+    'ccPrimaryEmail': ['drew.leske+pi2@computecanada.ca']
+  },
 }
 
 _projects = {
@@ -49,7 +56,14 @@ _projects = {
     'description': '',
     'ccResponsible': 'tst-002',
     'members': ['tst-005', 'tst-006']
-  }
+  },
+  'def-pi2-ab': {
+    'dn': 'def-pi2,ou=Group,dc=fakey,dc=fake',
+    'ccRapi': 'tst-007-ab',
+    'description': '',
+    'ccResponsible': 'tst-007',
+    'members': ['tst-007', 'tst-006']
+  },
 }
 
 # create CCI-indexed tree

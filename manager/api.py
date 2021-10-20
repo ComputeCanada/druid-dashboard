@@ -13,8 +13,7 @@ from manager.apikey import ApiKey
 from manager.component import Component
 from manager.event import report, ReportReceived
 from manager.exceptions import InvalidApiCall
-from manager.reporter import registry
-from manager.reportable import Reportable
+from manager.case import registry, Case
 
 # establish blueprint
 bp = Blueprint('api', __name__, url_prefix='/api')
@@ -153,7 +152,7 @@ def api_key_required(view):
 @api_key_required
 def api_get_case(id):
 
-  case = Reportable.get(id)
+  case = Case.get(id)
   if not case:
     return xhr_error(404, "No case found matching ID %d", id)
   return jsonify(case)

@@ -1,5 +1,7 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
-# pylint:
+# pylint: disable=assigning-non-slot
+# NOTE: "assigning-non-slot" test is broken in Pylint; can remove when
+#       https://github.com/PyCQA/pylint/issues/3793 resolved
 #
 import ldap
 from flask import current_app, g
@@ -84,7 +86,9 @@ def get_ldap():
 
 def close_ldap(e=None):
   if e:
-    get_log().info("LDAP connection will be dropped in presence of error condition: '%s'", e)
+    get_log().info("Closing LDAP connection in presence of error.")
+  else:
+    get_log().info("Closing LDAP connection.")
 
   # On deletion of LDAPObject the connection is automatically unbound and
   # closed, so no explicit close() message needs to be sent.
