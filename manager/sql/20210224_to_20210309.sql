@@ -1,4 +1,0 @@
-ALTER TABLE bursts ADD COLUMN ticket_id INTEGER;
-ALTER TABLE bursts ADD COLUMN ticket_no VARCHAR(9);
-
-INSERT INTO schemalog (version, applied) VALUES ('20210309', CURRENT_TIMESTAMP);

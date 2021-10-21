@@ -1,8 +1,0 @@
-ALTER TABLE bursts ADD COLUMN ticks INTEGER DEFAULT 0;
-CREATE TABLE notifiers (
-  name VARCHAR(32) PRIMARY KEY,
-  type VARCHAR(16) NOT NULL,
-  config TEXT
-);
-
-INSERT INTO schemalog (version, applied) VALUES ('20210209', CURRENT_TIMESTAMP);

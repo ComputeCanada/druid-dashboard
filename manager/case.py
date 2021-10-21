@@ -146,12 +146,13 @@ SQL_GET_CURRENT_FOR_CLUSTER = '''
   SELECT    R.ticks, R.account, R.cluster, R.epoch, B.*, R.summary,
             R.claimant, R.ticket_id, R.ticket_no, COUNT(N.id) AS notes
   FROM      reportables R
-  LEFT JOIN {} B
+  INNER JOIN {} B
   ON        (R.id = B.id)
   LEFT JOIN history N
   ON        (R.id = N.case_id)
   WHERE     cluster = ?
-    AND     epoch = (SELECT MAX(epoch) FROM reportables WHERE cluster = ?) AND R.id IN (SELECT id FROM {})
+    AND     epoch = (SELECT MAX(epoch) FROM reportables 
+              WHERE cluster = ? AND id IN (SELECT id FROM {}))
   GROUP BY  R.id, B.id
 '''
 
