@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.6 (2021-10-20) Generalization beyond bursting
+
+Generalized to support different usage pain metrics.
+
+Added:
+* Case class, of which bursts are now a subclass.
+* AJAX calls for cluster and component management.
+* API documentation for developers of new Case subclasses.
+* Limited unit testing.
+
+Changed:
+* Overhauled testing to rely more heavily on seed data and less on the success
+  of previous tests.
+* Simplified upgrade testing to support only specific upgrades using seed data
+  appropriate for the source schema version.
+* Retire SQLite schema upgrades and associated testing.
+* Templates now use variables embedded `{like_this}` rather than `%this_way%`.
+* API now at version 2.  Detectors must report slightly differently.
+* Depersonalized test data (ex. use "pi1" instead of "dleske") and normalized
+  LDAP stub data and LDAP test container.
+
+Updated:
+* Documentation (particularly in development and testing). 
+
 ## v0.5 (2021-05-13) Allow tickets to non-PI submitters
 
 Added:
