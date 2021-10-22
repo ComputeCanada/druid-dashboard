@@ -6,7 +6,7 @@ from flask_babel import _
 from manager.db import get_db, DbEnum
 from manager.log import get_log
 from manager.exceptions import InvalidApiCall, DatabaseException
-from manager.case import Case, registry, just_job_id, dict_to_table
+from manager.case import Case, registry, just_job_id
 
 # ---------------------------------------------------------------------------
 #                                                                     enums
@@ -77,20 +77,6 @@ def make_graphs_links(cluster, account, resource):
     <br/>
     <a target="beamplot" href="{instant}">{_("Instant")}</a>'''
 
-def prettify_summary(original):
-  field_prettification = {
-    'num_jobs': _('Job count'),
-    'old_pain': _('Old pain')
-   }
-  value_prettification = {
-    'num_jobs': '%d',
-    'old_pain': '%.2f'
-  }
-  return dict_to_table({
-    field_prettification.get(x, x): value_prettification.get(x, '%s') % (y)
-    for x, y in original.items()
-  })
-
 # ---------------------------------------------------------------------------
 #                                                               burst class
 # ---------------------------------------------------------------------------
@@ -146,6 +132,21 @@ class Burst(Case):
           'title': _('State')
         }
       ]
+    }
+
+  @staticmethod
+  def prettify_summary(original):
+    field_prettification = {
+      'num_jobs': _('Job count'),
+      'old_pain': _('Old pain')
+     }
+    value_prettification = {
+      'num_jobs': '%d',
+      'old_pain': '%.2f'
+    }
+    return {
+      field_prettification.get(x, x): value_prettification.get(x, '%s') % (y)
+      for x, y in original.items()
     }
 
   @classmethod
@@ -372,12 +373,9 @@ class Burst(Case):
     d['resource'] = str(self._resource)
     return d
 
-  def serialize(self, pretty=False, options=None):
+  def serialize(self, pretty=False):
     # have superclass start serialization but we'll handle the summary
-    serialized = super().serialize(
-      pretty=pretty,
-      options={'skip_summary_prettification': True}
-    )
+    serialized = super().serialize(pretty)
 
     if pretty:
       serialized['resource_pretty'] = _(str(self._resource))
@@ -385,8 +383,6 @@ class Burst(Case):
       serialized['pain_pretty'] = "%.2f" % (self._pain)
       serialized['usage_pretty'] = make_graphs_links(
         self._cluster, self._account, str(self._resource).lower())
-      if self._summary:
-        serialized['summary_pretty'] = prettify_summary(self._summary)
 
       # determine actions
       if self._state == State.PENDING:
