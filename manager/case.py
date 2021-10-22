@@ -63,53 +63,6 @@ def just_job_id(jobid):
     )
   return int(match.groups()[0])
 
-def dict_to_table(d):
-  """
-  Given a dictionary, return a basic HTML table.
-
-  Turns the keys and values of the dictionary into a two-column table where
-  the keys are header cells (`TH`) and the values are regular cells (`TD`).
-  There is no header row and any complexity in the values are ignored (for
-  example there is no hierarchical tabling).
-
-  Args:
-    d: A dictionary.
-
-  Returns:
-    A basic HTML table to display that dictionary in the simplest possible
-    way.
-  """
-  if not d:
-    return ''
-
-  # Create a list of HTML chunks, starting with the beginning representation
-  # of a table.  Iterate through the items in the dictionary while appending
-  # rows to this list.  Finish the list and return a concatenated string.
-  #
-  # Starting with a blank or basic string and appending to that can use
-  # quadratic time instead of linear time in some cases, so using the list
-  # method instead.
-
-  html = ['<table>']
-  for k, v in d.items():
-    html.append(f"<tr><th>{k}</th><td>{v}</td></tr>")
-  html.append('</table>')
-  return ''.join(html)
-
-def json_to_table(str):
-  """
-  Given a JSON string representing a dictionary, return an HTML table.
-
-  See `dict_to_table()` for more detail.
-
-  Args:
-    str: A JSON string representation of a dictionary.
-
-  Returns:
-    A basic HTML table.
-  """
-  return dict_to_table(json.loads(str))
-
 # ---------------------------------------------------------------------------
 #                                                               SQL queries
 # ---------------------------------------------------------------------------
@@ -431,6 +384,27 @@ class Case:
       A data structure conforming to the above.
     """
     raise NotImplementedError
+
+  @staticmethod
+  def prettify_summary(original):
+    """
+    Return a presentable formatting of the case summary field.
+
+    The base version simply engages translation for the key of each item in the
+    dictionary.  Subclasses may override this to do other or additional
+    processing such as interpretation of the values.
+
+    Args:
+      original: The dict representing the summary field.
+
+    Returns:
+      A dict where the keys and/or values in the original have been modified
+      for readability.
+    """
+    return {
+      _(x): y
+      for x, y in original.items()
+    }
 
   @classmethod
   def summarize_report(cls, cases):
@@ -966,7 +940,7 @@ class Case:
     """
     raise NotImplementedError
 
-  def serialize(self, pretty=False, options=None):
+  def serialize(self, pretty=False):
     """
     Provide a dictionary representation of self.
 
@@ -979,9 +953,7 @@ class Case:
       LDAP and will be set to the person's given name.
     * `ticket` is included if `ticket_id` is set and becomes an HTML anchor
       element for that ticket.
-    * `summary_pretty` is included if `summary` is set,
-      `options['skip_summary_prettification']` is either unset or false, and
-      is populated with an HTML table interpretation of the summary attribute.
+    * `summary_pretty` is included if `summary` is set.
 
     In general, prettified attributes should compliment, not replace, the
     originals, and the consumer may choose.
@@ -992,7 +964,6 @@ class Case:
 
     Args:
       pretty: if True, prettify some fields
-      options: optional dictionary of options
 
     Returns:
       A dictionary representation of the case.
@@ -1018,8 +989,8 @@ class Case:
       else:
         dct['ticket'] = None
 
-      # turn summary into table
-      if self._summary and (options is None or not options.get('skip_summary_prettification', False)):
-        dct['summary_pretty'] = dict_to_table(self._summary)
+      # prettify summary
+      if self._summary:
+        dct['summary_pretty'] = self.prettify_summary(self._summary)
 
     return dct

@@ -1,10 +1,9 @@
 # vi: set softtabstop=2 ts=2 sw=2 expandtab:
 # pylint:
 #
-import json
 import pytest
 from manager.exceptions import AppException, BadCall
-from manager.case import just_job_id, dict_to_table, json_to_table, CaseRegistry, Case
+from manager.case import just_job_id, CaseRegistry, Case
 
 # ---------------------------------------------------------------------------
 #                                                          just_job_id()
@@ -35,69 +34,6 @@ def test_just_job_id_bad_pattern():
   with pytest.raises(AppException) as e:
     just_job_id("_32")
   assert str(e.value) == "Could not parse job ID ('_32') to extract base ID"
-
-# ---------------------------------------------------------------------------
-#                                                          dict_to_table()
-# ---------------------------------------------------------------------------
-
-def test_dict_to_table_no_dict():
-  assert dict_to_table(None) == ''
-
-def test_dict_to_table_empty_dict():
-  assert dict_to_table({}) == ''
-
-def test_dict_to_table_flat_dict():
-  d = {
-    'k1': 'v1',
-    'k2': 'v2',
-    'k3': 'v3'
-  }
-  assert dict_to_table(d) == '<table><tr><th>k1</th><td>v1</td></tr>' \
-    '<tr><th>k2</th><td>v2</td></tr><tr><th>k3</th><td>v3</td></tr></table>'
-
-def test_dict_to_table_complex_dict():
-  d = {
-    'k1': 'v1',
-    'k2': {
-      'k2a': 'v2a',
-      'k2b': 'v2b'
-    }
-  }
-  print(dict_to_table(d))
-  assert dict_to_table(d) == "<table><tr><th>k1</th><td>v1</td></tr>" \
-    "<tr><th>k2</th><td>{'k2a': 'v2a', 'k2b': 'v2b'}</td></tr></table>"
-
-# ---------------------------------------------------------------------------
-#                                                          json_to_table()
-# ---------------------------------------------------------------------------
-
-def test_json_to_table_no_dict():
-  assert json_to_table('null') == ''
-
-def test_json_to_table_empty_dict():
-  assert json_to_table('{}') == ''
-
-def test_json_to_table_flat_dict():
-  d = {
-    'k1': 'v1',
-    'k2': 'v2',
-    'k3': 'v3'
-  }
-  j = json.dumps(d)
-  assert json_to_table(j) == '<table><tr><th>k1</th><td>v1</td></tr>' \
-    '<tr><th>k2</th><td>v2</td></tr><tr><th>k3</th><td>v3</td></tr></table>'
-
-def test_json_to_table_complex_dict():
-  d = {
-    'k1': 'v1',
-    'k2': {
-      'k2a': 'v2a',
-      'k2b': 'v2b'
-    }
-  }
-  j = json.dumps(d)
-  assert json_to_table(j) == "<table><tr><th>k1</th><td>v1</td></tr>" \
-    "<tr><th>k2</th><td>{'k2a': 'v2a', 'k2b': 'v2b'}</td></tr></table>"
 
 # ---------------------------------------------------------------------------
 #                                                             CaseRegistry
