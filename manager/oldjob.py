@@ -188,8 +188,8 @@ class OldJob(Case):
     d['resource'] = str(self._resource)
     return d
 
-  def serialize(self, pretty=False, options=None):
-    serialized = super().serialize(pretty=pretty, options=options)
+  def serialize(self, pretty=False):
+    serialized = super().serialize(pretty=pretty)
     if pretty:
       serialized['resource_pretty'] = str(self._resource)
     return serialized
