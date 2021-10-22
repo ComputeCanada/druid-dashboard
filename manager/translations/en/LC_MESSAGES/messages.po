@@ -126,3 +126,23 @@ msgstr "Accepted"
 #: added manually
 msgid "REJECTED"
 msgstr "Rejected"
+
+#: added manually
+msgid "billing"
+msgstr "Billing"
+
+#: added manually
+msgid "count"
+msgstr "Count"
+
+#: added manually
+msgid "cpu"
+msgstr "CPU"
+
+#: added manually
+msgid "mem"
+msgstr "Memory"
+
+#: added manually
+msgid "node"
+msgstr "Node"
