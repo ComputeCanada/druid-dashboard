@@ -12,9 +12,10 @@ changelog:
                 --format="$$format" $$tags \
 	>> $(CHANGELOG)
 
-.PHONY: testclean
-testclean:
+.PHONY: clean-tests
+clean-tests:
 	rm -f .pytest_cache/v/cache/stepwise
+	rm -f .lintcache
 
 .PHONY: test-upgrade
 test-upgrade:
@@ -23,6 +24,10 @@ test-upgrade:
 .PHONY: test
 test:
 	tests/test-all --all --stepwise
+
+.PHONY: test-clean
+test-clean:
+	tests/test-all --all
 
 # fails if version doesn't match specific pattern, so as not to publish
 # development version.
