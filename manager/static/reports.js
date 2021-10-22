@@ -308,6 +308,14 @@ function populateReportTable(cluster, report, data, ordering) {
   });
 }
 
+function makeSummaryTable(summary) {
+  var summaryHTML = '';
+  for (key in summary) {
+    summaryHTML += `<tr><th>${key}</th><td>${summary[key]}</td></tr>`;
+  }
+  return `<table class='not-table'>${summaryHTML}</table>`;
+}
+
 // view data provided by reporter subclass
 // TODO: render action menu based on available actions from Reporter subclass
 function renderTableData(bursts, metric, columnNames) {
@@ -320,7 +328,13 @@ function renderTableData(bursts, metric, columnNames) {
     bycols[i] = columnNames.map(function(column) {
       name = column['name'];
       prettified = column['name'] + '_pretty';
-      if (bursts[i][prettified] != null) {
+      if (name == 'summary') {
+        if (bursts[i][prettified] != null) {
+          return makeSummaryTable(bursts[i][prettified]);
+        } else {
+          return makeSummaryTable(bursts[i][name]);
+        }
+      } else if (bursts[i][prettified] != null) {
         return bursts[i][prettified];
       } else if (name == 'action') {
         return renderActionMenu(bursts[i]);
