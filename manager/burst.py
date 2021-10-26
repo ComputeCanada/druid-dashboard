@@ -112,18 +112,25 @@ class Burst(Case):
       'title': _('Burst candidates'),
       'metric': 'pain',
       'cols': [
-        { 'datum': 'usage',
-          'searchable': False,
-          'sortable': False,
-          'type': 'text',
-          'title': _('Usage')
-        },
         { 'datum': 'pain',
           'searchable': True,
           'sortable': True,
           'type': 'number',
           'title': _('Pain'),
           'help': _('Numerical indicator of hopelessness inherent in certain job contexts')
+        },
+        { 'datum': 'resource',
+          'searchable': True,
+          'sortable': True,
+          'type': 'text',
+          'title': _('Resource'),
+          'help': _('Type of resource (CPU or GPU)')
+        },
+        { 'datum': 'usage',
+          'searchable': False,
+          'sortable': False,
+          'type': 'text',
+          'title': _('Usage')
         },
         { 'datum': 'state',
           'searchable': True,
