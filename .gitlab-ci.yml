@@ -102,6 +102,8 @@ syntax:
   extends: .code
   stage: pre-test
   script:
+    - pip3 install --upgrade pip
+    - pip3 install -r requirements.txt -r tests/requirements.txt
     - tests/linting/test-all
     - if test -n "$CI_COMMIT_TAG"; then BUILDINFO=$CI_COMMIT_TAG; else BUILDINFO=$(git log -1 --date=format:%Y%m%d --format="%h\/%cd"); fi
     - 'echo "Buildinfo: $BUILDINFO"'
