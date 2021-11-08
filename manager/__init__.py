@@ -23,6 +23,7 @@ from . import ajax
 from . import status
 
 # misc
+from . import version
 from . import errors
 from . import i18n
 
@@ -75,7 +76,8 @@ def inject_custom_vars():
   return dict(
     title=current_app.config['APPLICATION_TITLE'],
     css_override=current_app.config['APPLICATION_CSS_OVERRIDE'],
-    resources_uri=current_app.config['STATIC_RESOURCE_URI']
+    resources_uri=current_app.config['STATIC_RESOURCE_URI'],
+    version=version.version
   )
 
 def determine_config(default_config_file, default_config, test_config=None):
@@ -224,6 +226,9 @@ def create_app(test_config=None):
 
   # register custom context processor to add custom variables
   app.context_processor(inject_custom_vars)
+
+  # log startup and version
+  log.get_log().info("Application initialized: %s", version.version)
 
   return app
 

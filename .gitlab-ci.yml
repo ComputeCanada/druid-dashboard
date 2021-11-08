@@ -65,7 +65,7 @@ default:
     entrypoint: [""]
   script:
     - echo "Building image to tag '$IMAGENAME' with build info '$BUILDINFO'"
-    - sed -i 's/Built with Flask/'$BUILDINFO'/' manager/templates/base.html
+    - sed -ie 's/0+local.dev.version/'$BUILDINFO'/' manager/version.py
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/deployment/Dockerfile.uwsgi --destination $SHA_IMAGE --destination $IMAGENAME
