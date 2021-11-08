@@ -120,7 +120,7 @@ unittest:
     - pip3 install --upgrade pip
     - pip3 install -r requirements.txt -r tests/requirements.txt
     - pybabel compile -d manager/translations
-    - pytest -v --cov=manager tests/test_sqlite.py
+    - tests/test-all
 
 integration:
   extends:
@@ -134,7 +134,7 @@ integration:
     - pip3 install --upgrade pip
     - pip3 install -r requirements.txt -r tests/requirements.txt
     - pybabel compile -d manager/translations
-    - pytest -v --cov=manager tests/test_sqlite.py tests/test_pgsql.py tests/test_integration.py
+    - tests/test-all --pgsql --ldap
 
 build_test:
   extends:
