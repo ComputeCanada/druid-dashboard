@@ -31,27 +31,25 @@ nav {
   padding: 0 0.5rem;
 }
 
-nav h1 {
-  font-size: large;
-  flex: auto;
-  margin: 0;
-}
-
-nav h1 a {
+nav a {
   text-decoration: none;
   padding: 0.25rem 0.5rem;
+}
+
+nav ul#help {
+  flex: auto;
+  margin: 0;
 }
 
 nav ul  {
   display: flex;
   list-style: none;
-  margin: 0;
   padding: 0;
+  margin: 0 0 0 auto;
 }
 
 nav ul li, header .action {
   display: block;
-  padding: 0.5rem;
 }
 
 footer {
