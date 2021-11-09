@@ -33,7 +33,6 @@ nav {
 
 nav a {
   text-decoration: none;
-  padding: 0.25rem 0.5rem;
 }
 
 nav ul#help {
@@ -50,6 +49,7 @@ nav ul  {
 
 nav ul li, header .action {
   display: block;
+  padding: 0.25rem 0.5rem;
 }
 
 footer {

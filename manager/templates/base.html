@@ -59,23 +59,23 @@
 {% block dialog %}{% endblock %}
 {% block confirm %}{% endblock %}
 <nav>
-  <a href="javascript:showAbout()">Druid</a>
+  <a href="javascript:showAbout()" style="padding-left:0.5rem">Druid</a>
   <img src="{{ url_for('static', filename='druid_bw.png') }}" width=40px style="margin-left: 10px; margin-top:-10px"/>
   <ul>
-    {%- if session['givenName'] %}
-      <li>{{ _('Hello,')}} {{ session['givenName'] }}</li>
+    <li>{%- if session['givenName'] %}
+      {{ _('Hello,')}} {{ session['givenName'] }}
     {%- elif session['cn'] %}
-      <li>{{ _('Hello,')}} {{ session['cn'] }}</li>
+      {{ _('Hello,')}} {{ session['cn'] }}
     {% endif %}
     {%- if session['admin'] %}
       {%- if session['admin_view'] %}
-  <li><a href="{{ url_for('dashboard.user_view_redirect') }}">{{ _('Switch to user view') }}</a></li>
+        (<a href="{{ url_for('dashboard.user_view_redirect') }}">{{ _('Switch to user view') }}</a>)
       {%- else %}
-  <li><a href="{{ url_for('admin.admin') }}">{{ _('Switch to admin view') }}</a></li>
+        (<a href="{{ url_for('admin.admin') }}">{{ _('Switch to admin view') }}</a>)
       {%- endif %}
-    {%- endif %}
-    <li><a href="javascript:showAbout()">About</a></li>
-    <li><a target="documentation" href="#documentation">Documentation</a></li>
+    {%- endif %}</li>
+    <li><a href="javascript:showAbout()">{{ _("About") }}</a></li>
+    <li><a target="documentation" href="#documentation">{{ _("Documentation") }}</a></li>
   </ul>
 </nav>
   {% with messages = get_flashed_messages(with_categories=true) %}
