@@ -10,7 +10,16 @@ volumes:
 
 services:
   postgres:
-    image: postgres
+    image: postgres:12
+    #image: postgres:13
+    #volumes:
+    #  # to create this RAM disk:
+    #  #   diskutil erasevolume HFS+ 'frak-testing-RAM-disk' `hdiutil attach -nomount ram://1024000`
+    #  #   ln -s /Volumes/frak-testing-RAM-disk tests/ram-disk
+    #  #   mkdir tests/ram-disk/pg
+    #  - type: bind
+    #    source: ram-disk/pg
+    #    target: /var/lib/postgresql/data
     volumes:
       - type: bind
         source: ../instance/pg

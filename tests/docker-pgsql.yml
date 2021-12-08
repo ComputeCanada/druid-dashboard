@@ -10,7 +10,7 @@ volumes:
 
 services:
   postgres:
-    image: postgres
+    image: postgres:12
     volumes:
       - type: bind
         source: ../instance/pg
