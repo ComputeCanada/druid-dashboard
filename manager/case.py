@@ -184,7 +184,7 @@ class CaseRegistry:
 
     Raises:
       `manager.exceptions.AppException` if a reporter with that name has
-        already by registered.
+        already been registered.
     """
     if name in self._reporters.keys():
       raise AppException("A reporter has already been registered with that name: {}".format(name))
