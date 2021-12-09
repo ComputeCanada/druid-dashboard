@@ -32,12 +32,12 @@ API_VERSION = 2
 
 @bp.errorhandler(400)
 def badrequest(error):
-  get_log().error("Forbidden (error = %s)", error)
+  get_log().error("Bad request (error = %s)", error)
   return jsonify({'error': str(error)}), 400
 
 @bp.errorhandler(401)
 def unauthorized(error):
-  get_log().error("Forbidden (error = %s)", error)
+  get_log().error("Unauthorized (error = %s)", error)
   return jsonify({'error': str(error)}), 401
 
 @bp.errorhandler(403)
@@ -47,7 +47,7 @@ def forbidden(error):
 
 @bp.errorhandler(500)
 def servererror(error):
-  get_log().error("Forbidden (error = %s)", error)
+  get_log().error("Server error (error = %s)", error)
   return jsonify({'error': str(error)}), 500
 
 # ---------------------------------------------------------------------------
