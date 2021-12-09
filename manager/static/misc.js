@@ -24,17 +24,30 @@ function get_form_values(form) {
 /**
  * Determine preferred language from user agent.
  *
+ * @param supported {Array} List of language codes supported by the
+ *   application, ordered by preference.
  * @returns {String} The two-character major language code.
  */
-function preferred_language() {
+function preferred_language(supportedLanguages) {
+
+  // if primary language defined by browser is supported, use that
+  if (navigator.language.slice(0,2) in supported) {
+    return(navigator.language.slice(0,2));
+  }
+
+  // navigator.languages is experimental, though widely supported
+  // https://developer.mozilla.org/en-US/docs/Web/API/Navigator/languages
   for (var i = 0; i < navigator.languages.length; i++) {
-    if (['en', 'fr'].includes(navigator.languages[i])) {
-      return(navigator.languages[i]);
+    if (supported.includes(navigator.languages[i].slice(0,2))) {
+      return(navigator.languages[i].slice(0,2));
     }
   }
-  return('en');
-}
 
+  // best we can do is to assume English: in 2001, 86% of Canadians understand
+  // English and 32% understand French
+  // https://en.wikipedia.org/wiki/Languages_of_Canada, "Bilingualism and
+  // multilingualism vs English-French bilingualism"
+  return('en'); }
 
 function epoch_to_local_time(epoch) {
   // epochs in Javascript are milliseconds but we're using seconds
