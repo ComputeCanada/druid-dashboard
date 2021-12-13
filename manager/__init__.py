@@ -77,7 +77,8 @@ def inject_custom_vars():
     title=current_app.config['APPLICATION_TITLE'],
     css_override=current_app.config['APPLICATION_CSS_OVERRIDE'],
     resources_uri=current_app.config['STATIC_RESOURCE_URI'],
-    version=version.version
+    version=version.version,
+    language=i18n.get_locale()
   )
 
 def determine_config(default_config_file, default_config, test_config=None):
