@@ -12,4 +12,4 @@ babel = Babel()
 
 @babel.localeselector
 def get_locale():
-  return request.accept_languages.best_match(SUPPORTED_LANGUAGES)
+  return request.accept_languages.best_match(SUPPORTED_LANGUAGES) or 'en'
