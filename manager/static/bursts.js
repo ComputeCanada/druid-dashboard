@@ -1,5 +1,4 @@
 function rejectBurst(id, account) {
-
   var updates = [
     {
       'state': 'rejected',
@@ -9,13 +8,12 @@ function rejectBurst(id, account) {
 
   // process update
   updateCase(id, updates, {
-    action: "Rejecting burst candidate...",
-    error: "Failed to reject candidate"
+    action: i18n('REJECTING_BURST_CANDIDATE'),
+    error: i18n('REJECTING_BURST_CANDIDATE_FAILED')
   });
 }
 
 function acceptBurst(id, account) {
-
   var updates = [
     {
       'state': 'accepted',
@@ -25,7 +23,7 @@ function acceptBurst(id, account) {
 
   // process update
   updateCase(id, updates, {
-    action: "Accepting burst candidate...",
-    error: "Failed to accept candidate"
+    action: i18n('ACCEPTING_BURST_CANDIDATE'),
+    error: i18n('ACCEPTING_BURST_CANDIDATE_FAILED')
   });
 }

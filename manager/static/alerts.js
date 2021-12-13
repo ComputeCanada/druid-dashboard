@@ -25,15 +25,15 @@ function makeToast(type, message, options) {
   // handle types
   switch (type) {
     case "info":
-      title = "Info";
+      title = i18n("INFO"),
       extraClasses = 'bg-info';
       break;
     case "alert":
-      title = "Alert";
+      title = i18n("ALERT");
       extraClasses = 'bg-warning';
       break;
     case "error":
-      title = "Error";
+      title = i18n("ERROR");
       extraClasses = 'text-white bg-danger';
       break;
     default:

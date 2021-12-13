@@ -1,5 +1,5 @@
 function requestClusters() {
-  status_id = status("Retrieving cluster info...")
+  status_id = status(i18n('RETRIEVING_CLUSTER_INFO'));
   $.ajax({
     url: '/xhr/clusters/',
     method: 'GET',
@@ -9,7 +9,7 @@ function requestClusters() {
     },
     error: function() {
       status_clear(status_id);
-      error("Failed to retrieve cluster list");
+      error(i18n("FAILED_TO_RETRIEVE_CLUSTER_INFO"));
     }
   });
 }
@@ -99,7 +99,7 @@ function displayClusters(clusters, stats, jqXHR) {
 
 
 function requestReports(cluster) {
-  var status_id = status(`Retrieving reports for ${cluster_lookup[cluster]}...`);
+  var status_id = status(i18n('RETRIEVING_CASE_REPORTS', cluster_lookup[cluster]));
   $.ajax({
     url: `/xhr/cases/?cluster=${cluster}`,
     method: 'GET',
@@ -109,7 +109,7 @@ function requestReports(cluster) {
     },
     error: function() {
       status_clear(status_id);
-      error("Failed to retrieve burst reports");
+      error(i18n("FAILED_TO_RETRIEVE_CASE_REPORTS"));
     }
   });
 }
@@ -183,15 +183,16 @@ function displayReports(reports, status, jqXHR) {
 
   // check if there are reports
   if (report_names.length == 0) {
-    accordionParent.innerHTML = "<p>{{ _('There are no current reports for this cluster.') }}</p>";
+    accordionParent.innerHTML = `<p>${i18n('NO_REPORTS')}</p>`;
   }
   else {
     for (var i=0; i < report_names.length; i++) {
 
       var report = report_names[i];
 
-      // TODO: i18n
-      var title = `${report_specs[report].title} - reported ${epoch_to_local_time(reports[report]['epoch'])}`;
+      var title = i18n('REPORT_HEADER',
+         report_specs[report].title,
+          epoch_to_local_time(reports[report]['epoch']));
 
       // create accordian for this
       var accordion = document.createElement('div');
