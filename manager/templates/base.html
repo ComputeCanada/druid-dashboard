@@ -37,6 +37,10 @@
   <!-- Simple Javascript cookie library -->
   <script src="{{ resources_uri }}/js.cookie.min.js"></script>
 
+  <!-- i18n for JavaScript -->
+  <script src="{{ url_for('static', filename='i18n.js') }}"></script>
+  <script src="{{ url_for('static', filename='i18n/' + language + '.js') }}"></script>
+
   <!-- local scriptage and stylings -->
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
   <link rel='stylesheet' href="{{ url_for('static', filename='style.css') }}">
