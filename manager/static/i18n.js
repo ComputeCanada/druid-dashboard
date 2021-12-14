@@ -5,7 +5,7 @@ function i18n() {
   var message = arguments[0];
   var translation = i18n_strings[message];
   if (!translation) {
-    return("NOT DEFINED");
+    return(`"${message}" NOT DEFINED`);
   }
 
   var args = arguments;
@@ -32,7 +32,7 @@ function i18n_static() {
     if (text) {
       element.innerHTML = text;
     } else {
-      element.innerHTML = "NOT DEFINED";
+      element.innerHTML = `"${name}" NOT DEFINED`;
     }
   });
 }
