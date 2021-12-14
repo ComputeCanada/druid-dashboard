@@ -20,35 +20,35 @@ msgstr ""
 
 #: manager/templates/400.html:3
 msgid "400 title"
-msgstr ""
+msgstr "Erreur de client"
 
 #: manager/templates/400.html:7
 msgid "400 explanation"
-msgstr ""
+msgstr "Quelque chose à propos de la demande du client n'était pas valide. Si vous pensez que vous n'êtes pas dans l'erreur, veuillez ouvrir un problème d'assistance."
 
 #: manager/templates/403.html:3
 msgid "403 title"
-msgstr ""
+msgstr "Accès interdit"
 
 #: manager/templates/403.html:7
 msgid "403 explanation"
-msgstr ""
+msgstr "L'accès est interdit. Remarque : Ce service n'est disponible que pour le personnel de Calcul Canada qui se connecte avec son compte principal."
 
 #: manager/templates/404.html:3
 msgid "404 title"
-msgstr ""
+msgstr "Not found"
 
 #: manager/templates/404.html:7
 msgid "404 explanation"
-msgstr ""
+msgstr "Impossible de trouver la ressource demandée."
 
 #: manager/templates/500.html:3
 msgid "500 title"
-msgstr ""
+msgstr "Erreur du serveur"
 
 #: manager/templates/500.html:7
 msgid "500 explanation"
-msgstr ""
+msgstr "Erreur côté serveur. Cela a été enregistré et nous allons l'examiner."
 
 #: manager/templates/base.html:21
 msgid "Burst Enablement"
@@ -68,11 +68,11 @@ msgstr "Passez en vue admin"
 
 #: manager/templates/base.html:56
 msgid "Please report issues"
-msgstr ""
+msgstr "Veuillez signaler les problèmes"
 
 #: manager/templates/admin/api-keys.html:143
 msgid "Cancel"
-msgstr ""
+msgstr "Annuler"
 
 #: manager/templates/admin/api-keys.html:146
 msgid "Submit"
@@ -104,6 +104,46 @@ msgstr ""
 msgid "Yes, delete key"
 msgstr ""
 
-#~ msgid "Dashboard"
-#~ msgstr "Tableau de bord"
+#: added manually
+msgid "Dashboard"
+msgstr "Tableau de bord"
 
+#: added manually
+msgid "CPU"
+msgstr "CPU"
+
+#: added manually
+msgid "GPU"
+msgstr "GPU"
+
+#: added manually
+msgid "PENDING"
+msgstr "En attente"
+
+#: added manually
+msgid "ACCEPTED"
+msgstr "Accepté"
+
+#: added manually
+msgid "REJECTED"
+msgstr "Rejeté"
+
+#: added manually
+msgid "billing"
+msgstr "Facturation"
+
+#: added manually
+msgid "count"
+msgstr "Nombre"
+
+#: added manually
+msgid "cpu"
+msgstr "CPU"
+
+#: added manually
+msgid "mem"
+msgstr "Mémoire"
+
+#: added manually
+msgid "node"
+msgstr "Nœud"
