@@ -107,6 +107,17 @@ To do so:
 $ TAG=beam docker-compose -f tests/docker-ldap.yml up
 ```
 
+Please note that you may need to log into the Compute Canada Git repository.
+To do so:
+
+```
+$ docker login git.computecanada.ca:4567 --username yourUsernameHere
+```
+
+When prompted, please enter your access token with API access scope. 
+If you do not have an Access Token, one can be created at: 
+https://git.computecanada.ca/-/profile/personal_access_tokens
+
 ### App configuration
 
 Put something like the following in `instance/manager.conf`:
