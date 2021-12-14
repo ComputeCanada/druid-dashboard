@@ -5,6 +5,7 @@ i18n_strings = {
     "REVERT": "Revert",
     "TITLE": "Title",
     "BODY": "Body",
+    "OKAY": "Okay",
 
     // used for accordion headers, like "Bursts candidates - reported 2021-11-22 03:42 a.m."
     "REPORT_HEADER": "$1 - reported $2",
@@ -117,5 +118,4 @@ associated with this account, or another recipient as selected.`,
     "ACTION": "Action",
     // ex. Claimed by Drew (2021-04-21 08:09 a.m.)
     "EVENT_HEADER": "$1 by $2 ($3)",
-    
 }
