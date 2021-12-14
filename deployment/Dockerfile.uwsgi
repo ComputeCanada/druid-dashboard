@@ -1,5 +1,5 @@
-FROM alpine:latest
-MAINTAINER Drew Leske <drew.leske@computecanada.ca>
+FROM alpine:3.14
+LABEL org.opencontainers.image.authors="Drew Leske <drew.leske@computecanada.ca>"
 
 ENV WERKZEUG_DEBUG_PIN 'off'
 ENV FLASK_ENV=production
@@ -10,6 +10,7 @@ ENV BEAM_DATABASE_URI=file:////home/beam/db/development.sqlite
 # install base OS stuff
 RUN adduser -s /sbin/nologin -D -h /home/beam beam
 RUN apk --update add python3 postgresql-dev build-base python3-dev openldap-dev py3-pip gcc
+RUN apk add libldap 
 
 # install Flask
 COPY requirements.txt /tmp/
