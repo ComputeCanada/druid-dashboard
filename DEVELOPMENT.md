@@ -41,7 +41,14 @@ should be ready to move on to the next step.
 If you are setting up your development instance for the first time, before
 seeding your application with data, you will need to create the database
 and load the schema. Please note that you will need the PSQL password to do
-this, you can find it in tests/docker-pgsql.yml under POSTGRES_PASSWORD.
+this. If you are using the included Docker container, you can find find the
+password in tests/docker-pgsql.yml under POSTGRES_PASSWORD.
+
+If you are using the included containers, you can start them with:
+```
+$ TAG=beam docker-compose -f tests/docker-ldap.yml up
+```
+This will bring up the necessary containers for a local development environment.
 
 Run the following command to create the database:
 ```
