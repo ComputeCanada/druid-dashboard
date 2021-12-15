@@ -38,6 +38,26 @@ should be ready to move on to the next step.
 
 ### Running application
 
+If you are setting up your development instance for the first time, before
+seeding your application with data, you will need to create the database
+and load the schema. Please note that you will need the PSQL password to do
+this, you can find it in tests/docker-pgsql.yml under POSTGRES_PASSWORD.
+
+Run the following command to create the database:
+```
+$ createdb -h localhost -p 5432 -U postgres beam_dev
+```
+You will need to enter the PSQL password, as outlined above.
+Please note that the name of the database (shown here as beam_dev)
+will need to match what is configured in manager.conf.
+
+After the database has been created, you will need to import the schema.
+You can do this using the following command. As before, you will be prompted
+for your PSQL password.
+```
+$ psql -h localhost -p 5432 -U postgres -d beam_dev < manager/sql/schema.psql
+```
+
 We seed the database with some basic data (test cluster, register a detector
 and adjustor for API calls, and associated API keys) and then start up the
 server in development mode.  In development mode, more debug information is
