@@ -184,6 +184,23 @@ flask run --with-threads --cert instance/cert.pem --key instance/key.pem
 
 ## Translation
 
+Translation is handled both on the server side, using Flask, and on the client
+side, using Javascript.  Both sides of the transaction manipulate presented
+content at some level and when that content includes variables, it is
+difficult or impossible to have the other side handle it.
+
+The user's preferred language is determined by the request header
+`Accept-Language`.  If not present, the default is English.
+
+Translation keys--the string passed to translation functions indicating the
+desired message--are sometimes expressed as constant-style strings (all caps,
+underscores instead of spaces) and sometimes as the original English text.
+Which is better?  I don't know, probably the constant style for a couple of
+reasons, but I'm not sure enough to have gone and converted the existing
+strings.
+
+### Server side
+
 > References:
 >
 > * [Flask:Babel home page](https://pythonhosted.org/Flask-Babel/)
@@ -218,6 +235,26 @@ If I decide to replace the English strings in the Python source with static
 ```
 pybabel init -i messages.pot -d manager/translations -l en
 ```
+
+### Client side
+
+The translation library used for Javascript is very simple and consists of two
+functions: `i18n(message)` returns the translation of `message` found in a
+lookup table.  `i18n_static()` searches the HTML DOM for every element with a
+`data-i18n` property set.  The value of that property is the message, which is
+looked up in the same table, and the HTML of the element is set to the
+translation.
+
+The translation table is stored in a Javascript file consisting of an
+associative array (sort of, sigh, _Javascript_) mapping message IDs to their
+translations.  One file exists for each supported language and is named
+`static/i18n/$LANG.json`.  The HTML templates used by Flask import this file
+using normal `<script src=...>` syntax so the data is immediately available.
+
+Translation strings may include variables, denoted `$1`, `$2`, etc.  Calls to
+`i18n()` must provide enough arguments to match the variables.  Variables may
+appear in any order to support idioms of the supported language.  Of course,
+`i18n_static()` cannot handle variables.
 
 ## Authentication and application credentials
 

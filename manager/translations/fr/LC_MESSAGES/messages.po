@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-02-16 17:35-0800\n"
+"POT-Creation-Date: 2021-12-13 15:29-0800\n"
 "PO-Revision-Date: 2020-12-01 13:14-0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -17,6 +17,98 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.0\n"
+
+#: manager/__init__.py:51
+msgid "Burst Enablement"
+msgstr "Activation de rafale"
+
+#: manager/burst.py:112
+msgid "Burst candidates"
+msgstr ""
+
+#: manager/burst.py:119
+msgid "Pain"
+msgstr ""
+
+#: manager/burst.py:120
+msgid "Numerical indicator of hopelessness inherent in certain job contexts"
+msgstr ""
+
+#: manager/burst.py:126 manager/oldjob.py:49
+msgid "Resource"
+msgstr ""
+
+#: manager/burst.py:127
+msgid "Type of resource (CPU or GPU)"
+msgstr ""
+
+#: manager/burst.py:133
+msgid "Usage"
+msgstr ""
+
+#: manager/burst.py:139
+msgid "State"
+msgstr ""
+
+#: manager/burst.py:147
+msgid "Job count"
+msgstr ""
+
+#: manager/burst.py:148
+msgid "Old pain"
+msgstr ""
+
+#: manager/burst.py:398
+msgid "Reject"
+msgstr ""
+
+#: manager/burst.py:403
+msgid "Accept"
+msgstr ""
+
+#: manager/case.py:316
+msgid "Account"
+msgstr "Comte"
+
+#: manager/case.py:324
+msgid "Summary"
+msgstr ""
+
+#: manager/case.py:330
+msgid "Analyst"
+msgstr ""
+
+#: manager/case.py:336
+msgid "Ticket"
+msgstr ""
+
+#: manager/case.py:342
+msgid "Notes"
+msgstr ""
+
+#: manager/case.py:348
+msgid "Action"
+msgstr ""
+
+#: manager/oldjob.py:42
+msgid "Job age"
+msgstr ""
+
+#: manager/oldjob.py:55
+msgid "User"
+msgstr ""
+
+#: manager/oldjob.py:61
+msgid "Age"
+msgstr ""
+
+#: manager/oldjob.py:62
+msgid "Days waiting in system"
+msgstr ""
+
+#: manager/template.py:88
+msgid "[undefined]"
+msgstr ""
 
 #: manager/templates/400.html:3
 msgid "400 title"
@@ -50,21 +142,25 @@ msgstr "Erreur du serveur"
 msgid "500 explanation"
 msgstr "Erreur côté serveur. Cela a été enregistré et nous allons l'examiner."
 
-#: manager/templates/base.html:21
-msgid "Burst Enablement"
-msgstr "Activation de rafale"
-
-#: manager/templates/base.html:25 manager/templates/base.html:27
+#: manager/templates/base.html:70 manager/templates/base.html:72
 msgid "Hello,"
 msgstr "Bonjour "
 
-#: manager/templates/base.html:31
+#: manager/templates/base.html:76
 msgid "Switch to user view"
 msgstr "Passez en vue analyste"
 
-#: manager/templates/base.html:33
+#: manager/templates/base.html:78
 msgid "Switch to admin view"
 msgstr "Passez en vue admin"
+
+#: manager/templates/base.html:81
+msgid "About"
+msgstr ""
+
+#: manager/templates/base.html:82
+msgid "Documentation"
+msgstr ""
 
 #: manager/templates/base.html:56
 msgid "Please report issues"
@@ -104,7 +200,7 @@ msgstr ""
 msgid "Yes, delete key"
 msgstr ""
 
-#: added manually
+#: manager/templates/dashboard/index.html:663
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
