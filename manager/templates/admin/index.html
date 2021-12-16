@@ -70,6 +70,9 @@ $(document).ready(function() {
     <button class="nav-link" id="api-keys-tab" data-bs-toggle="tab" data-pane='api-keys' data-bs-target="#api-keys" type="button" role="tab" aria-controls="api-keys" aria-selected="false">{{ _('API Keys') }}</button>
   </li>
   <li class="nav-item" role="presentation">
+    <button class="nav-link" id="clusters-tab" data-bs-toggle="tab" data-pane='clusters' data-bs-target="#clusters" type="button" role="tab" aria-controls="clusters" aria-selected="false">{{ _('Clusters and Components') }}</button>
+  </li>
+  <li class="nav-item" role="presentation">
     <button class="nav-link" id="configuration-tab" data-bs-toggle="tab" data-pane='configuration' data-bs-target="#configuration" type="button" role="tab" aria-controls="configuration" aria-selected="false">{{ _('Configuration') }}</button>
   </li>
   <li class="nav-item" role="presentation">
@@ -80,6 +83,7 @@ $(document).ready(function() {
 <div class="tab-content" id="admin_panes_container">
   <div class="tab-pane fade" id="authz" role="tabpanel" aria-labelledby="authz-tab">{% include 'admin/authz.html' %}</div>
   <div class="tab-pane fade" id="api-keys" role="tabpanel" aria-labelledby="api-keys-tab">{% include 'admin/api-keys.html' %}</div>
+  <div class="tab-pane fade" id="clusters" role="tabpanel" aria-labelledby="clusters-tab">{% include 'admin/clusters.html' %}</div>
   <div class="tab-pane fade" id="configuration" role="tabpanel" aria-labelledby="configuration-tab">{% include 'admin/configuration.html' %}</div>
   <div class="tab-pane fade" id="status" role="tabpanel" aria-labelledby="status-tab">{% include 'admin/status.html' %}</div>
 </div>
