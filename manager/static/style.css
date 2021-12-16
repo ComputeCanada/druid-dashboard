@@ -11,7 +11,7 @@ body {
 
 h1, h2, h3, h4 {
   color: #377ba8;
-  margin: 10px 0 4px;
+  margin: 10px 0 0.5em;
 }
 
 a {
@@ -340,10 +340,19 @@ input:active + .toggle {
 }
 
 /* --------------------------------------------------------------------------
+                                                            tables
+--------------------------------------------------------------------------- */
+
+table th, table td {
+  padding: 1px 1em;
+  vertical-align: top;
+}
+
+/* --------------------------------------------------------------------------
                                                             tabs and panes
 --------------------------------------------------------------------------- */
 
-#panes_container {
+.tab-content {
   border: 1px solid lightgrey;
   border-bottom-left-radius: .25rem;
   border-bottom-right-radius: .25rem;
