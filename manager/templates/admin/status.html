@@ -2,12 +2,11 @@
                                                                       html
 -------------------------------------------------------------------------- #}
 
-<h3>Status</h3>
-
 <div class='statuses'>
 
-<table>
-  <caption>Components</caption>
+<h4>Components</h4>
+
+<table/
   <thead>
     <tr>
       <th></th>
@@ -29,7 +28,6 @@
 <script>
 
   function get_components(event, ui) {
-    console.log("In get_components()");
     $.ajax({
       url: '/xhr/components/',
       method: 'GET',
@@ -50,8 +48,8 @@
 
         // figure out how to display date
         var dstr;
-        if (component['lastheard'] === null) {
-          dstr = "Never checked in";
+        if (component['lastheard'] === 0 || component['lastheard'] === null) {
+          dstr = i18n("NEVER_CHECKED_IN");
         }
         else {
           var d = new Date(component['lastheard'] * 1000);
