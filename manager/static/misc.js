@@ -21,6 +21,16 @@ function get_form_values(form) {
   return arr;
 }
 
+function copy_to_clipboard(el) {
+  el.focus();
+  el.select();
+  try {
+    let successful = document.execCommand('copy');
+    let msg = successful ? 'successful' : 'unsuccessful';
+  } catch (err) {
+  }
+}
+
 /**
  * Determine preferred language from user agent.
  *
