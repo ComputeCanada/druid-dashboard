@@ -1,101 +1,87 @@
 {% extends 'base.html' %}
+
+{# --------------------------------------------------------------------------
+                                                              EXTRA CSS, JS
+-------------------------------------------------------------------------- #}
+
 {% block extra %}
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
-
+  <script src="{{ url_for('static', filename='alerts.js') }}"></script>
+  <script src="{{ url_for('static', filename='admin_prefs.js') }}"></script>
 {% endblock %}
+
+{# --------------------------------------------------------------------------
+                                                                  SCRIPTAGE
+-------------------------------------------------------------------------- #}
 
 {% block scriptage %}
   <script>
-    var active_tab = Cookies.get("active-tab");
-    if (!active_tab) {
-      active_tab = 0;
-    }
 
-    function refresh_authz() {
-      // TODO: implement refresh_authz()
-      console.log("Unimplemented function: refresh_authz()");
-    }
+$(document).ready(function() {
 
-    function refresh_api_keys() {
-      // TODO: implement refresh_api_keys()
-      console.log("Unimplemented function: refresh_api_keys()");
-    }
+  // translate static elements
+  i18n_static();
 
-    function refresh_configuriation() {
-      // TODO: implement refresh_configuriation()
-      console.log("Unimplemented function: refresh_configuration()");
-    }
+  // create listeners
+  var triggerTabList = [].slice.call(document.querySelectorAll('#admin_tabs button'))
+  triggerTabList.forEach(function (triggerEl) {
+    var tabTrigger = new bootstrap.Tab(triggerEl)
 
-    function refresh_status() {
-      // TODO: implement refresh_status()
-      console.log("Unimplemented function: refresh_status()");
-    }
-
-    // functions to execute when activating tabs
-    // TODO: create actual functions
-    var tab_activation_fns = [
-      refresh_authz,
-      refresh_api_keys,
-      refresh_configuriation,
-      refresh_status
-    ];
-
-    // initialize tabs
-    $("#tabs").tabs({
-      active: active_tab,
-      activate: function (event, ui) {
-        active_tab = ui.newTab.index();
-        Cookies.set("active-tab", active_tab);
-        if (tab_activation_fns[active_tab]) {
-          tab_activation_fns[active_tab]();
-        }
-      }
+    triggerEl.addEventListener('click', function (event) {
+      event.preventDefault();
+      tabTrigger.show();
+      admin_prefs.setActiveTab(event.target.dataset.pane);
     });
+  });
 
-    // for when document is ready
-    window.addEventListener("load", function() {
+  var activePaneId = admin_prefs.getActiveTab();
+  var activeTabId = `${activePaneId}-tab`;
+  var activeTab = document.getElementById(activeTabId);
+  activeTab.classList.add('active');
+  activeTab.setAttribute('aria-selected', 'true');
 
-      // tabs only "activate" when clicked on: the first loaded tab does not
-      // fire this event, so fire any tab activation function for default tab
-      // on load
-      if (tab_activation_fns[active_tab]) {
-        tab_activation_fns[active_tab]();
-      }
-    });
-
+  var activePane = document.getElementById(activePaneId);
+  activePane.classList.add('show');
+  activePane.classList.add('active');
+});
   </script>
 
 {% endblock %}
 
+{# --------------------------------------------------------------------------
+                                                                     HEADER
+-------------------------------------------------------------------------- #}
+{% block title %}{{ _('Admin') }}{% endblock %}
+{% block subtitle %}{{ _('Administrative Dashboard') }}{% endblock %}
 {% block header %}
-  <h2>{% block title %}Admin{% endblock %}</h2>
 {% endblock %}
+
+{# --------------------------------------------------------------------------
+                                                                    CONTENT
+-------------------------------------------------------------------------- #}
 
 {% block content %}
 
-  <div id="tabs">
+<ul class="nav nav-tabs" id="admin_tabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="authz-tab" data-bs-toggle="tab" data-pane='authz' data-bs-target="#authz" type="button" role="tab" aria-controls="authz" aria-selected="true">{{ _('Authorizations') }}</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="api-keys-tab" data-bs-toggle="tab" data-pane='api-keys' data-bs-target="#api-keys" type="button" role="tab" aria-controls="api-keys" aria-selected="false">{{ _('API Keys') }}</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="configuration-tab" data-bs-toggle="tab" data-pane='configuration' data-bs-target="#configuration" type="button" role="tab" aria-controls="configuration" aria-selected="false">{{ _('Configuration') }}</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-pane='status' data-bs-target="#status" type="button" role="tab" aria-controls="status" aria-selected="false">{{ _('Status') }}</button>
+  </li>
+</ul>
 
-    <!-- tab bar -->
-    <ul>
-      <li><a href="#tab-authz"><span>Users and access</span></a></li>
-      <li><a href="#tab-api-keys"><span>API keys</span></a></li>
-      <li><a href="#tab-configuration"><span>Configuration</span></a></li>
-      <li><a href="#tab-status"><span>Status</span></a></li>
-    </ul>
-
-    <!-- tabs -->
-    <div id="tab-authz">
-      {% include 'admin/authz.html' %}
-    </div>
-    <div id="tab-api-keys">
-      {% include 'admin/api-keys.html' %}
-    </div>
-    <div id="tab-configuration">
-      {% include 'admin/configuration.html' %}
-    </div>
-    <div id="tab-status">
-      {% include 'admin/status.html' %}
-    </div>
-  </div>
+<div class="tab-content" id="admin_panes_container">
+  <div class="tab-pane fade" id="authz" role="tabpanel" aria-labelledby="authz-tab">{% include 'admin/authz.html' %}</div>
+  <div class="tab-pane fade" id="api-keys" role="tabpanel" aria-labelledby="api-keys-tab">{% include 'admin/api-keys.html' %}</div>
+  <div class="tab-pane fade" id="configuration" role="tabpanel" aria-labelledby="configuration-tab">{% include 'admin/configuration.html' %}</div>
+  <div class="tab-pane fade" id="status" role="tabpanel" aria-labelledby="status-tab">{% include 'admin/status.html' %}</div>
+</div>
 
 {% endblock %}
