@@ -49,6 +49,10 @@ If you are using the included containers, you can start them with:
 $ TAG=beam docker-compose -f tests/docker-ldap.yml up
 ```
 This will bring up the necessary containers for a local development environment.
+If you receive an error that the "bind source path does not exist.", create it using the following command:
+```
+mkdir instance/pg
+```
 
 Run the following command to create the database:
 ```
