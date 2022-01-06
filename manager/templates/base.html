@@ -80,7 +80,7 @@
       {%- endif %}
     {%- endif %}</li>
     <li><a href="javascript:showAbout()">{{ _("About") }}</a></li>
-    <li><a target="documentation" href="#documentation">{{ _("Documentation") }}</a></li>
+    <li><a target="documentation" href="{{ documentation_uri }}">{{ _("Documentation") }}</a></li>
   </ul>
 </nav>
   {% with messages = get_flashed_messages(with_categories=true) %}
