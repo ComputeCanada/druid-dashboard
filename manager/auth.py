@@ -11,7 +11,8 @@ from flask import (
 from werkzeug.exceptions import abort
 
 from manager.log import get_log
-from manager.ldap import get_ldap
+from manager.authz import NotAuthorized
+from manager.authz_ccldap import CcLdapAuthz
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -56,57 +57,40 @@ def login_required(view):
         authenticated_user = request.headers['X_AUTHENTICATED_USER']
       get_log().debug("X_AUTHENTICATED_USER = %s", authenticated_user)
 
-      # this flags whether user is authorized to use app: must be authenticated
-      # and either analyst or admin
-      authorized = False
-
       # check if externally authenticated
-      if authenticated_user:
-
-        # get user information into session
-        details = get_ldap().get_person(
-          authenticated_user, ['eduPersonEntitlement'])
-        get_log().debug("LDAP details for %s: %s", authenticated_user, details)
-
-        if details:
-          try:
-            for key in ['cn', 'cci', 'givenName', 'preferredLanguage']:
-              session[key] = details[key]
-          except KeyError:
-            # all of these are required and/or present in a valid user
-            # representing a real user, so without them the app is forbidden
-            abort(403)
-
-          # set this after the rest as this establishes a valid authentication
-          session['uid'] = authenticated_user
-
-          # check if user has rights to this service
-          if 'eduPersonEntitlement' in details:
-
-            # has admin rights?
-            session['admin'] = 'frak.computecanada.ca/burst/admin' in details['eduPersonEntitlement']
-
-            # default for those with admin rights is to show admin view
-            session['admin_view'] = session['admin']
-
-            # has analyst rights?
-            session['analyst'] = 'frak.computecanada.ca/burst/analyst' in details['eduPersonEntitlement']
-            get_log().debug("Analyst? %s", session['analyst'])
-
-            # if has one of those two, is authorized for app
-            authorized = True
-
-          else:
-            session['admin'] = False
-            session['admin_view'] = False
-            session['analyst'] = False
-
-          load_logged_in_user()
-
-          session['authenticated_externally'] = True
-
-      if not authorized:
+      if not authenticated_user:
+        get_log().error("User not authenticated")
         abort(403)
+
+      # determine authorization
+      ### TODO: use generic get_authz() set up in __init__
+      try:
+        authz = CcLdapAuthz(authenticated_user)
+      except NotAuthorized as e:
+        get_log().warning("Unauthorized user: %s", e)
+        abort(403)
+
+      # get user information into session
+      session['uid'] = authenticated_user
+      session['cn'] = authz.name
+      session['givenName'] = authz.given
+      session['cci'] = authz.id
+
+      # set authorizations in session
+      session['admin'] = False
+      session['analyst'] = False
+      if authz.entitlements:
+        print(f"Entitlements: {authz.entitlements}")
+        session['admin'] = 'admin' in authz.entitlements
+        session['analyst'] = 'analyst' in authz.entitlements
+      session['admin_view'] = session['admin']
+
+      if not session['analyst'] and not session['admin']:
+        get_log().warning("Unauthorized user (missing entitlements): %s",
+          authenticated_user)
+        abort(403)
+
+      load_logged_in_user()
 
     # TODO: not sure, this may be useful with SSE
     #notifications = get_db().execute(
