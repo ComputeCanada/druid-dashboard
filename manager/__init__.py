@@ -61,7 +61,7 @@ defaults = {
   'OTRS_PASSWORD': '',
   'OTRS_QUEUE': 'Test',
   'OTRS_TICKET_STATE': 'new',
-  'BURSTS_USAGE_URI': 'https://localhost/plots/{cluster}/{account}_{resource}_instant.html',
+  'BURSTS_USAGE_URI': 'https://localhost/plots/{cluster}/{account}_{resource}.html',
   'DOCUMENTATION_URI': '#document_link_define'
 }
 

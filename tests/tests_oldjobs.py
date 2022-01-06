@@ -606,7 +606,7 @@ def test_post_oldjobs_and_bursts_at_once(client, notifier):
         'ticket_id': None,
         'ticket_no': None,
         'ticks': 1,
-        'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_instant.html">Instant</a>'
+        'usage_pretty': "<a target='beamplot' href='https://localhost/plots/testcluster/def-pi1_cpu.html'>Dash.cc</a>"
       },
       {
         'account': 'def-pi2-ab',
@@ -638,7 +638,7 @@ def test_post_oldjobs_and_bursts_at_once(client, notifier):
         'ticket_id': None,
         'ticket_no': None,
         'ticks': 1,
-        'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-pi2-ab_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-pi2-ab_cpu_instant.html">Instant</a>'
+        'usage_pretty': "<a target='beamplot' href='https://localhost/plots/testcluster/def-pi2-ab_cpu.html'>Dash.cc</a>"
       }
     ]
   }
@@ -905,7 +905,7 @@ def test_post_oldjobs_and_bursts_first_one_then_the_other(client, notifier):
         'ticket_id': None,
         'ticket_no': None,
         'ticks': 1,
-        'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_instant.html">Instant</a>'
+        'usage_pretty': "<a target='beamplot' href='https://localhost/plots/testcluster/def-pi1_cpu.html'>Dash.cc</a>"
       },
       {
         'account': 'def-pi2-ab',
@@ -937,7 +937,7 @@ def test_post_oldjobs_and_bursts_first_one_then_the_other(client, notifier):
         'ticket_id': None,
         'ticket_no': None,
         'ticks': 1,
-        'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-pi2-ab_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-pi2-ab_cpu_instant.html">Instant</a>'
+        'usage_pretty': "<a target='beamplot' href='https://localhost/plots/testcluster/def-pi2-ab_cpu.html'>Dash.cc</a>"
       }
     ]
   }
