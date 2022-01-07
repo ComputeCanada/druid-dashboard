@@ -44,10 +44,18 @@ APIKEY_CREATE_NEW = '''
   VALUES      (?, ?, ?)
 '''
 
+# TODO: revisit (https://git.computecanada.ca/frak/burst/manager/-/issues/51)
+# If API key access names shouldn't be used for whatever reason, this is
+# another way of deleting keys, but then that needs to be clarified to the
+# user
+#APIKEY_DELETE = '''
+#  UPDATE apikeys
+#  SET    state = 'd'
+#  WHERE  access = ?
+#'''
 APIKEY_DELETE = '''
-  UPDATE apikeys
-  SET    state = 'd'
-  WHERE  access = ?
+  DELETE FROM apikeys
+  WHERE       access = ?
 '''
 
 APIKEY_GET_COMPONENT = '''
