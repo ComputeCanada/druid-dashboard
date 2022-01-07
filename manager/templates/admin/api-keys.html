@@ -33,7 +33,6 @@
 
   function trigger_create_api_key(form, modal) {
     formdata = get_form_values(form);
-    console.log(formdata);
     create_api_key(formdata['apikey_name'], 'MAKE_UP_A_COMPONENT', formdata['apikey']);
     bootstrap.Modal.getInstance(modal).hide();
   }
@@ -100,41 +99,43 @@
           <td>${apikey['access']}</td>
           <td>${apikey['cluster']}</td>
           <td>${apikey['component']}</td>
-          <td><a href='#' data-bs-toggle='modal' data-bs-target='#apikeyDeleteModal'
+          <td><a href='#' data-bs-toggle='modal' data-bs-target='#resourceDeleteModal'
             data-delete_key='${apikey["access"]}'
             data-delete_key_cluster='${apikey["cluster"]}'
             data-delete_key_component='${apikey["component"]}'><img 
               class='delete_api_key' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></a></td>`;
         tbody.appendChild(r);
       }
-      document.getElementById('apikeyDeleteModal').addEventListener("show.bs.modal", function(event) {
-        document.getElementById('apikey-to-delete').innerHTML = event.relatedTarget.dataset.delete_key;
-        document.getElementById('apikey-to-delete-cluster').innerHTML = event.relatedTarget.dataset.delete_key_cluster;
-        document.getElementById('apikey-to-delete-component').innerHTML = event.relatedTarget.dataset.delete_key_component;
-        document.getElementById('delete-api-key').addEventListener('click', function(clickevent) {
+
+      // set up handler for clicking delete
+      // can't use anonymous functions because then the event listeners keep piling up
+      var modalEl = document.getElementById('resourceDeleteModal');
+      function fnDelete(event) {
+        document.getElementById('resourceDeleteTitle').innerHTML = _('DELETE_API_KEY');
+        document.getElementById('resourceDeleteBody').innerHTML = _('DELETE_API_KEY_INFO');
+        document.getElementById('resourceDeleteDetails').innerHTML = `<table>
+            <tr><th>${ _('KEY') }</th><td>${event.relatedTarget.dataset.delete_key}</td></tr>
+            <tr><th>${ _('CLUSTER') }</th><td>${event.relatedTarget.dataset.delete_key_cluster}</td></tr>
+            <tr><th>${ _('COMPONENT') }</th><td>${event.relatedTarget.dataset.delete_key_component}</td></tr>
+          </table>`;
+
+        var deleteButtonEl = document.getElementById('confirm-deletion-button');
+
+        function fnConfirmDelete() {
           delete_api_key(event.relatedTarget.dataset.delete_key);
-          bootstrap.Modal.getInstance(document.getElementById('apikeyDeleteModal')).hide();
-        });
-      });
+          bootstrap.Modal.getInstance(modalEl).hide();
+          deleteButtonEl.removeEventListener('click', fnConfirmDelete);
+        }
+        deleteButtonEl.addEventListener('click', fnConfirmDelete);
+
+        modalEl.removeEventListener('show.bs.modal', fnDelete);
+      }
+      modalEl.addEventListener("show.bs.modal", fnDelete);
     } else {
       r = document.createElement("tr");
       r.innerHTML = "<td colspan=4>There are currently no API keys defined.</td>";
       tbody.appendChild(r);
     }
-
-    /* ---- old jQueryUI stuff ----------------------------------------------
-    // set up confirmation dialog box
-    $("#confirm_delete_api_key").dialog({ autoOpen: false, modal: true });
-    $(".delete_api_key").click(function(e) {
-      $id = e.delegateTarget.id.split(':')[1];
-      $("#delete_api_key").click(function() {
-        delete_api_key($id);
-        load_api_keys();
-      });
-      $("#confirm_delete_api_key").dialog('open');
-      return(false);
-    });
-    ------- old jQueryUI stuff ------------------------------------------- */
   }
 
   window.addEventListener("load", function() {
@@ -175,7 +176,6 @@
       });
       modalForm.onsubmit = function() {
         formdata = get_form_values(modalForm);
-        console.log(formdata);
         create_api_key(formdata['apikey_name'], formdata['component'], formdata['apikey']);
         bootstrap.Modal.getInstance(apikeyModal).hide();
 
@@ -195,7 +195,7 @@
   <div class='modal-dialog modal-dialog-centered modal-lg'>
     <div class='modal-content'>
       <div class='modal-header'>
-        <h5 class='modal-title' id='infoModalTitle' data-i18n='CREATE_API_KEY'>Create API key</h5>
+        <h5 class='modal-title' id='apikeyModalTitle' data-i18n='CREATE_API_KEY'>Create API key</h5>
         <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
       </div>
       <div class='modal-body' id='' data-i18n='CREATE_API_KEY_INFO'>
@@ -235,28 +235,23 @@
 </div>
 
 {# ---------------------------------------------------------------------------
-                                             dialog: confirm delete API key
+                                             dialog: confirm delete resource
 --------------------------------------------------------------------------- #}
 
-<div class='modal fade' id='apikeyDeleteModal' tabindex='-1'> 
+<div class='modal fade' id='resourceDeleteModal' tabindex='-1'> 
   <div class='modal-dialog modal-dialog-centered'>
     <div class='modal-content'>
       <div class='modal-header'>
-        <h5 class='modal-title' id='infoModalTitle' data-i18n='DELETE_API_KEY'>Delete API key</h5>
+        <h5 class='modal-title' id='resourceDeleteTitle' data-i18n='CONFIRM_DELETE'>Confirm deletion</h5>
         <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
       </div>
-      <div class='modal-body' id='' data-i18n='DELETE_API_KEY_INFO'>
+      <div class='modal-body' id='resourceDeleteBody'>
       </div>
-      <div class='modal-body'>
-        <table>
-          <tr><th data-i18n='KEY'></th><td id='apikey-to-delete'></td></tr>
-          <tr><th data-i18n='CLUSTER'></th><td id='apikey-to-delete-cluster'></td></tr>
-          <tr><th data-i18n='COMPONENT'></th><td id='apikey-to-delete-component'></td></tr>
-        </table>
+      <div class='modal-body' id='resourceDeleteDetails'>
       </div>
       <div class='modal-footer'>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
-        <button type="button" class="btn btn-primary" id='delete-api-key' data-i18n='DELETE_API_KEY'>Delete API Key</button>
+        <button type="button" class="btn btn-danger" id='confirm-deletion-button' data-i18n='CONFIRM_DELETE'>Delete</button>
       </div>
     </div>
   </div>
