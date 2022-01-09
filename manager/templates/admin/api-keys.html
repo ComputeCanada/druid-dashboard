@@ -11,7 +11,7 @@
       <th></th>
     </tr>
   </thead>
-  <tbody id='api_keys_tbody'>
+  <tbody id='apikeys_tbody'>
     <tr>
       <td colspan=3>{{ _('LOADING') }}</td>
       <td></td>
@@ -48,7 +48,7 @@
         "component": component
       },
       success: function() {
-        load_api_keys();
+        load_resources("apikeys");
         status_clear(status_id);
         return(true);
       },
@@ -60,88 +60,10 @@
     });
   }
 
-  function delete_api_key(id) {
-    var status_id = status(i18n('DELETING_API_KEY'));
-    $.ajax({
-      url: '/xhr/apikeys/' + id,
-      method: 'DELETE',
-      success: function() {
-        load_api_keys();
-        status_clear(status_id);
-      },
-      error: function() {
-        status_clear(status_id);
-        error(i18n("DELETING_API_KEY_FAILED"));
-      }
-    });
-  }
-
-  function load_api_keys(event, ui) {
-    $.ajax({
-      url: '/xhr/apikeys/',
-      method: 'GET',
-      success: display_api_keys,
-      error: function() { console.error("load_api_keys() AJAX error"); }
-    });
-  }
-
-  function display_api_keys(apikeys, status, jqXHR) {
-
-    // clear out body of table, leaving header and footer intact
-    var tbody = document.getElementById("api_keys_tbody");
-    tbody.innerHTML = "";
-
-    // create row for each API key
-    if (apikeys) {
-      for (apikey of apikeys) {
-        r = document.createElement("tr");
-        r.innerHTML = `
-          <td>${apikey['access']}</td>
-          <td>${apikey['cluster']}</td>
-          <td>${apikey['component']}</td>
-          <td><a href='#' data-bs-toggle='modal' data-bs-target='#resourceDeleteModal'
-            data-delete_key='${apikey["access"]}'
-            data-delete_key_cluster='${apikey["cluster"]}'
-            data-delete_key_component='${apikey["component"]}'><img 
-              class='delete_api_key' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></a></td>`;
-        tbody.appendChild(r);
-      }
-
-      // set up handler for clicking delete
-      // can't use anonymous functions because then the event listeners keep piling up
-      var modalEl = document.getElementById('resourceDeleteModal');
-      function fnDelete(event) {
-        document.getElementById('resourceDeleteTitle').innerHTML = _('DELETE_API_KEY');
-        document.getElementById('resourceDeleteBody').innerHTML = _('DELETE_API_KEY_INFO');
-        document.getElementById('resourceDeleteDetails').innerHTML = `<table>
-            <tr><th>${ _('KEY') }</th><td>${event.relatedTarget.dataset.delete_key}</td></tr>
-            <tr><th>${ _('CLUSTER') }</th><td>${event.relatedTarget.dataset.delete_key_cluster}</td></tr>
-            <tr><th>${ _('COMPONENT') }</th><td>${event.relatedTarget.dataset.delete_key_component}</td></tr>
-          </table>`;
-
-        var deleteButtonEl = document.getElementById('confirm-deletion-button');
-
-        function fnConfirmDelete() {
-          delete_api_key(event.relatedTarget.dataset.delete_key);
-          bootstrap.Modal.getInstance(modalEl).hide();
-          deleteButtonEl.removeEventListener('click', fnConfirmDelete);
-        }
-        deleteButtonEl.addEventListener('click', fnConfirmDelete);
-
-        modalEl.removeEventListener('show.bs.modal', fnDelete);
-      }
-      modalEl.addEventListener("show.bs.modal", fnDelete);
-    } else {
-      r = document.createElement("tr");
-      r.innerHTML = "<td colspan=4>There are currently no API keys defined.</td>";
-      tbody.appendChild(r);
-    }
-  }
-
   window.addEventListener("load", function() {
 
     // load api keys
-    load_api_keys();
+    load_resources("apikeys");
 
     // when showing new key modal, generate new API key
     var apikeyModal = document.getElementById('apikeyModal');
@@ -230,29 +152,6 @@
         <button type="submit" class="btn btn-primary" data-i18n='CREATE_API_KEY'>Create API Key</button>
       </div>
       </form>
-    </div>
-  </div>
-</div>
-
-{# ---------------------------------------------------------------------------
-                                             dialog: confirm delete resource
---------------------------------------------------------------------------- #}
-
-<div class='modal fade' id='resourceDeleteModal' tabindex='-1'> 
-  <div class='modal-dialog modal-dialog-centered'>
-    <div class='modal-content'>
-      <div class='modal-header'>
-        <h5 class='modal-title' id='resourceDeleteTitle' data-i18n='CONFIRM_DELETE'>Confirm deletion</h5>
-        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
-      </div>
-      <div class='modal-body' id='resourceDeleteBody'>
-      </div>
-      <div class='modal-body' id='resourceDeleteDetails'>
-      </div>
-      <div class='modal-footer'>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
-        <button type="button" class="btn btn-danger" id='confirm-deletion-button' data-i18n='CONFIRM_DELETE'>Delete</button>
-      </div>
     </div>
   </div>
 </div>

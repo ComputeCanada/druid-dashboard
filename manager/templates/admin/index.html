@@ -17,33 +17,177 @@
 {% block scriptage %}
   <script>
 
-$(document).ready(function() {
+  "use strict";
 
-  // translate static elements
-  i18n_static();
+  var resource_defns = {
+    "clusters": {
+      "fields": ['id', 'name'],
+    },
+    "components": {
+      "fields": ['id', 'name', 'cluster', 'service'],
+    },
+    "apikeys": {
+      "fields": ['access', 'cluster', 'component']
+    }
+  }
 
-  // create listeners
-  var triggerTabList = [].slice.call(document.querySelectorAll('#admin_tabs button'))
-  triggerTabList.forEach(function (triggerEl) {
-    var tabTrigger = new bootstrap.Tab(triggerEl)
-
-    triggerEl.addEventListener('click', function (event) {
-      event.preventDefault();
-      tabTrigger.show();
-      admin_prefs.setActiveTab(event.target.dataset.pane);
+  function load_resources(type) {
+    var fields = resource_defns[type]['fields'];
+    $.ajax({
+      url: `/xhr/${type}/`,
+      method: 'GET',
+      success: function(resources, status, jqXHR) {
+        return display_resources(type, resources, status, jqXHR);
+      },
+      error: function() { console.error(`load_resources(${type}) AJAX error`); }
     });
+  }
+
+  function delete_resource(type, id) {
+    var status_id = status(i18n('DELETING_API_KEY'));
+    $.ajax({
+      url: `/xhr/${type}/${id}`,
+      method: 'DELETE',
+      success: function() {
+        load_resources(type);
+        status_clear(status_id);
+      },
+      error: function() {
+        status_clear(status_id);
+        error(i18n("DELETING_API_KEY_FAILED"));
+      }
+    });
+  }
+
+
+  function display_delete_modal(event, type, id, delete_fn, title, body, details) {
+    console.log(event);
+    console.log(`In display_delete_modal() with type=${type}, id=${id}, delete_fn=${delete_fn}, title=${title}, body=${body}, details=${details}`);
+    var modalEl = document.getElementById('resourceDeleteModal');
+    var modal = bootstrap.Modal.getInstance(modalEl);
+    document.getElementById('resourceDeleteTitle').innerHTML = title;
+    document.getElementById('resourceDeleteBody').innerHTML = body;
+    document.getElementById('resourceDeleteDetails').innerHTML = details;
+
+    var deleteButtonEl = document.getElementById('confirm-deletion-button');
+
+    function fnConfirmDelete() {
+      delete_fn(type, id);
+      modal.hide();
+      deleteButtonEl.removeEventListener('click', fnConfirmDelete);
+    }
+    deleteButtonEl.addEventListener('click', fnConfirmDelete);
+
+    modal.show();
+  }
+
+  function display_resources(type, resources, status, jqXHR) {
+
+    var fields = resource_defns[type]['fields'];
+
+    // clear out body of table, leaving header and footer intact
+    var tbody = document.getElementById(`${type}_tbody`);
+    tbody.innerHTML = "";
+
+    // create row for each resource
+    if (resources) {
+
+      // this creates the function call to open the display modal with the
+      // correct parameters
+      function create_display_fn(event, type, id, delete_resource, title, body, details) {
+        return function() {
+          display_delete_modal(event, type, id, delete_resource, title, body, details);
+        };
+      }
+
+      for (var resource of resources) {
+        var r = document.createElement("tr");
+        var html = '';
+        var id = resource[fields[0]];
+        for (var idx in fields) {
+          html += `
+            <td>${resource[fields[idx]]}</td>`;
+        }
+        var diid = `delete-resource-${type}-${id}`;
+        r.innerHTML = `
+          ${html}
+          <td><img id='${diid}'
+              class='delete_api_key' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></td>`;
+        tbody.appendChild(r);
+
+        var title, body, details;
+        switch (type) {
+          case "clusters":
+            title = _('DELETE_CLUSTER');
+            body = _('DELETE_CLUSTER_INFO');
+            details = `<table>
+                <tr><th>${ _('ID') }</th><td>${id}</td></tr>
+                <tr><th>${ _('CLUSTER') }</th><td>${resource["name"]}</td></tr>
+              </table>`;
+            break;
+          case "components":
+            title = _('DELETE_COMPONENT');
+            body = _('DELETE_COMPONENT_INFO');
+            details = `<table>
+                <tr><th>${ _('ID') }</th><td>${id}</td></tr>
+                <tr><th>${ _('COMPONENT') }</th><td>${resource["name"]}</td></tr>
+                <tr><th>${ _('CLUSTER') }</th><td>${resource["cluster"]}</td></tr>
+                <tr><th>${ _('SERVICE') }</th><td>${resource["service"]}</td></tr>
+              </table>`;
+            break;
+          case "apikeys":
+            title = _('DELETE_API_KEY');
+            body = _('DELETE_API_KEY_INFO');
+            details = `<table>
+                <tr><th>${ _('KEY') }</th><td>${resource["access"]}</td></tr>
+                <tr><th>${ _('CLUSTER') }</th><td>${resource["cluster"]}</td></tr>
+                <tr><th>${ _('COMPONENT') }</th><td>${resource["component"]}</td></tr>
+              </table>`;
+            break;
+        }
+
+        console.log(`Adding click event handler for el ID ${diid} for resource of type ${type} with id ${id}`);
+        var delete_button = document.getElementById(diid);
+        delete_button.addEventListener('click', create_display_fn(event, type, id, delete_resource, title, body, details));
+        console.log(delete_button);
+      }
+    } else {
+      r = document.createElement("tr");
+      r.innerHTML = `<td colspan=4>There are currently no ${type} resources defined.</td>`;
+      tbody.appendChild(r);
+    }
+  }
+
+  $(document).ready(function() {
+
+    // translate static elements
+    i18n_static();
+
+    // create listeners
+    var triggerTabList = [].slice.call(document.querySelectorAll('#admin_tabs button'))
+    triggerTabList.forEach(function (triggerEl) {
+      var tabTrigger = new bootstrap.Tab(triggerEl)
+
+      triggerEl.addEventListener('click', function (event) {
+        event.preventDefault();
+        tabTrigger.show();
+        admin_prefs.setActiveTab(event.target.dataset.pane);
+      });
+    });
+
+    var activePaneId = admin_prefs.getActiveTab();
+    var activeTabId = `${activePaneId}-tab`;
+    var activeTab = document.getElementById(activeTabId);
+    activeTab.classList.add('active');
+    activeTab.setAttribute('aria-selected', 'true');
+
+    var activePane = document.getElementById(activePaneId);
+    activePane.classList.add('show');
+    activePane.classList.add('active');
+
+    // initialize modals
+    new bootstrap.Modal(document.getElementById('resourceDeleteModal'));
   });
-
-  var activePaneId = admin_prefs.getActiveTab();
-  var activeTabId = `${activePaneId}-tab`;
-  var activeTab = document.getElementById(activeTabId);
-  activeTab.classList.add('active');
-  activeTab.setAttribute('aria-selected', 'true');
-
-  var activePane = document.getElementById(activePaneId);
-  activePane.classList.add('show');
-  activePane.classList.add('active');
-});
   </script>
 
 {% endblock %}
@@ -84,4 +228,26 @@ $(document).ready(function() {
   <div class="tab-pane fade" id="status" role="tabpanel" aria-labelledby="status-tab">{% include 'admin/status.html' %}</div>
 </div>
 
+{# ---------------------------------------------------------------------------
+                                             dialog: confirm delete resource
+--------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='resourceDeleteModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='resourceDeleteTitle' data-i18n='CONFIRM_DELETE'>Confirm deletion</h5>
+        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+      </div>
+      <div class='modal-body' id='resourceDeleteBody'>
+      </div>
+      <div class='modal-body' id='resourceDeleteDetails'>
+      </div>
+      <div class='modal-footer'>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
+        <button type="button" class="btn btn-danger" id='confirm-deletion-button' data-i18n='CONFIRM_DELETE'>Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
