@@ -13,6 +13,8 @@ i18n_strings = {
     "COMPONENT": "Component",
     "SERVICE": "Service",
     "CONFIRM_DELETE": "Confirm deletion",
+    "DETECTOR": "Detector",
+    "ADJUSTOR": "Scheduler",
 
     // status strings
     "LOADING": "Loading...",
@@ -144,15 +146,25 @@ associated with this account, or another recipient as selected.`,
     "DELETING_API_KEY": "Deleting API key...",
     "DELETING_API_KEY_FAILED": "Failed to delete API key",
 
-    // administrative page: deleting cluster
+    // administrative page: managing clusters
+    "CREATE_CLUSTER": "Create cluster",
+    "CREATE_CLUSTER_INFO": '<p>Create a new cluster for case management.  ID should match other references within software systems across the Federation: the "natural" convention is lowercase and without accents, spaces or decoration.</p>',
     "DELETE_CLUSTER": "Delete cluster",
     "DELETE_CLUSTER_INFO": "<p>This operation will fail if there are any components attached to this cluster.</p>",
+    "CREATING_CLUSTER": "Creating cluster...",
+    "CREATING_CLUSTER_FAILED": "Failed to create cluster",
     "DELETING_CLUSTER": "Deleting cluster...",
     "DELETING_CLUSTER_FAILED": "Failed to delete cluster",
 
-    // administrative page: deleting component
-    "DELETE_COMPONENT": "Delete component",
+    // administrative page: managing components
+    "CREATE_COMPONENT": "Create component",
+    "CREATE_COMPONENT_INFO": "<p>Components represent the API client type, such as the Detector which detects and reports problem cases, and the Scheduler which consumes information to effect some scheduling change.</p>",
+    "DELETE_COMPONENT": "Create component",
     "DELETE_COMPONENT_INFO": "<p>This operation will fail if there are any API keys attached to this component.</p>",
+    "CREATING_COMPONENT": "Deleting component...",
+    "CREATING_COMPONENT_FAILED": "Failed to create component",
     "DELETING_COMPONENT": "Deleting component...",
     "DELETING_COMPONENT_FAILED": "Failed to delete component",
+    "SELECT_CLUSTER": "Select cluster",
+    "SELECT_SERVICE": "Select service",
 }
