@@ -12,7 +12,7 @@ from manager.ldap import get_ldap
 from manager.errors import xhr_error, xhr_success
 from manager.otrs import create_ticket, ticket_url
 from manager.apikey import get_apikeys, add_apikey, delete_apikey
-from manager.cluster import Cluster, get_clusters
+from manager.cluster import Cluster, get_clusters, delete_cluster
 from manager.component import get_components, add_component, delete_component
 from manager.template import Template
 from manager.exceptions import ResourceNotFound, BadCall, AppException, LdapException, ResourceNotCreated
@@ -161,7 +161,7 @@ def xhr_add_apikey():
   access = request.form['apikey_name']
   secret = request.form['apikey']
   component = request.form['component']
-  get_log().debug("Adding API key (%s)", access)
+  get_log().info("Adding API key '%s' for %s", access, component)
   try:
     add_apikey(access, secret, component)
   except Exception as e:
@@ -219,6 +219,18 @@ def xhr_create_clusters():
     return xhr_error(400, "Could not create cluster record")
 
   return xhr_success(201)
+
+@bp.route('/clusters/<string:id>', methods=('DELETE',))
+@admin_required
+def xhr_delete_cluster(id):
+
+  get_log().debug("Deleting cluster %s", id)
+  try:
+    delete_cluster(id)
+  except ResourceNotFound as e:
+    return xhr_error(404, "Did not find cluster with ID %s (%s)", id, e)
+
+  return xhr_success(200)
 
 # ---------------------------------------------------------------------------
 #                                                       ROUTES - components
@@ -476,8 +488,3 @@ def xhr_create_ticket():
     'case_id': case_id,
     'url': ticket_url(ticket['ticket_id'])
   }, **ticket))
-
-
-# ---------------------------------------------------------------------------
-#                                               ROUTES - site configuration
-# ---------------------------------------------------------------------------
