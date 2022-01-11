@@ -20,7 +20,7 @@
   </tbody>
   <tfoot>
     <tr>
-      <th colspan=3><a href='#' class='CHANGE' data-bs-toggle='modal' data-bs-target='#CHANGE'>Kreat nu klustor</a></th>
+      <th colspan=3><a href='#' class='CHANGE' data-bs-toggle='modal' data-bs-target='#resourceCreateModal' data-type='clusters'>Kreat nu klustor</a></th>
       <td></td>
     </tr>
   </tfoot>
@@ -46,11 +46,53 @@
   </tbody>
   <tfoot>
     <tr>
-      <th colspan=4><a href='#' class='CHANGE' data-bs-toggle='modal' data-bs-target='#CHANGE'>Kreat nu komponent</a></th>
+      <th colspan=4><a href='#' class='CHANGE' data-bs-toggle='modal' data-bs-target='#resourceCreateModal' data-type='components'>Kreat nu komponent</a></th>
       <td></td>
     </tr>
   </tfoot>
 </table>
+
+<div class='resource-creation' id='cluster-creation'>
+  <table>
+  <tr>
+    <th data-i18n='ID'>ID</th>
+    <td><input id='cluster_id' type='text' maxlength=16 name='cluster_id'
+      required pattern='^[a-z]+$'/></td>
+  </tr><tr>
+    <th data-i18n='NAME'>Name</th>
+    <td><input id='cluster_name' type='text' maxlength=32 name='cluster_name'/></td>
+  </tr>
+  </table>
+</div>
+
+<div class='resource-creation' id='component-creation'>
+  <table>
+  <tr>
+    <th data-i18n='ID'>ID</th>
+    <td><input id='component_id' type='text' maxlength=32 name='component_id'
+      required pattern='^[a-z][a-z0-9_]*$'/></td>
+  </tr><tr>
+    <th data-i18n='CLUSTER'>Cluster</th>
+    <td>
+      <select class='form-select clusters-selection' name='cluster' required>
+        <option selected disabled value='' data-i18n='SELECT_CLUSTER'>Selekt kluster</option>
+      </select>
+    </td>
+  </tr><tr>
+    <th data-i18n='SERVICE'>Service</th>
+    <td>
+      <select class='form-select service-selection' name='service' required>
+        <option selected disabled value='' data-i18n='SELECT_SERVICE'>Selekt service</option>
+        <option value='detector' data-i18n='DETECTOR'>Detector</option>
+        <option value='scheduler' data-i18n='ADJUSTOR'>Scheduling adjustor</option>
+      </select>
+    </td>
+  </tr><tr>
+    <th data-i18n='NAME'>Name</th>
+    <td><input id='component_name' type='text' maxlength=64 name='component_name'/></td>
+  </tr>
+  </table>
+</div>
 
 {# ---------------------------------------------------------------------------
                                                                   scriptage
@@ -67,54 +109,3 @@
   });
 </script>
 
-{# ---------------------------------------------------------------------------
-                                                     dialog: create resource
---------------------------------------------------------------------------- #}
-
-<div class='modal fade' id='createResourceModal' tabindex='-1'> 
-  <div class='modal-dialog modal-dialog-centered modal-lg'>
-    <div class='modal-content'>
-      <div class='modal-header'>
-        <h5 class='modal-title' id='infoModalTitle' data-i18n='CREATE_RESOURCE'>Kreat resource</h5>
-        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
-      </div>
-      <div class='modal-body' id='' data-i18n='CREATE_RESOURCE_INFO'>
-      </div>
-      <form class='modal-form' id='create_resource_form'>
-      <div class='modal-body'>
-        <table>
-        <tr>
-        </tr>
-        </table>
-      </div>
-      <div class='modal-footer'>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
-        <button type="submit" class="btn btn-primary" data-i18n='CREATE_RESOURCE'>Kreat resource</button>
-      </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-{# ---------------------------------------------------------------------------
-                                             dialog: confirm delete resource
---------------------------------------------------------------------------- #}
-
-<div class='modal fade' id='deleteResourceModal' tabindex='-1'> 
-  <div class='modal-dialog modal-dialog-centered'>
-    <div class='modal-content'>
-      <div class='modal-header'>
-        <h5 class='modal-title' id='deleteResourceModalTitle' data-i18n='DELETE_RESOURCE'>Delete some resource</h5>
-        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
-      </div>
-      <div class='modal-body' id='delete-resource-info' data-i18n='DELETE_RESOURCE_INFO'>
-      </div>
-      <div class='modal-body' id='delete-resource-details'>
-      </div>
-      <div class='modal-footer'>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
-        <button type="button" class="btn btn-primary" id='delete-resource-submit' data-i18n='DELETE_RESOURCE'>Delete resource</button>
-      </div>
-    </div>
-  </div>
-</div>
