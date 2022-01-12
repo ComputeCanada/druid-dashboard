@@ -73,7 +73,7 @@ class AppServer(threading.Thread):
 # were handled in the same test setup module
 test_params = [{
   'schema': 'schema.sql',
-  'seed': '../tests/data.sql',
+  'seed': '../tests/selenium-seed.sql',
   'delete_afterwards': True,
 }]
 test_ids = ['sqlite']
@@ -155,7 +155,7 @@ def test_access_denied(anon):
 def test_status(anon):
   anon.get(app_url + '/status')
   print(anon.page_source)
-  assert "I'm okay" in anon.page_source
+  assert "I'm: Okay" in anon.page_source
 
 def test_analyst_login_initial(analyst):
   analyst.get(app_url)
@@ -217,7 +217,8 @@ def test_actionmenu_button(analyst):
         request.response.status_code,
         request.response.headers['Content-Type']
       )
-  #analyst.get_screenshot_as_file('screenshot.png')
+  sleep(0.5)
+  analyst.get_screenshot_as_file('screenshot.png')
 
   action_button = analyst.find_element_by_id('actionMenuButton_4')
   action_button.click()
