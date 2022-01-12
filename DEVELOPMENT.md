@@ -256,6 +256,11 @@ Translation strings may include variables, denoted `$1`, `$2`, etc.  Calls to
 appear in any order to support idioms of the supported language.  Of course,
 `i18n_static()` cannot handle variables.
 
+**Note**: A nosy user with basic web developer skills could find the list of
+strings and from these learn about some functions for which they might not
+otherwise have access.  This is probably not an issue, but any sensitive
+strings would best be left handled by the server.
+
 ## Authentication and application credentials
 
 Authentication in this app assumes it is running behind a reverse proxy which
