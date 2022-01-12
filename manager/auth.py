@@ -80,7 +80,10 @@ def login_required(view):
       session['admin'] = False
       session['analyst'] = False
       if authz.entitlements:
-        print(f"Entitlements: {authz.entitlements}")
+        # This is necessary here because Pylint recognizes that entitlements
+        # might be `None`, but does not recognize that this was tested for
+        # already.  Not sure of a more Pythonic way of doing this.
+        # pylint: disable=unsupported-membership-test
         session['admin'] = 'admin' in authz.entitlements
         session['analyst'] = 'analyst' in authz.entitlements
       session['admin_view'] = session['admin']
