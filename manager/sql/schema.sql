@@ -3,14 +3,14 @@ DROP TABLE IF EXISTS apikeys;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS components;
 DROP TABLE IF EXISTS bursts;
-DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS notifiers;
-DROP TABLE IF EXISTS templates;
 DROP TABLE IF EXISTS oldjobs;
-DROP TABLE IF EXISTS reportables;
 DROP TABLE IF EXISTS history;
+DROP TABLE IF EXISTS reportables;
+DROP TABLE IF EXISTS clusters;
 DROP TABLE IF EXISTS templates_content;
 DROP TABLE IF EXISTS appropriate_templates;
+DROP TABLE IF EXISTS templates;
 
 CREATE TABLE schemalog (
   version VARCHAR(10) PRIMARY KEY,

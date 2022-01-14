@@ -61,8 +61,8 @@ defaults = {
   'OTRS_PASSWORD': '',
   'OTRS_QUEUE': 'Test',
   'OTRS_TICKET_STATE': 'new',
-  'BURSTS_GRAPHS_CUMULATIVE_URI': 'https://localhost/plots/{cluster}/{account}_{resource}_cumulative.html',
-  'BURSTS_GRAPHS_INSTANT_URI': 'https://localhost/plots/{cluster}/{account}_{resource}_instant.html'
+  'BURSTS_USAGE_URI': 'https://localhost/plots/{cluster}/{account}_{resource}.html',
+  'DOCUMENTATION_URI': '#document_link_define'
 }
 
 # optional that may appear in environment or configuration
@@ -77,6 +77,7 @@ def inject_custom_vars():
     title=current_app.config['APPLICATION_TITLE'],
     css_override=current_app.config['APPLICATION_CSS_OVERRIDE'],
     resources_uri=current_app.config['STATIC_RESOURCE_URI'],
+    documentation_uri=current_app.config['DOCUMENTATION_URI'],
     version=version.version,
     language=i18n.get_locale()
   )

@@ -2,7 +2,6 @@
                                                                       html
 -------------------------------------------------------------------------- #}
 
-<h3>API keys</h3>
 <table id='api_keys' class='admin'>
   <thead>
     <tr>
@@ -12,16 +11,16 @@
       <th></th>
     </tr>
   </thead>
-  <tbody id='api_keys_tbody'>
+  <tbody id='apikeys_tbody'>
     <tr>
-      <td colspan=3>Loading (probably)...</td>
+      <td colspan=3>{{ _('LOADING') }}</td>
       <td></td>
     </tr>
   </tbody>
   <tfoot>
     <tr>
-      <th colspan=3><a href='' class='add_api_key'>Create new API key</a></th>
-      <td><a href=''><img class='add_api_key' src='{{ url_for('static', filename='icons/add.svg') }}' height=24 width=24/></a></td>
+      <th colspan=3><a href='#' class='add_api_key' data-bs-toggle='modal' data-bs-target='#apikeyModal' data-i18n='CREATE_API_KEY'>Create new API key</a></th>
+      <td></td>
     </tr>
   </tfoot>
 </table>
@@ -32,139 +31,81 @@
 
 <script>
 
-  function add_api_key() {
-    // clear fields as necessary
-    $("#apikey_name").val('');
-
-    // create new API key
-    let newkey = generate_api_key();
-    $("#apikey").val(newkey);
+  function trigger_create_api_key(form, modal) {
+    formdata = get_form_values(form);
+    create_api_key(formdata['apikey_name'], 'MAKE_UP_A_COMPONENT', formdata['apikey']);
+    bootstrap.Modal.getInstance(modal).hide();
   }
 
-  function copy_to_clipboard(el) {
-    el.focus();
-    el.select();
-    try {
-      let successful = document.execCommand('copy');
-      let msg = successful ? 'successful' : 'unsuccessful';
-      console.log('Copying text command was ' + msg);
-    } catch (err) {
-      console.log('Ooops, unable to copy');
-    }
-  }
-
-  function submit_api_key(form) {
-    let formdata = get_form_values(form);
-
-    url = '/xhr/apikeys/';
+  function create_api_key(name, component, secret) {
+    var status_id = status(i18n('CREATING_API_KEY'));
     $.ajax({
-      url: url,
+      url: '/xhr/apikeys/',
       method: 'POST',
-      data: formdata,
+      data: {
+        "apikey": secret,
+        "apikey_name": name,
+        "component": component
+      },
       success: function() {
-        load_api_keys();
+        load_resources("apikeys");
+        status_clear(status_id);
         return(true);
       },
       error: function() { 
-        // TODO: flash error
-        console.error("Failure on submit");
+        status_clear(status_id);
+        error(i18n("CREATING_API_KEY_FAILED"));
         return(false);
       }
     });
   }
 
-  function delete_api_key(id) {
-    $.ajax({
-      url: '/xhr/apikeys/' + id,
-      method: 'DELETE',
-      success: function() {
-      },
-      error: function() {
-        // TODO: flash error
-        console.error("Failure on delete");
-      }
-    });
-    $("#confirm_delete_api_key").dialog('close');
-  }
-
-  function load_api_keys(event, ui) {
-    $.ajax({
-      url: '/xhr/apikeys/',
-      method: 'GET',
-      success: display_api_keys,
-      error: function() { console.error("load_api_keys() AJAX error"); }
-    });
-  }
-
-  function display_api_keys(apikeys, status, jqXHR) {
-
-    // clear out body of table, leaving header and footer intact
-    var tbody = document.getElementById("api_keys_tbody");
-    tbody.innerHTML = "";
-
-    // create row for each API key
-    if (apikeys) {
-      for (apikey of apikeys) {
-        r = document.createElement("tr");
-        r.innerHTML = `
-          <td>${apikey['access']}</td>
-          <td>${apikey['cluster']}</td>
-          <td>${apikey['component']}</td>
-          <td><img class='delete_api_key' id='delete:${apikey["access"]}' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></td>`;
-        tbody.appendChild(r);
-      }
-    } else {
-      r = document.createElement("tr");
-      r.innerHTML = "<td colspan=4>There are currently no API keys defined.</td>";
-      tbody.appendChild(r);
-    }
-
-    // set up confirmation dialog box
-    $("#confirm_delete_api_key").dialog({ autoOpen: false, modal: true });
-    $(".delete_api_key").click(function(e) {
-      $id = e.delegateTarget.id.split(':')[1];
-      $("#delete_api_key").click(function() {
-        delete_api_key($id);
-        load_api_keys();
-      });
-      $("#confirm_delete_api_key").dialog('open');
-      return(false);
-    });
-  }
-
   window.addEventListener("load", function() {
 
-    // set up auction submission/update dialog box
-    $("#create_api_key").dialog({
-      autoOpen: false,
-      modal: true,
-      width: 'auto',
-      buttons: {
-        "{{ _('Cancel') }}": function() {
-          $(this).dialog('close');
-        },
-        "{{ _('Submit') }}": function() {
-          // check validity
-          if (!$("#create_api_key_form")[0].reportValidity()) {
-            return false;
+    // load api keys
+    load_resources("apikeys");
+
+    // when showing new key modal, generate new API key
+    var apikeyModal = document.getElementById('apikeyModal');
+    apikeyModal.addEventListener("show.bs.modal", function(event) {
+      // reset form
+      var modalForm = apikeyModal.querySelector('#create_api_key_form');
+      modalForm.reset();
+
+      // populate key
+      document.getElementById('apikey').value = generate_api_key();
+
+      // populate components selector
+      var status_id = status(i18n("RETRIEVING_COMPONENTS"));
+      var componentsSel = $('#components-selection');
+      componentsSel.empty();
+      componentsSel.append(`<option selected disabled value=''>${i18n('SELECT_COMPONENT')}</option>`);
+      $.ajax({
+        url: '/xhr/components/',
+        method: 'GET',
+        success: function(components, status, jqXHR) {
+          if (components) {
+            for (component of components) {
+              componentsSel.append(`<option value=${component['id']}>${component['name']} (${component['cluster']})</option>`);
+            }
           }
-          submit_api_key($("#create_api_key_form")[0]);
-          $(this).dialog('close');
+          status_clear(status_id);
+        },
+        error: function() {
+          status_clear(status_id);
+          error(i18n("RETRIEVING_COMPONENTS_FAILED"));
         }
-      },
-      open: function(event, ui) {
-      }
+      });
+      modalForm.onsubmit = function() {
+        formdata = get_form_values(modalForm);
+        create_api_key(formdata['apikey_name'], formdata['component'], formdata['apikey']);
+        bootstrap.Modal.getInstance(apikeyModal).hide();
+
+        // return false so we don't refresh page
+        return false;
+      };
     });
 
-    $(".add_api_key").click(function(e) {
-      console.log("Here in add_api_key");
-      add_api_key();
-      $("#create_api_key").dialog('open');
-      return(false);
-    });
-
-    // now load those keys
-    load_api_keys();
   });
 </script>
 
@@ -172,32 +113,45 @@
                                                      dialog: create API key
 --------------------------------------------------------------------------- #}
 
-<div id='create_api_key' title='{{ _('Create API key') }}' class='ondemand'>
-  <form id='create_api_key_form'>
-  <table>
-  <thead>
-  <p>{{ _('Here is a newly generated API key.  Please give it a name and copy it down as it cannot be retrieved later.') }}</p>
-  </thead>
-  <tr>
-    <th>Name</th>
-    <td><input id='apikey_name' type='text' maxlength=16 name='apikey_name' required pattern='^[a-zA-Z0-9_]+$'/> (Must match '^[a-zA-Z0-9_]+$'.)</td>
-  </tr>
-  <tr>
-    <th>Key</th>
-    <td><input id='apikey' type='text' size='64' readonly name='apikey'/>
-        <img src='{{ url_for('static', filename='icons/clipboard.svg') }}' height=24 width=24 onclick='copy_to_clipboard($("#apikey")[0])'/>
-    </td>
-  </tr>
-  </table>
-  </form>
-</div>
-
-{# ---------------------------------------------------------------------------
-                                             dialog: confirm delete API key
---------------------------------------------------------------------------- #}
-
-<div id='confirm_delete_api_key' title='{{ _('Confirm delete API key') }}' class='ondemand'>
-  <p>{{ _('Are you sure you want to delete this API key?') }}</p>
-  <input type='button' onclick='$("#confirm_delete_api_key").dialog("close")' value='{{ _('No, leave it') }}'/>
-  <input type='button' id='delete_api_key' onclick='' name='action' value='{{ _('Yes, delete key') }}'/>
+<div class='modal fade' id='apikeyModal' tabindex='-1'> 
+  <div class='modal-dialog modal-dialog-centered modal-lg'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='apikeyModalTitle' data-i18n='CREATE_API_KEY'>Create API key</h5>
+        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+      </div>
+      <div class='modal-body' id='' data-i18n='CREATE_API_KEY_INFO'>
+      </div>
+      <form class='modal-form' id='create_api_key_form'>
+      <div class='modal-body' id='api-key'>
+        <table>
+        <tr>
+          <th data-i18n='NAME'>Name</th>
+          <td><input
+            id='apikey_name' type='text' maxlength=16 name='apikey_name'
+            required pattern='^[a-zA-Z0-9_]+$'
+          /> <span data-i18n='APIKEY_NAME_FORMAT'></span></td>
+        </tr><tr>
+          <th><label for='recipient' data-i18n='COMPONENT'>Component</label></th>
+          <td>
+            <select class='form-select' id='components-selection' name='component' required>
+              <option selected disabled value='' data-i18n='SELECT_COMPONENT'>Selekt komponent</option>
+            </select>
+          </td>
+        </tr><tr>
+          <th data-i18n='KEY'>Key</th>
+          <td><input id='apikey' type='text' size='64' readonly name='apikey'
+              style='font-size:smaller;font-family:monospace'/>
+            <img src='{{ url_for('static', filename='icons/clipboard.svg') }}'
+            height=24 width=24 onclick='copy_to_clipboard($("#apikey")[0])'/></td>
+        </tr>
+        </table>
+      </div>
+      <div class='modal-footer'>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
+        <button type="submit" class="btn btn-primary" data-i18n='CREATE_API_KEY'>Create API Key</button>
+      </div>
+      </form>
+    </div>
+  </div>
 </div>

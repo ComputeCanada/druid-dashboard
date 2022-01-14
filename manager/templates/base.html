@@ -64,7 +64,8 @@
 {% block confirm %}{% endblock %}
 <nav>
   <a href="javascript:showAbout()" style="padding-left:0.5rem">Druid</a>
-  <img src="{{ url_for('static', filename='druid_bw.png') }}" width=40px style="margin-left: 10px; margin-top:-10px"/>
+  <img src="{{ url_for('static', filename='druid_bw.png') }}" width=40px style="margin-left: 10px; margin-right: 10px; margin-top:-10px"/>
+  {% block subtitle %}{% endblock %}
   <ul>
     <li>{%- if session['givenName'] %}
       {{ _('Hello,')}} {{ session['givenName'] }}
@@ -79,7 +80,7 @@
       {%- endif %}
     {%- endif %}</li>
     <li><a href="javascript:showAbout()">{{ _("About") }}</a></li>
-    <li><a target="documentation" href="#documentation">{{ _("Documentation") }}</a></li>
+    <li><a target="documentation" href="{{ documentation_uri }}">{{ _("Documentation") }}</a></li>
   </ul>
 </nav>
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -102,6 +103,55 @@
     :)
   </footer>
 </section>
+{# --------------------------------------------------------------------------
+                                                                 INFO MODAL
+-------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='infoModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='infoModalTitle'></h5>
+        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+      </div>
+      <div class='modal-body' id='infoModalBody'>
+      </div>
+      <div class='modal-footer'>
+        <button id='info_mkay' type='button' class='btn btn-primary' data-bs-dismiss='modal' data-i18n='OKAY'>Mkay</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showAbout() {
+  var title = i18n("ABOUT");
+  var body = i18n("ABOUT_CONTENT");
+  var version = `<p>${ i18n("VERSION", "{{ version }}") }</p>`;
+
+  // set title
+  var modalTitleEl = document.getElementById('infoModalTitle');
+  modalTitleEl.innerHTML = title;
+
+  // set content
+  var modalBodyEl = document.getElementById('infoModalBody');
+  modalBodyEl.innerHTML = body + version;
+
+  // show modal
+  var modalEl = document.getElementById('infoModal');
+  var modal = bootstrap.Modal.getInstance(modalEl);
+  modal.show();
+}
+
+$(document).ready(function() {
+
+  // create Bootstrap object around it
+  var infoModalEl = document.getElementById('infoModal');
+  var infoModal = new bootstrap.Modal(infoModalEl);
+});
+
+</script>
 {% block scriptage %}{% endblock %}
+
 </body>
 </html>

@@ -326,26 +326,6 @@ function showCaseHistory(caseID) {
 }
 
 
-function showAbout() {
-  var title = i18n("ABOUT");
-  var body = i18n("ABOUT_CONTENT");
-  var version = `<p>${ i18n("VERSION", "{{ version }}") }</p>`;
-
-  // set title
-  var modalTitleEl = document.getElementById('infoModalTitle');
-  modalTitleEl.innerHTML = title;
-
-  // set content
-  var modalBodyEl = document.getElementById('infoModalBody');
-  modalBodyEl.innerHTML = body + version;
-
-  // show modal
-  var modalEl = document.getElementById('infoModal');
-  var modal = bootstrap.Modal.getInstance(modalEl);
-  modal.show();
-}
-
-
 function jsonToTable(json) {
   var summary = JSON.parse(json);
   var summaryHTML = '';
@@ -643,16 +623,19 @@ $(document).ready(function() {
 
       // clear body
       var modalBodyEl = document.getElementById('infoModalBody');
-      modalBodyEl.innerHTML = `<p><i>${ i18n("LOADING_HISTORY") }</i></p>`;
 
-      // update modal
-      showCaseHistory(case_id);
+      // determine content
+      var action = button.getAttribute('data-action');
+      switch (action) {
+        case "history":
+          modalBodyEl.innerHTML = `<p><i>${ i18n("LOADING_HISTORY") }</i></p>`;
+          showCaseHistory(case_id);
+          break;
+        default:
+          modalBodyEl.innerHTML = `<p><i>Huh</i></p>`;
+      }
     }
   });
-
-  // create Bootstrap object around it
-  var infoModal = new bootstrap.Modal(infoModalEl);
-
 });
   </script>
 {% endblock %}
@@ -788,26 +771,6 @@ a note.
           <button type='submit' class='btn btn-primary' id='noteModalSubmit' data-i18n='Create note'>Do it</button>
         </div>
       </form>
-    </div>
-  </div>
-</div>
-
-{# --------------------------------------------------------------------------
-                                                                 INFO MODAL
--------------------------------------------------------------------------- #}
-
-<div class='modal fade' id='infoModal' tabindex='-1'>
-  <div class='modal-dialog modal-dialog-centered'>
-    <div class='modal-content'>
-      <div class='modal-header'>
-        <h5 class='modal-title' id='infoModalTitle'></h5>
-        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
-      </div>
-      <div class='modal-body' id='infoModalBody'>
-      </div>
-      <div class='modal-footer'>
-        <button id='info_mkay' type='button' class='btn btn-primary' data-bs-dismiss='modal' data-i18n='OKAY'>Mkay</button>
-      </div>
     </div>
   </div>
 </div>

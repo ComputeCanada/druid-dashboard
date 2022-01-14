@@ -60,7 +60,7 @@ def test_get_cases_xhr(client):
           'ticket_id': None,
           'ticket_no': None,
           'ticks': 1,
-          'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_instant.html">Instant</a>'
+          'usage_pretty': "<a target='beamplot' href='https://localhost/plots/testcluster/def-pi1_cpu.html'>Dash.cc</a>"
         },
       ]
     },
@@ -151,7 +151,7 @@ class TestCaseUpdates:
             'ticket_id': None,
             'ticket_no': None,
             'ticks': 1,
-            'usage_pretty': '<a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_cumulative.html">Cumulative</a>\n    <br/>\n    <a target="beamplot" href="https://localhost/plots/testcluster/def-pi1_cpu_instant.html">Instant</a>'
+            'usage_pretty': "<a target='beamplot' href='https://localhost/plots/testcluster/def-pi1_cpu.html'>Dash.cc</a>"
           },
         ]
       },

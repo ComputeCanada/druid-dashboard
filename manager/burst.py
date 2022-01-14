@@ -69,13 +69,9 @@ SQL_GET_BURSTERS = '''
 # ---------------------------------------------------------------------------
 
 def make_graphs_links(cluster, account, resource):
-  cumulative_base = current_app.config['BURSTS_GRAPHS_CUMULATIVE_URI']
-  cumulative = cumulative_base.format(cluster=cluster, account=account, resource=resource)
-  instant_base = current_app.config['BURSTS_GRAPHS_INSTANT_URI']
-  instant = instant_base.format(cluster=cluster, account=account, resource=resource)
-  return f'''<a target="beamplot" href="{cumulative}">{_("Cumulative")}</a>
-    <br/>
-    <a target="beamplot" href="{instant}">{_("Instant")}</a>'''
+  graphs_base = current_app.config['BURSTS_USAGE_URI']
+  graphs_uri = graphs_base.format(cluster=cluster, account=account, resource=resource)
+  return f"<a target='beamplot' href='{graphs_uri}'>{_('Dash.cc')}</a>"
 
 # ---------------------------------------------------------------------------
 #                                                               burst class

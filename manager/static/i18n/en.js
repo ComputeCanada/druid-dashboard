@@ -1,11 +1,24 @@
 i18n_strings = {
     // basic reusable stuff
+    "ID": "ID",
     "CANCEL": "Cancel",
     "SUBMIT": "Submit",
     "REVERT": "Revert",
     "TITLE": "Title",
     "BODY": "Body",
     "OKAY": "Okay",
+    "NAME": "Name",
+    "KEY": "Key",
+    "CLUSTER": "Cluster",
+    "COMPONENT": "Component",
+    "SERVICE": "Service",
+    "CONFIRM_DELETE": "Confirm deletion",
+    "DETECTOR": "Detector",
+    "ADJUSTOR": "Scheduler",
+
+    // status strings
+    "LOADING": "Loading...",
+    "NEVER_CHECKED_IN": "Never used",
 
     // used for accordion headers, like "Bursts candidates - reported 2021-11-22 03:42 a.m."
     "REPORT_HEADER": "$1 - reported $2",
@@ -118,4 +131,40 @@ associated with this account, or another recipient as selected.`,
     "ACTION": "Action",
     // ex. Claimed by Drew (2021-04-21 08:09 a.m.)
     "EVENT_HEADER": "$1 by $2 ($3)",
+
+    // administrative page: creating API key
+    "CREATE_API_KEY": "Create API key",
+    "CREATE_API_KEY_INFO": "<p>This is a freshly generated API key.  Once named and created, it can be used to access the Druid Manager's API.</p><p>Keep it somewhere safe&mdash;the key is not recoverable.</p>",
+    "APIKEY_NAME_FORMAT": "Letters, digits and underscores only.",
+    "CREATING_API_KEY": "Creating API key...",
+    "CREATING_API_KEY_FAILED": "Unable to create API key",
+    "SELECT_COMPONENT": "Select component for this API key",
+
+    // administrative page: deleting API key
+    "DELETE_API_KEY": "Delete API key",
+    "DELETE_API_KEY_INFO": "<p>Once this key is deleted it cannot be recovered.  Any detectors or other API clients using this key will need to be retired or configured to use a new key.</p>",
+    "DELETING_API_KEY": "Deleting API key...",
+    "DELETING_API_KEY_FAILED": "Failed to delete API key",
+
+    // administrative page: managing clusters
+    "CREATE_CLUSTER": "Create cluster",
+    "CREATE_CLUSTER_INFO": '<p>Create a new cluster for case management.  ID should match other references within software systems across the Federation: the "natural" convention is lowercase and without accents, spaces or decoration.</p>',
+    "DELETE_CLUSTER": "Delete cluster",
+    "DELETE_CLUSTER_INFO": "<p>This operation will fail if there are any components attached to this cluster.</p>",
+    "CREATING_CLUSTER": "Creating cluster...",
+    "CREATING_CLUSTER_FAILED": "Failed to create cluster",
+    "DELETING_CLUSTER": "Deleting cluster...",
+    "DELETING_CLUSTER_FAILED": "Failed to delete cluster",
+
+    // administrative page: managing components
+    "CREATE_COMPONENT": "Create component",
+    "CREATE_COMPONENT_INFO": "<p>Components represent the API client type, such as the Detector which detects and reports problem cases, and the Scheduler which consumes information to effect some scheduling change.</p>",
+    "DELETE_COMPONENT": "Create component",
+    "DELETE_COMPONENT_INFO": "<p>This operation will fail if there are any API keys attached to this component.</p>",
+    "CREATING_COMPONENT": "Deleting component...",
+    "CREATING_COMPONENT_FAILED": "Failed to create component",
+    "DELETING_COMPONENT": "Deleting component...",
+    "DELETING_COMPONENT_FAILED": "Failed to delete component",
+    "SELECT_CLUSTER": "Select cluster",
+    "SELECT_SERVICE": "Select service",
 }

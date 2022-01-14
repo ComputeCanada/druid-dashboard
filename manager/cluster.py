@@ -25,6 +25,11 @@ SQL_GET_ALL = '''
   FROM    clusters
 '''
 
+SQL_DELETE = '''
+  DELETE FROM clusters
+  WHERE       id = ?
+'''
+
 # ---------------------------------------------------------------------------
 #                                                             helpers
 # ---------------------------------------------------------------------------
@@ -36,6 +41,13 @@ def get_clusters():
   return [
     Cluster(rec=row) for row in res
   ]
+
+def delete_cluster(id):
+  db = get_db()
+  res = db.execute(SQL_DELETE, (id,))
+  if res.rowcount != 1:
+    raise ResourceNotFound("Could not find cluster with ID %s" % (id,))
+  db.commit()
 
 # ---------------------------------------------------------------------------
 #                                                             cluster class

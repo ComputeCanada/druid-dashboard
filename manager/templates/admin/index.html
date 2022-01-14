@@ -1,101 +1,415 @@
 {% extends 'base.html' %}
+
+{# --------------------------------------------------------------------------
+                                                              EXTRA CSS, JS
+-------------------------------------------------------------------------- #}
+
 {% block extra %}
   <script src="{{ url_for('static', filename='misc.js') }}"></script>
-
+  <script src="{{ url_for('static', filename='alerts.js') }}"></script>
+  <script src="{{ url_for('static', filename='admin_prefs.js') }}"></script>
 {% endblock %}
+
+{# --------------------------------------------------------------------------
+                                                                  SCRIPTAGE
+-------------------------------------------------------------------------- #}
 
 {% block scriptage %}
   <script>
-    var active_tab = Cookies.get("active-tab");
-    if (!active_tab) {
-      active_tab = 0;
+
+  "use strict";
+
+  var resource_defns = {
+    "clusters": {
+      "fields": ['id', 'name'],
+      "msg_deleting": _('DELETING_CLUSTER'),
+      "msg_deleting_failed": _('DELETING_CLUSTER_FAILED'),
+    },
+    "components": {
+      "fields": ['id', 'name', 'cluster', 'service'],
+      "msg_deleting": _('DELETING_COMPONENT'),
+      "msg_deleting_failed": _('DELETING_COMPONENT_FAILED'),
+    },
+    "apikeys": {
+      "fields": ['access', 'cluster', 'component'],
+      "msg_deleting": _('DELETING_API_KEY'),
+      "msg_deleting_failed": _('DELETING_API_KEY_FAILED'),
     }
+  }
 
-    function refresh_authz() {
-      // TODO: implement refresh_authz()
-      console.log("Unimplemented function: refresh_authz()");
+  function load_resources(type) {
+    var fields = resource_defns[type]['fields'];
+    $.ajax({
+      url: `/xhr/${type}/`,
+      method: 'GET',
+      success: function(resources, status, jqXHR) {
+        return display_resources(type, resources, status, jqXHR);
+      },
+      error: function() { console.error(`load_resources(${type}) AJAX error`); }
+    });
+  }
+
+  function delete_resource(type, id) {
+    var status_id = status(resource_defns[type]['msg_deleting']);
+    $.ajax({
+      url: `/xhr/${type}/${id}`,
+      method: 'DELETE',
+      success: function() {
+        load_resources(type);
+        status_clear(status_id);
+      },
+      error: function() {
+        status_clear(status_id);
+        error(resource_defns[type]['msg_deleting_failed']);
+      }
+    });
+  }
+
+  function display_delete_modal(event, type, id, delete_fn, title, body, details) {
+    var modalEl = document.getElementById('resourceDeleteModal');
+    var modal = bootstrap.Modal.getInstance(modalEl);
+    document.getElementById('resourceDeleteTitle').innerHTML = title;
+    document.getElementById('resourceDeleteBody').innerHTML = body;
+    document.getElementById('resourceDeleteDetails').innerHTML = details;
+
+    var deleteButtonEl = document.getElementById('confirm-deletion-button');
+
+    function fnConfirmDelete() {
+      delete_fn(type, id);
+      modal.hide();
+      deleteButtonEl.removeEventListener('click', fnConfirmDelete);
     }
+    deleteButtonEl.addEventListener('click', fnConfirmDelete);
 
-    function refresh_api_keys() {
-      // TODO: implement refresh_api_keys()
-      console.log("Unimplemented function: refresh_api_keys()");
-    }
+    modal.show();
+  }
 
-    function refresh_configuriation() {
-      // TODO: implement refresh_configuriation()
-      console.log("Unimplemented function: refresh_configuration()");
-    }
-
-    function refresh_status() {
-      // TODO: implement refresh_status()
-      console.log("Unimplemented function: refresh_status()");
-    }
-
-    // functions to execute when activating tabs
-    // TODO: create actual functions
-    var tab_activation_fns = [
-      refresh_authz,
-      refresh_api_keys,
-      refresh_configuriation,
-      refresh_status
-    ];
-
-    // initialize tabs
-    $("#tabs").tabs({
-      active: active_tab,
-      activate: function (event, ui) {
-        active_tab = ui.newTab.index();
-        Cookies.set("active-tab", active_tab);
-        if (tab_activation_fns[active_tab]) {
-          tab_activation_fns[active_tab]();
+  function init_create_modal_component() {
+    // populate cluster selection box
+    var status_id = status(i18n("RETRIEVING_CLUSTERS"));
+    var clustersSel = $('.clusters-selection');
+    clustersSel.empty();
+    clustersSel.append(`<option selected disabled value=''>${i18n('SELECT_CLUSTER')}</option>`);
+    $.ajax({
+      url: '/xhr/clusters/',
+      method: 'GET',
+      success: function(clusters, status, jqXHR) {
+        if (clusters) {
+          for (var cluster of clusters) {
+            clustersSel.append(`<option value=${cluster['id']}>${cluster['name']}</option>`);
+          }
         }
+        status_clear(status_id);
+      },
+      error: function() {
+        status_clear(status_id);
+        error(i18n("RETRIEVING_CLUSTERS_FAILED"));
       }
     });
+  }
 
-    // for when document is ready
-    window.addEventListener("load", function() {
+  function from_modal_create_cluster() {
+    var formdata = get_form_values(document.getElementById('resourceCreateForm'));
+    return create_cluster(formdata['cluster_id'], formdata['cluster_name']);
+  }
 
-      // tabs only "activate" when clicked on: the first loaded tab does not
-      // fire this event, so fire any tab activation function for default tab
-      // on load
-      if (tab_activation_fns[active_tab]) {
-        tab_activation_fns[active_tab]();
+  function create_cluster(id, name) {
+    alert('In create_cluster()');
+    var status_id = status(i18n('CREATING_CLUSTER'));
+    $.ajax({
+      url: '/xhr/clusters/',
+      method: 'POST',
+      data: {
+        "id": id,
+        "name": name
+      },
+      success: function() {
+        load_resources("clusters");
+        status_clear(status_id);
+        return(true);
+      },
+      error: function() {
+        status_clear(status_id);
+        error(i18n("CREATING_CLUSTER_FAILED"));
+        return(false);
       }
     });
+  }
 
+  function from_modal_create_component() {
+    var formdata = get_form_values(document.getElementById('resourceCreateForm'));
+    create_component(formdata['component_id'], formdata['component_name'], formdata['cluster'], formdata['service']);
+  }
+
+  function create_component(id, name, cluster, service) {
+    var status_id = status(i18n('CREATING_COMPONENT'));
+    $.ajax({
+      url: '/xhr/components/',
+      method: 'POST',
+      data: {
+        "id": id,
+        "cluster": cluster,
+        "service": service,
+        "name": name
+      },
+      success: function() {
+        load_resources("components");
+        status_clear(status_id);
+        return(true);
+      },
+      error: function() {
+        status_clear(status_id);
+        error(i18n("CREATING_COMPONENT_FAILED"));
+        return(false);
+      }
+    });
+  }
+
+
+  function display_create_modal(type) {
+    // this could also be in resource_defns
+    var title, body, form, populate_fn, create_fn;
+    switch (type) {
+      case "clusters":
+        title = i18n("CREATE_CLUSTER");
+        body = i18n("CREATE_CLUSTER_INFO");
+        form = 'cluster-creation';
+        create_fn = from_modal_create_cluster;
+        break;
+      case "components":
+        title = i18n("CREATE_COMPONENT");
+        body = i18n("CREATE_COMPONENT_INFO");
+        form = 'component-creation';
+        populate_fn = init_create_modal_component;
+        create_fn = from_modal_create_component;
+        break;
+    }
+    var modalEl = document.getElementById('resourceCreateModal');
+    var modal = bootstrap.Modal.getInstance(modalEl);
+    document.getElementById('resourceCreateTitle').innerHTML = title;
+    document.getElementById('resourceCreateBody').innerHTML = body;
+    document.getElementById('resourceCreateButton').innerHTML = title;
+
+    // create form, if template is available
+    var formDiv = document.getElementById(form);
+    document.getElementById('resourceCreateDetails').innerHTML = formDiv != null ? formDiv.innerHTML : "";
+
+    // populate form, if function defined
+    if (populate_fn) {
+      (populate_fn)();
+    }
+
+    var formEl = document.getElementById('resourceCreateForm');
+    formEl.onsubmit = function() {
+      (create_fn)();
+      modal.hide();
+
+      // return false so we don't refresh page
+      return false;
+    }
+
+    // reset form
+    var modalForm = resourceCreateModal.querySelector('.modal-form');
+    modalForm.reset();
+  }
+
+  function display_resources(type, resources, status, jqXHR) {
+
+    var fields = resource_defns[type]['fields'];
+
+    // clear out body of table, leaving header and footer intact
+    var tbody = document.getElementById(`${type}_tbody`);
+    tbody.innerHTML = "";
+
+    // create row for each resource
+    if (resources) {
+
+      // this creates the function call to open the display modal with the
+      // correct parameters
+      function create_display_fn(event, type, id, delete_resource, title, body, details) {
+        return function() {
+          display_delete_modal(event, type, id, delete_resource, title, body, details);
+        };
+      }
+
+      for (var resource of resources) {
+        var r = document.createElement("tr");
+        var html = '';
+        var id = resource[fields[0]];
+        for (var idx in fields) {
+          html += `
+            <td>${resource[fields[idx]]}</td>`;
+        }
+        var diid = `delete-resource-${type}-${id}`;
+        r.innerHTML = `
+          ${html}
+          <td><img id='${diid}'
+              class='delete_api_key' src='{{ url_for('static', filename='icons/remove.svg') }}' height=24 width=24></img></td>`;
+        tbody.appendChild(r);
+
+        var title, body, details;
+        switch (type) {
+          case "clusters":
+            title = _('DELETE_CLUSTER');
+            body = _('DELETE_CLUSTER_INFO');
+            details = `<table>
+                <tr><th>${ _('ID') }</th><td>${id}</td></tr>
+                <tr><th>${ _('CLUSTER') }</th><td>${resource["name"]}</td></tr>
+              </table>`;
+            break;
+          case "components":
+            title = _('DELETE_COMPONENT');
+            body = _('DELETE_COMPONENT_INFO');
+            details = `<table>
+                <tr><th>${ _('ID') }</th><td>${id}</td></tr>
+                <tr><th>${ _('COMPONENT') }</th><td>${resource["name"]}</td></tr>
+                <tr><th>${ _('CLUSTER') }</th><td>${resource["cluster"]}</td></tr>
+                <tr><th>${ _('SERVICE') }</th><td>${resource["service"]}</td></tr>
+              </table>`;
+            break;
+          case "apikeys":
+            title = _('DELETE_API_KEY');
+            body = _('DELETE_API_KEY_INFO');
+            details = `<table>
+                <tr><th>${ _('KEY') }</th><td>${resource["access"]}</td></tr>
+                <tr><th>${ _('CLUSTER') }</th><td>${resource["cluster"]}</td></tr>
+                <tr><th>${ _('COMPONENT') }</th><td>${resource["component"]}</td></tr>
+              </table>`;
+            break;
+        }
+
+        var delete_button = document.getElementById(diid);
+        delete_button.addEventListener('click', create_display_fn(event, type, id, delete_resource, title, body, details));
+      }
+    } else {
+      r = document.createElement("tr");
+      r.innerHTML = `<td colspan=4>There are currently no ${type} resources defined.</td>`;
+      tbody.appendChild(r);
+    }
+  }
+
+  $(document).ready(function() {
+
+    // translate static elements
+    i18n_static();
+
+    // create listeners
+    var triggerTabList = [].slice.call(document.querySelectorAll('#admin_tabs button'))
+    triggerTabList.forEach(function (triggerEl) {
+      var tabTrigger = new bootstrap.Tab(triggerEl)
+
+      triggerEl.addEventListener('click', function (event) {
+        event.preventDefault();
+        tabTrigger.show();
+        admin_prefs.setActiveTab(event.target.dataset.pane);
+      });
+    });
+
+    var activePaneId = admin_prefs.getActiveTab();
+    var activeTabId = `${activePaneId}-tab`;
+    var activeTab = document.getElementById(activeTabId);
+    activeTab.classList.add('active');
+    activeTab.setAttribute('aria-selected', 'true');
+
+    var activePane = document.getElementById(activePaneId);
+    activePane.classList.add('show');
+    activePane.classList.add('active');
+
+    // initialize modals
+    new bootstrap.Modal(document.getElementById('resourceCreateModal'));
+    new bootstrap.Modal(document.getElementById('resourceDeleteModal'));
+
+    // when showing new resource modal, populate appropriately for resource
+    var resourceCreateModal = document.getElementById('resourceCreateModal');
+    resourceCreateModal.addEventListener("show.bs.modal", function(event) {
+      display_create_modal(event.relatedTarget.dataset.type);
+    });
+  });
   </script>
 
 {% endblock %}
 
+{# --------------------------------------------------------------------------
+                                                                     HEADER
+-------------------------------------------------------------------------- #}
+{% block title %}{{ _('Admin') }}{% endblock %}
+{% block subtitle %}{{ _('Administrative Dashboard') }}{% endblock %}
 {% block header %}
-  <h2>{% block title %}Admin{% endblock %}</h2>
 {% endblock %}
+
+{# --------------------------------------------------------------------------
+                                                                    CONTENT
+-------------------------------------------------------------------------- #}
 
 {% block content %}
 
-  <div id="tabs">
+<ul class="nav nav-tabs" id="admin_tabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="authz-tab" data-bs-toggle="tab" data-pane='authz' data-bs-target="#authz" type="button" role="tab" aria-controls="authz" aria-selected="true">{{ _('Authorizations') }}</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="api-keys-tab" data-bs-toggle="tab" data-pane='api-keys' data-bs-target="#api-keys" type="button" role="tab" aria-controls="api-keys" aria-selected="false">{{ _('API Keys') }}</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="clusters-tab" data-bs-toggle="tab" data-pane='clusters' data-bs-target="#clusters" type="button" role="tab" aria-controls="clusters" aria-selected="false">{{ _('Clusters and Components') }}</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-pane='status' data-bs-target="#status" type="button" role="tab" aria-controls="status" aria-selected="false">{{ _('Status') }}</button>
+  </li>
+</ul>
 
-    <!-- tab bar -->
-    <ul>
-      <li><a href="#tab-authz"><span>Users and access</span></a></li>
-      <li><a href="#tab-api-keys"><span>API keys</span></a></li>
-      <li><a href="#tab-configuration"><span>Configuration</span></a></li>
-      <li><a href="#tab-status"><span>Status</span></a></li>
-    </ul>
+<div class="tab-content" id="admin_panes_container">
+  <div class="tab-pane fade" id="authz" role="tabpanel" aria-labelledby="authz-tab">{% include 'admin/authz.html' %}</div>
+  <div class="tab-pane fade" id="api-keys" role="tabpanel" aria-labelledby="api-keys-tab">{% include 'admin/api-keys.html' %}</div>
+  <div class="tab-pane fade" id="clusters" role="tabpanel" aria-labelledby="clusters-tab">{% include 'admin/clusters.html' %}</div>
+  <div class="tab-pane fade" id="status" role="tabpanel" aria-labelledby="status-tab">{% include 'admin/status.html' %}</div>
+</div>
 
-    <!-- tabs -->
-    <div id="tab-authz">
-      {% include 'admin/authz.html' %}
-    </div>
-    <div id="tab-api-keys">
-      {% include 'admin/api-keys.html' %}
-    </div>
-    <div id="tab-configuration">
-      {% include 'admin/configuration.html' %}
-    </div>
-    <div id="tab-status">
-      {% include 'admin/status.html' %}
+{# ---------------------------------------------------------------------------
+                                                     dialog: create resource
+--------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='resourceCreateModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='resourceCreateTitle' data-i18n='CREATE_RESOURCE'>Kreat resource</h5>
+        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+      </div>
+      <div class='modal-body' id='resourceCreateBody' data-i18n='CREATE_RESOURCE_INFO'>
+      </div>
+      <form class='modal-form' id='resourceCreateForm'>
+      <div class='modal-body' id='resourceCreateDetails'>
+      </div>
+      <div class='modal-footer'>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
+        <button type="submit" class="btn btn-primary" id='resourceCreateButton'></button>
+      </div>
+      </form>
     </div>
   </div>
+</div>
 
+{# ---------------------------------------------------------------------------
+                                             dialog: confirm delete resource
+--------------------------------------------------------------------------- #}
+
+<div class='modal fade' id='resourceDeleteModal' tabindex='-1'>
+  <div class='modal-dialog modal-dialog-centered'>
+    <div class='modal-content'>
+      <div class='modal-header'>
+        <h5 class='modal-title' id='resourceDeleteTitle' data-i18n='CONFIRM_DELETE'>Confirm deletion</h5>
+        <button type='button' class='btn-close' data-bs-dismiss='modal'></button>
+      </div>
+      <div class='modal-body' id='resourceDeleteBody'>
+      </div>
+      <div class='modal-body' id='resourceDeleteDetails'>
+      </div>
+      <div class='modal-footer'>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n='CANCEL'>Cancel</button>
+        <button type="button" class="btn btn-danger" id='confirm-deletion-button' data-i18n='CONFIRM_DELETE'>Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
