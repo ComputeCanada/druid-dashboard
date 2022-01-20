@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.7 (2022-01-14)
+
+Added:
+* Admin functionality for managing cluster, components, API keys (still just a
+  stub for authorization)
+* Documentation link now configurable
+* Abstracted out authorization into Authz class
+
+Updated:
+* [bursts] Using single usage graph URI
+* Presentation tweaks
+* Translations
+
 ## v0.6 (2021-10-20) Generalization beyond bursting
 
 Generalized to support different usage pain metrics.
